@@ -314,23 +314,6 @@ def make_input(parent, placeholder="", width=None, **kw):
 
 
 
-def make_switch(parent, text, command=None, variable=None, **kw):
-    """
-    Create a standardized switch.
-    """
-    switch = ctk.CTkSwitch(
-        parent,
-        text=text,
-        font=get_font("body"),
-        fg_color=get_color("colors.text.disabled"),
-        progress_color=get_color("colors.accent.primary"),
-        button_color=get_color("colors.text.primary"),
-        button_hover_color=get_color("colors.text.secondary"),
-        command=command,
-        variable=variable,
-        **kw
-    )
-    return switch
 
 
 

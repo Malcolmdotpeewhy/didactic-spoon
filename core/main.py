@@ -3,10 +3,10 @@ import os
 import sys
 import threading
 import time
-import tkinter
 import traceback
 import queue
 import subprocess
+from tkinter import TclError
 
 import customtkinter as ctk
 import keyboard
@@ -17,7 +17,7 @@ from services.asset_manager import AssetManager, ConfigManager
 from services.automation import AutomationEngine
 from services.stats_scraper import StatsScraper
 from utils.logger import Logger
-from utils.path_utils import resource_path
+from utils.path_utils import get_asset_path
 from core.version import __version__
 
 from ui.app_sidebar import SidebarWidget
@@ -195,7 +195,7 @@ class LeagueLoopApp(ctk.CTk):
             self.overrideredirect(True)
             try:
                 self.attributes("-transparentcolor", "")
-            except tkinter.TclError:
+            except TclError:
                 pass
 
             self.sidebar.grid()
@@ -244,7 +244,7 @@ class LeagueLoopApp(ctk.CTk):
             self.overrideredirect(True)
             try:
                 self.attributes("-transparentcolor", trans_color)
-            except tkinter.TclError:
+            except TclError:
                 pass
 
             self._compact_frame.bind("<ButtonPress-1>", self.on_drag_start)

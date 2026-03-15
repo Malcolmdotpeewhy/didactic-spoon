@@ -38,7 +38,7 @@ class Omnibar(ctk.CTkFrame):
         self._visible = False
 
         # State
-        self._all_commands = []
+        self._all_commands = ()
         self._filtered_commands = []
         self._selected_index = 0
         self._result_widgets = []
@@ -93,7 +93,7 @@ class Omnibar(ctk.CTkFrame):
         self._visible = True
 
         # Refresh commands on open
-        self._all_commands = self.command_provider()
+        self._all_commands = tuple(self.command_provider())
         self.search_input.delete(0, "end")
         self._filter_results("")
 
@@ -108,13 +108,6 @@ class Omnibar(ctk.CTkFrame):
         self._visible = False
         self.place_forget()
 
-    def toggle(self):
-        """Toggle visibility."""
-        if self._visible:
-            self.hide()
-        else:
-            self.show()
-
     # --- Logic ---
 
     def _on_search(self, event):
@@ -126,17 +119,23 @@ class Omnibar(ctk.CTkFrame):
 
     def _filter_results(self, query):
         if not query:
-            self._filtered_commands = self._all_commands[:]
+            self._filtered_commands = list(self._all_commands)
         else:
             # Simple fuzzy/substring search
-            self._filtered_commands = []
-            for cmd in self._all_commands:
-                search_target = f"{cmd.get('title', '')} {cmd.get('subtitle', '')}".lower()
-                if query in search_target:
-                    self._filtered_commands.append(cmd)
+            exact_matches = []
+            other_matches = []
 
-            # Basic ranking: exact starts with is better
-            self._filtered_commands.sort(key=lambda c: 0 if c.get("title", "").lower().startswith(query) else 1)
+            for cmd in self._all_commands:
+                title = cmd.get("title", "")
+                search_target = f"{title} {cmd.get('subtitle', '')}".lower()
+
+                if query in search_target:
+                    if title.lower().startswith(query):
+                        exact_matches.append(cmd)
+                    else:
+                        other_matches.append(cmd)
+
+            self._filtered_commands = exact_matches + other_matches
 
         self._selected_index = 0
         self._render_results()

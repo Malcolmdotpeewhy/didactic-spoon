@@ -187,7 +187,7 @@ class AssetManager:
                         self._items_cache = None
                         self._runes_cache = None
                         self._summoner_icons_cache = None
-                        for filename in ["champion.json", "item.json", "summoner.json", "runesReforged.json"]:
+                        for filename in ("champion.json", "item.json", "summoner.json", "runesReforged.json"):
                             path = os.path.join(CACHE_DIR, filename)
                             if os.path.exists(path):
                                 try:
@@ -590,51 +590,6 @@ class AssetManager:
         self._download_queue.put(_worker)
 
 
-    def get_gamemode_icon(self, mode: str, size=(30, 30)) -> Optional[ctk.CTkImage]:
-        """Get icon for game mode (SR, ARAM, ARENA). Uses Data Dragon map assets."""
-        # Map modes to DDragon map IDs
-        # SR = 11, ARAM = 12, Arena = 30 (or fallback)
-        mode_map = {
-            "SUMMONER'S RIFT": "map11",
-            "ARAM MODE": "map12",
-            "ARENA MODE": "map30", # Arena typically map 30
-            "TFT": "map22" 
-        }
-        
-        fname = f"mode_{mode_map.get(mode, 'unknown')}.png"
-        path = os.path.join(ASSETS_DIR, fname)
-        
-        # Check Cache
-        cache_key = f"gamemode_{mode}_{size[0]}"
-        if cache_key in self.icons:
-            return self.icons[cache_key]
-            
-        if os.path.exists(path):
-            try:
-                pil_img = Image.open(path)
-                img = ctk.CTkImage(pil_img, size=size)
-                self.icons[cache_key] = img
-                return img
-            except Exception as e:
-                Logger.error("asset_manager.py", f"Handled exception: {type(e).__name__}: {e}")
-        
-        # Download Logic (Data Dragon)
-        # Fallback to Community Dragon for Arena if DDragon fails (often DDragon only has main maps)
-        dd_base = f"https://ddragon.leagueoflegends.com/cdn/{self.ddragon_ver}/img/map/"
-        
-        key = mode_map.get(mode)
-        if key:
-            url = f"{dd_base}{key}.png"
-            # Arena fallback to CDragon if needed (DDragon sometimes lags on rotator modes)
-            if mode == "ARENA MODE":
-                # Arena specific fallback if DDragon fails (or use CDragon directly)
-                # But let's verify DDragon first. If it fails, the file won't exist next time.
-                pass 
-
-            self._start_download(url, path)
-            
-        return None
-
     def get_rune_shard_icon(self, shard_name: str, size=(24, 24)) -> Optional[ctk.CTkImage]:
         """
         Get icon for a stat shard (Health, Adaptive, etc).
@@ -816,10 +771,6 @@ class AssetManager:
 
 
 
-    def get_spell_name(self, key: int):
-        """Get spell name by key."""
-        return self.spell_data.get(key, None)
-
     def get_champ_id(self, name: str) -> Optional[int]:
         """Get champion ID by name."""
         if not name:
@@ -941,34 +892,6 @@ class AssetManager:
         except Exception as e:  # pylint: disable=broad-exception-caught
             Logger.error("asset_manager.py", f"Handled exception: {type(e).__name__}: {e}")
             return []
-
-    def get_profile_icon(self, icon_id: int, size=(100, 100)) -> Optional[ctk.CTkImage]:
-        """Get a CTkImage for the specified profile icon."""
-        path = os.path.join(ASSETS_DIR, f"profileicon_{icon_id}.png")
-
-        # Check Cache
-        cache_key = f"profile_{icon_id}_{size[0]}"
-        if cache_key in self.icons:
-            return self.icons[cache_key]
-
-        if os.path.exists(path):
-            try:
-                pil_img = Image.open(path)
-                img = ctk.CTkImage(pil_img, size=size)
-                self.icons[cache_key] = img
-                return img
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                Logger.error("asset_manager.py", f"Handled exception: {type(e).__name__}: {e}")
-                return None
-
-        # Download
-        # Use dynamic version or fallback to CommunityDragon
-        # CommunityDragon is safer for new icons
-        # url = f"https://ddragon.leagueoflegends.com/cdn/{self.ddragon_ver}/img/profileicon/{icon_id}.png"
-        url = f"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/{icon_id}.jpg"
-        
-        self._start_download(url, path)
-        return None
 
     def get_splash_art(
         self, skin_id: int, width=1280, opacity=1.0
@@ -1119,7 +1042,7 @@ class AssetManager:
                                 url = f"https://ddragon.leagueoflegends.com/cdn/img/{r_icon}"
                                 download_queue.append((url, path, f"Rune: {rune.get('name', '?')}"))
 
-        roles = ["top", "jungle", "middle", "bottom", "utility", "fill"]
+        roles = ("top", "jungle", "middle", "bottom", "utility", "fill")
         for r_name in roles:
             fname = f"icon-position-{r_name}.png"
             path = os.path.join(ASSETS_DIR, fname)
