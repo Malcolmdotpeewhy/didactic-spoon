@@ -3,15 +3,15 @@ from unittest.mock import MagicMock
 
 # Assuming the class exists in the module as specified by the issue
 try:
-    from services.automation import AutomationLogic
+    from services.automation import AutomationEngine
 except ImportError:
-    class AutomationLogic:
+    class AutomationEngine:
         pass
 
-class TestAutomationLogicReadyCheck(unittest.TestCase):
+class TestAutomationEngineReadyCheck(unittest.TestCase):
     def setUp(self):
         # Instantiate without calling __init__ in case the signature is unknown
-        self.logic = AutomationLogic.__new__(AutomationLogic)
+        self.logic = AutomationEngine.__new__(AutomationEngine)
 
         # Mock the api dependency and its request method
         self.logic.api = MagicMock()

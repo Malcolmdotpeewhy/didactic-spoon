@@ -185,12 +185,20 @@ class AutomationEngine:
             self._log("Auto Re-Queued (Play Again)")
             self._requeue_handled = True
         elif phase == "Lobby":
-            search_state = self.lcu.request("GET", "/lol-lobby/v2/lobby/matchmaking/search-state")
-            state = search_state.json() if search_state and search_state.status_code == 200 else None
+            now = time.time()
+            if hasattr(self, "_cached_search_state") and hasattr(self, "_last_search_state_time") and (now - self._last_search_state_time < 3.0):
+                state = self._cached_search_state
+            else:
+                search_state = self.lcu.request("GET", "/lol-lobby/v2/lobby/matchmaking/search-state")
+                state = search_state.json() if search_state and search_state.status_code == 200 else None
+                self._cached_search_state = state
+                self._last_search_state_time = now
             
             if not state or state.get("searchState") != "Searching":
                 self.lcu.request("POST", "/lol-lobby/v2/lobby/matchmaking/search")
                 self._log("Starting Matchmaking...")
+                # Invalidate cache so we don't immediately try again before the state updates
+                self._last_search_state_time = 0
 
     def _handle_champ_select(self, phase, session):
         if self.paused: return
