@@ -24,6 +24,7 @@ class SidebarWidget(ctk.CTkFrame):
         self.assets = assets
         self.scraper = scraper
         self.power_state = False
+        self.settings_window = None
 
         self._setup_ui()
 
@@ -105,12 +106,20 @@ class SidebarWidget(ctk.CTkFrame):
         self.btn_power.pack(pady=(12, 4))
         CTkTooltip(self.btn_power, "Click to Activate Automation")
         
-        # Status
-        self.lbl_status = ctk.CTkLabel(
-            self.main_body, text="⏸ Paused", font=get_font("caption"),
-            text_color=get_color("colors.text.muted")
+        # ── Mode Quick Toggle ──
+        # Display as: "⏸ Paused - ARAM"
+        self.btn_mode_status = ctk.CTkButton(
+            self.main_body, 
+            text=self._get_status_text(), 
+            font=get_font("caption"),
+            text_color=get_color("colors.text.muted"),
+            fg_color="transparent",
+            hover_color=get_color("colors.state.hover"),
+            height=20,
+            command=self._quick_toggle_mode
         )
-        self.lbl_status.pack(pady=(0, 8))
+        self.btn_mode_status.pack(pady=(0, 8))
+        CTkTooltip(self.btn_mode_status, "Click to quickly swap game modes")
 
         # ── Divider ──
         ctk.CTkFrame(self.main_body, height=1, fg_color=get_color("colors.border.subtle")).pack(fill="x", padx=12, pady=4)
@@ -214,27 +223,50 @@ class SidebarWidget(ctk.CTkFrame):
             self.main_body.pack_forget()
             self.btn_collapse.configure(text="▶")
             self.master.geometry("200x44")
+    # ── Quick Toggle Logic ──
+    def _get_status_text(self):
+        state = "▶ Active" if self.power_state else "⏸ Paused"
+        mode = self.config.get("aram_mode", "ARAM")
+        return f"{state} - {mode}"
 
+    def _quick_toggle_mode(self):
+        # Swap between ARAM and ARAM Mayhem
+        current = self.config.get("aram_mode", "ARAM")
+        new_mode = "ARAM Mayhem" if current == "ARAM" else "ARAM"
+        
+        # Save new mode
+        self.config.set("aram_mode", new_mode)
+        
+        # Update UI text
+        self.btn_mode_status.configure(text=self._get_status_text())
+        
+        # Notify subsystems
+        if self.scraper:
+            self.scraper.set_mode(new_mode)
+        
+        # Also update settings modal if it happens to be open
+        if getattr(self, "settings_window", None) and self.settings_window.winfo_exists():
+            try:
+                self.settings_window.mode_var.set(new_mode)
+            except Exception:
+                pass
+
+    # ── Handlers ──
     def _on_power_click(self):
         self.power_state = not self.power_state
-        self.toggle_callback(self.power_state)
-        
         if self.power_state:
-            self.btn_power.configure(
-                image=self.img_on or None,
-                border_color=get_color("colors.accent.primary")
-            )
-            self.lbl_status.configure(text="▶ Active", text_color=get_color("colors.accent.primary"))
+            if self.img_on: self.btn_power.configure(image=self.img_on, text="")
+            else: self.btn_power.configure(text="▶")
+            self.btn_power.configure(border_color=get_color("colors.accent.primary"))
         else:
-            self.btn_power.configure(
-                image=self.img_off or None,
-                border_color=get_color("colors.text.muted")
-            )
-            self.lbl_status.configure(text="⏸ Paused", text_color=get_color("colors.text.muted"))
+            if self.img_off: self.btn_power.configure(image=self.img_off, text="")
+            else: self.btn_power.configure(text="⏻")
+            self.btn_power.configure(border_color=get_color("colors.text.muted"))
 
-    def _find_match(self):
-        if self.lcu:
-            # 1. Check current state
+        self.btn_mode_status.configure(text=self._get_status_text())
+
+        if self.toggle_callback:
+            self.toggle_callback(self.power_state)
             state_req = self.lcu.request("GET", "/lol-lobby/v2/lobby/matchmaking/search-state")
             state_data = state_req.json() if state_req and state_req.status_code == 200 else {}
             
@@ -246,22 +278,69 @@ class SidebarWidget(ctk.CTkFrame):
                     self._on_power_click()
                 return
 
-            # 2. Determine Queue ID based on ARAM Mode
-            mode = self.config.get("aram_mode", "ARAM")
-            # ARAM is generally 450. ARAM Mayhem queue ID varies depending on event, usually 1110 or similar.
-            # We'll default to 450 for ARAM and a placeholder or known RGM ID for mayhem for now.
-            queue_id = 450 if mode == "ARAM" else 1110 
-            
-            # 3. Create Lobby if needed
-            self.lcu.request("POST", "/lol-lobby/v2/lobby", data={"queueId": queue_id})
-            
-            # 4. Start Search
-            self.lcu.request("POST", "/lol-lobby/v2/lobby/matchmaking/search")
-            self.update_action_log(f"Starting Matchmaking ({mode})...")
-            
-            # 5. Turn on auto if it isn't
+    def _get_queue_id_for_mode(self, mode):
+        """Dynamically resolve the queue ID from the client."""
+        try:
+            queues_req = self.lcu.request("GET", "/lol-game-queues/v1/queues")
+            if queues_req and queues_req.status_code == 200:
+                queues = queues_req.json()
+                if mode == "ARAM": return 450
+                
+                # For ARAM Mayhem, search for "Mayhem" in name or description
+                for q in queues:
+                    name = q.get("name", "").lower()
+                    desc = q.get("description", "").lower()
+                    if "mayhem" in name or "mayhem" in desc:
+                        return q.get("id")
+        except Exception:
+            pass
+        return 450 # Default to ARAM
+
+    def _find_match(self):
+        if not self.lcu: return
+
+        # 1. Check if already searching
+        state_req = self.lcu.request("GET", "/lol-lobby/v2/lobby/matchmaking/search-state")
+        state_data = state_req.json() if state_req and state_req.status_code == 200 else {}
+        
+        if state_data.get("searchState") == "Searching":
+            self.lcu.request("DELETE", "/lol-lobby/v2/lobby/matchmaking/search")
+            self.update_action_log("Matchmaking Cancelled.")
+            if self.power_state:
+                self._on_power_click()
+            return
+
+        # 2. Resolve Queue ID
+        mode = self.config.get("aram_mode", "ARAM")
+        self.update_action_log(f"Resolving {mode}...")
+        queue_id = self._get_queue_id_for_mode(mode)
+
+        # 3. Handle Lobby State
+        lobby_req = self.lcu.request("GET", "/lol-lobby/v2/lobby")
+        if lobby_req and lobby_req.status_code == 200:
+            lobby_data = lobby_req.json()
+            current_id = lobby_data.get("gameConfig", {}).get("queueId")
+            if current_id != queue_id:
+                self.update_action_log("Resetting Lobby...")
+                self.lcu.request("DELETE", "/lol-lobby/v2/lobby")
+                # Create and search after a short delay
+                self.after(400, lambda: self._finalize_matchmaking(queue_id, mode))
+                return
+        
+        self._finalize_matchmaking(queue_id, mode)
+
+    def _finalize_matchmaking(self, queue_id, mode):
+        # Create Lobby (Safe to call POST even if in lobby, but we deleted if wrong ID)
+        self.lcu.request("POST", "/lol-lobby/v2/lobby", data={"queueId": queue_id})
+        
+        # Start Search
+        res = self.lcu.request("POST", "/lol-lobby/v2/lobby/matchmaking/search")
+        if res and res.status_code in [200, 204]:
+            self.update_action_log(f"Searching ({mode})...")
             if not self.power_state:
                 self._on_power_click()
+        else:
+            self.update_action_log("Search failed - Check lobby.")
 
     def _on_toggle_accept(self):
         self.config.set("auto_accept", self.var_accept.get())
@@ -281,19 +360,10 @@ class SidebarWidget(ctk.CTkFrame):
         """Called from AutomationEngine during ChampSelect to show winrate stats."""
         if not team and not bench:
             self.stats_frame.pack_forget()
-            return
-
-        self.stats_frame.pack(fill="x", padx=12, pady=6, before=self.spacer)
-
-        # Clear existing rows
-        for child in self.stats_content.winfo_children():
-            child.destroy()
-
-        if not self.scraper:
+            self._last_stats_hash = None
             return
 
         mode = self.config.get("aram_mode", "ARAM")
-        self.lbl_stats_title.configure(text=f"{mode} Win Rates")
 
         # Collect available champion IDs
         available = []
@@ -305,6 +375,23 @@ class SidebarWidget(ctk.CTkFrame):
             cid = p.get("championId")
             if cid:
                 available.append(cid)
+
+        # Memoize rendering: only update if mode or champ pool changes
+        current_hash = (mode, tuple(sorted(available)))
+        if getattr(self, "_last_stats_hash", None) == current_hash:
+            return
+        self._last_stats_hash = current_hash
+
+        self.stats_frame.pack(fill="x", padx=12, pady=6, before=self.spacer)
+
+        # Clear existing rows
+        for child in self.stats_content.winfo_children():
+            child.destroy()
+
+        if not self.scraper:
+            return
+
+        self.lbl_stats_title.configure(text=f"{mode} Win Rates")
 
         # Resolve names and winrates
         champ_stats = []
@@ -331,4 +418,8 @@ class SidebarWidget(ctk.CTkFrame):
             lbl_wr.pack(side="right")
 
     def _open_settings(self):
-        SettingsModal(self.master, self.config, on_save_callback=self.master.on_settings_saved)
+        if self.settings_window is None or not self.settings_window.winfo_exists():
+            self.settings_window = SettingsModal(self.master, self.config, on_save_callback=self.master.on_settings_saved)
+        else:
+            self.settings_window.focus_force()
+            self.settings_window.lift()

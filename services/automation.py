@@ -25,6 +25,7 @@ class AutomationEngine:
         self.log = log_func
         self.stop_func = stop_func
         self.stats_func = kwargs.get("stats_func")
+        self.window_func = kwargs.get("window_func")
         self.running = False
         self.paused = False
         self.thread = None
@@ -109,6 +110,13 @@ class AutomationEngine:
                     self.stop_func()
                     self.pause()
                     return
+
+        # Auto-minimize/restore based on InProgress state
+        if self.window_func and phase != self.last_phase:
+            if phase == "InProgress":
+                self.window_func("minimize")
+            elif self.last_phase == "InProgress" and phase in ["EndOfGame", "Lobby", "None"]:
+                self.window_func("restore")
 
         self.last_phase = phase
 

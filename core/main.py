@@ -76,7 +76,8 @@ class LeagueLoopApp(ctk.CTk):
             self.config,
             log_func=self.sidebar.update_action_log,
             stop_func=lambda: self.after(0, lambda: self.sidebar._on_power_click()),
-            stats_func=lambda team, bench: self.after(0, lambda: self.sidebar.update_lobby_stats(team, bench))
+            stats_func=lambda team, bench: self.after(0, lambda: self.sidebar.update_lobby_stats(team, bench)),
+            window_func=lambda state: self.after(0, lambda: self._handle_window_state(state))
         )
         self.automation.start(start_paused=True)
 
@@ -126,7 +127,19 @@ class LeagueLoopApp(ctk.CTk):
         self.geometry(f"+{x}+{y}")
 
     def _hotkey_find_match(self):
+        self.state("normal")
+        self.attributes("-topmost", True)
         self.after(0, self.sidebar._find_match)
+
+    def _handle_window_state(self, state):
+        if state == "minimize":
+            self.state("iconic")
+            Logger.info("SYS", "Game started. Minimizing window.")
+        elif state == "restore":
+            self.state("normal")
+            self.attributes("-topmost", True)
+            self.lift()
+            Logger.info("SYS", "Game ended. Restoring window.")
 
     def _hotkey_launch_client(self):
         def _launch():
