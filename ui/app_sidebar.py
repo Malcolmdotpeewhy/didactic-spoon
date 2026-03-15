@@ -81,21 +81,10 @@ class SidebarWidget(ctk.CTkFrame):
         # ── Power Button ──
         self.img_off = None
         self.img_on = None
-        try:
-            idle_path = resource_path("assets/icon_idle.png")
-            active_path = resource_path("assets/icon_active.png")
-            if os.path.exists(idle_path):
-                self.img_off = ctk.CTkImage(Image.open(idle_path), size=(56, 56))
-            if os.path.exists(active_path):
-                self.img_on = ctk.CTkImage(Image.open(active_path), size=(56, 56))
-        except Exception as e:
-            print(f"Icon load error: {e}")
 
-        init_img = self.img_off or None
-        init_text = "⏻" if not init_img else ""
-
+        # Load initially with no image
         self.btn_power = ctk.CTkButton(
-            self.main_body, text=init_text, image=init_img,
+            self.main_body, text="⏻", image=None,
             font=("Arial", 20, "bold"), width=64, height=64,
             corner_radius=32, border_width=2,
             border_color=get_color("colors.text.muted"),
@@ -103,6 +92,8 @@ class SidebarWidget(ctk.CTkFrame):
             hover_color=get_color("colors.state.hover"),
             command=self._on_power_click,
         )
+
+        self.after(50, self._load_icons_async)
         self.btn_power.pack(pady=(12, 4))
         CTkTooltip(self.btn_power, "Click to Activate Automation")
         
@@ -213,6 +204,20 @@ class SidebarWidget(ctk.CTkFrame):
         self.lbl_action.pack(fill="x", padx=14, pady=8)
 
     # ── Callbacks ──
+    def _load_icons_async(self):
+        try:
+            idle_path = resource_path("assets/icon_idle.png")
+            active_path = resource_path("assets/icon_active.png")
+            if os.path.exists(idle_path):
+                self.img_off = ctk.CTkImage(Image.open(idle_path), size=(56, 56))
+            if os.path.exists(active_path):
+                self.img_on = ctk.CTkImage(Image.open(active_path), size=(56, 56))
+
+            if self.img_off:
+                self.btn_power.configure(image=self.img_off if not self.power_state else self.img_on, text="")
+        except Exception as e:
+            print(f"Icon load error: {e}")
+
     def _toggle_body_collapse(self):
         self._body_expanded = not self._body_expanded
         if self._body_expanded:

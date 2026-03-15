@@ -276,14 +276,20 @@ class LeagueLoopApp(ctk.CTk):
 
     def docking_loop(self):
         """Finds League of Legends client and clips to the right side of it."""
+        last_hwnd = 0
         while self.running and not self._stop_event.is_set():
             try:
-                # We can check for standard Riot Client or League Client
-                hwnd = ctypes.windll.user32.FindWindowW(None, "League of Legends")
-                if hwnd == 0:
-                     hwnd = ctypes.windll.user32.FindWindowW(None, "Riot Client")
-                     
+                hwnd = 0
+                if last_hwnd != 0 and ctypes.windll.user32.IsWindow(last_hwnd):
+                    hwnd = last_hwnd
+                else:
+                    # We can check for standard Riot Client or League Client
+                    hwnd = ctypes.windll.user32.FindWindowW(None, "League of Legends")
+                    if hwnd == 0:
+                        hwnd = ctypes.windll.user32.FindWindowW(None, "Riot Client")
+
                 if hwnd != 0:
+                    last_hwnd = hwnd
                     rect = ctypes.wintypes.RECT()
                     ctypes.windll.user32.GetWindowRect(hwnd, ctypes.byref(rect))
                     
@@ -299,9 +305,12 @@ class LeagueLoopApp(ctk.CTk):
                         my_h = min(client_h, 800) # Max height
                         # Snap to the right
                         self.after(0, lambda x=client_x + client_w, y=client_y, h=my_h: self.geometry(f"{my_w}x{h}+{x}+{y}"))
+                    time.sleep(0.5)
+                else:
+                    last_hwnd = 0
+                    time.sleep(2.0)
             except Exception as e:
-                pass
-            time.sleep(0.5)
+                time.sleep(2.0)
 
     def _on_close(self):
         self.running = False
