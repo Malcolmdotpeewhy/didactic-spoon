@@ -33,7 +33,7 @@ class PriorityIconGrid(ctk.CTkFrame):
 
         self._expanded = True
         self._edit_mode = False
-        self._active_index = None        # single-selected for reorder
+        self._selected_indices = set()   # set of selected indices for reorder/mass-delete
         self._delete_marked = set()      # indices marked for deletion
         self._icon_cache = {}
         self._icon_widgets = []
@@ -68,12 +68,24 @@ class PriorityIconGrid(ctk.CTkFrame):
                         return real
         return None
 
+    @staticmethod
+    def _dedup(seq):
+        """Remove duplicates while preserving order."""
+        seen = set()
+        out = []
+        for item in seq:
+            if item not in seen:
+                seen.add(item)
+                out.append(item)
+        return out
+
     def _get_priority_list(self):
-        return self.config.get("priority_picker", {}).get("list", [])
+        raw = self.config.get("priority_picker", {}).get("list", [])
+        return self._dedup(raw)
 
     def _save_priority_list(self, lst):
         cfg = self.config.get("priority_picker", {})
-        cfg["list"] = lst
+        cfg["list"] = self._dedup(lst)
         self.config.set("priority_picker", cfg)
 
     def _load_icon(self, champ_name):
@@ -189,6 +201,38 @@ class PriorityIconGrid(ctk.CTkFrame):
         self.btn_down.pack(side="left", padx=1)
         self.btn_del.pack(side="right", padx=1)
 
+        # ── Move-to-position entry (inline in edit bar) ──
+        self._move_to_frame = ctk.CTkFrame(self.edit_bar, fg_color="transparent")
+        move_lbl = ctk.CTkLabel(
+            self._move_to_frame, text="#",
+            font=("Segoe UI", 12, "bold"),
+            text_color=get_color("colors.accent.primary"),
+            width=12,
+        )
+        move_lbl.pack(side="left")
+        self._move_entry = ctk.CTkEntry(
+            self._move_to_frame, width=34, height=22,
+            font=("Segoe UI", 11), corner_radius=4,
+            fg_color=get_color("colors.background.card"),
+            border_width=1,
+            border_color=get_color("colors.border.subtle"),
+            text_color=get_color("colors.text.primary"),
+            placeholder_text="pos",
+            justify="center",
+        )
+        self._move_entry.pack(side="left", padx=(0, 2))
+        self._move_entry.bind("<Return>", lambda e: self._commit_move_to())
+        self._move_go_btn = ctk.CTkButton(
+            self._move_to_frame, text="Go", width=28, height=22,
+            corner_radius=4, font=("Segoe UI", 10, "bold"),
+            fg_color=get_color("colors.accent.primary"),
+            hover_color=get_color("colors.state.hover"),
+            text_color="#ffffff",
+            command=self._commit_move_to,
+        )
+        self._move_go_btn.pack(side="left")
+        self._move_to_frame.pack(side="left", padx=(6, 0))
+
     # ───────────── grid rendering ─────────────
     def _render_grid(self):
         for w in self.scroll.winfo_children():
@@ -205,8 +249,10 @@ class PriorityIconGrid(ctk.CTkFrame):
 
             icon_img = self._load_icon(name)
 
+            # Slightly larger cell in edit mode to fit rank badge
+            cell_size = ICON_SIZE + 4
             cell = ctk.CTkFrame(
-                row_frame, width=ICON_SIZE + 4, height=ICON_SIZE + 4,
+                row_frame, width=cell_size, height=cell_size,
                 fg_color="transparent", corner_radius=4,
             )
             cell.pack(side="left", padx=GRID_PAD)
@@ -224,16 +270,17 @@ class PriorityIconGrid(ctk.CTkFrame):
                 )
             lbl.pack(expand=True)
 
-            lbl.bind("<Enter>", lambda e, n=name: self._show_tooltip(e, n))
+            lbl.bind("<Enter>", lambda e, n=name, idx=i: self._show_tooltip(e, n, idx))
             lbl.bind("<Leave>", lambda e: self._hide_tooltip())
             lbl.bind("<Button-1>", lambda e, idx=i: self._on_cell_click(idx))
+            lbl.bind("<Shift-Button-1>", lambda e, idx=i: self._on_shift_click(idx))
 
             self._icon_widgets.append((cell, lbl, i))
 
         self._refresh_visuals()
 
     # ───────────── tooltip ─────────────
-    def _show_tooltip(self, event, name):
+    def _show_tooltip(self, event, name, idx=None):
         if hasattr(self, "_tip") and self._tip:
             self._tip.destroy()
         self._tip = tk.Toplevel(self)
@@ -242,8 +289,15 @@ class PriorityIconGrid(ctk.CTkFrame):
         x = event.widget.winfo_rootx() + ICON_SIZE
         y = event.widget.winfo_rooty()
         self._tip.geometry(f"+{x}+{y}")
-        tk.Label(self._tip, text=name, bg="#1a1a2e", fg="#e0e0e0",
-                 font=("Segoe UI", 9), padx=6, pady=2).pack()
+        # Show rank in tooltip (e.g. "#3 Brand")
+        display = f"#{idx + 1}  {name}" if idx is not None else name
+        tip_frame = tk.Frame(self._tip, bg="#1a1a2e")
+        tip_frame.pack()
+        tk.Label(tip_frame, text=display, bg="#1a1a2e", fg="#e0e0e0",
+                 font=("Segoe UI", 9), padx=6, pady=2).pack(side="left")
+        if self._edit_mode and len(self._selected_indices) == 1 and idx not in self._selected_indices:
+            tk.Label(tip_frame, text="  ⇧Click to move here", bg="#1a1a2e",
+                     fg="#4da6ff", font=("Segoe UI", 8), padx=2, pady=2).pack(side="left")
 
     def _hide_tooltip(self):
         if hasattr(self, "_tip") and self._tip:
@@ -263,7 +317,7 @@ class PriorityIconGrid(ctk.CTkFrame):
     # ───────────── edit mode ─────────────
     def _toggle_edit_mode(self):
         self._edit_mode = not self._edit_mode
-        self._active_index = None
+        self._selected_indices.clear()
         self._delete_marked.clear()
         if self._edit_mode:
             self.btn_edit.configure(text="Done", text_color="#ff4444")
@@ -273,64 +327,151 @@ class PriorityIconGrid(ctk.CTkFrame):
             self.edit_bar.pack_forget()
         self._refresh_visuals()
 
+    def _sync_edit_bar_state(self):
+        """Hides move controls if multiple champions are selected (mass-delete only)."""
+        should_show_moves = len(self._selected_indices) <= 1
+        
+        if should_show_moves:
+            self.btn_top.pack(side="left", padx=1)
+            self.btn_up.pack(side="left", padx=1)
+            self.btn_down.pack(side="left", padx=1)
+            self._move_to_frame.pack(side="left", padx=(6, 0))
+        else:
+            self.btn_top.pack_forget()
+            self.btn_up.pack_forget()
+            self.btn_down.pack_forget()
+            self._move_to_frame.pack_forget()
+
     def _on_cell_click(self, idx):
         if not self._edit_mode:
             return
-        # Single-select toggle
-        if self._active_index == idx:
-            self._active_index = None
+        
+        if idx in self._selected_indices:
+            self._selected_indices.remove(idx)
         else:
-            self._active_index = idx
+            self._selected_indices.add(idx)
+            
         self._refresh_visuals()
+        
+        # Auto-populate position entry with selected rank (only if 1 selected)
+        if len(self._selected_indices) == 1:
+            val = list(self._selected_indices)[0]
+            self._move_entry.delete(0, "end")
+            self._move_entry.insert(0, str(val + 1))
+        else:
+            self._move_entry.delete(0, "end")
+
+    def _on_shift_click(self, target_idx):
+        """Shift+Click: move the single selected champion to this position."""
+        if not self._edit_mode or len(self._selected_indices) != 1:
+            return
+        
+        active_idx = list(self._selected_indices)[0]
+        if active_idx == target_idx:
+            return
+        names = self._get_priority_list()
+        item = names.pop(active_idx)
+        names.insert(target_idx, item)
+        self._save_priority_list(names)
+        self._selected_indices = {target_idx}
+        self._render_grid()
 
     def _refresh_visuals(self):
+        self._sync_edit_bar_state()
         for cell, lbl, idx in self._icon_widgets:
-            if idx == self._active_index:
+            if idx in self._selected_indices:
                 cell.configure(fg_color=SEL_BG, border_width=2,
-                               border_color=SEL_BORDER, corner_radius=6)
+                               border_color=DEL_BORDER if len(self._selected_indices) > 1 else SEL_BORDER, 
+                               corner_radius=6)
             else:
                 cell.configure(fg_color="transparent", border_width=0, corner_radius=4)
 
     # ───────────── reorder buttons ─────────────
     def _move_top(self):
-        if self._active_index is None or self._active_index == 0:
-            return
+        if len(self._selected_indices) != 1: return
+        active_idx = list(self._selected_indices)[0]
+        if active_idx == 0: return
+        
         names = self._get_priority_list()
-        item = names.pop(self._active_index)
+        item = names.pop(active_idx)
         names.insert(0, item)
         self._save_priority_list(names)
-        self._active_index = 0
+        self._selected_indices = {0}
         self._render_grid()
 
     def _move_up(self):
-        if self._active_index is None or self._active_index == 0:
-            return
+        if len(self._selected_indices) != 1: return
+        active_idx = list(self._selected_indices)[0]
+        if active_idx == 0: return
+        
         names = self._get_priority_list()
-        i = self._active_index
-        names[i], names[i - 1] = names[i - 1], names[i]
+        names[active_idx], names[active_idx - 1] = names[active_idx - 1], names[active_idx]
         self._save_priority_list(names)
-        self._active_index = i - 1
+        self._selected_indices = {active_idx - 1}
         self._render_grid()
 
     def _move_down(self):
+        if len(self._selected_indices) != 1: return
+        active_idx = list(self._selected_indices)[0]
         names = self._get_priority_list()
-        if self._active_index is None or self._active_index >= len(names) - 1:
-            return
-        i = self._active_index
-        names[i], names[i + 1] = names[i + 1], names[i]
+        if active_idx >= len(names) - 1: return
+        
+        names[active_idx], names[active_idx + 1] = names[active_idx + 1], names[active_idx]
         self._save_priority_list(names)
-        self._active_index = i + 1
+        self._selected_indices = {active_idx + 1}
         self._render_grid()
 
     def _delete_active(self):
-        if self._active_index is None:
+        if not self._selected_indices:
             return
         names = self._get_priority_list()
-        if self._active_index < len(names):
-            names.pop(self._active_index)
-            self._save_priority_list(names)
-        self._active_index = None
+        
+        # Sort descending so popping doesn't shift the indices of earlier elements
+        for idx in sorted(list(self._selected_indices), reverse=True):
+            if idx < len(names):
+                names.pop(idx)
+                
+        self._save_priority_list(names)
+        self._selected_indices.clear()
+        self._move_entry.delete(0, "end")
         self._render_grid()
+
+    # ───────────── move-to-position ─────────────
+    def _commit_move_to(self):
+        """Move the selected champion to the position typed in the # entry."""
+        if len(self._selected_indices) != 1:
+            self._flash_move_entry()
+            return
+            
+        active_idx = list(self._selected_indices)[0]
+        raw = self._move_entry.get().strip()
+        if not raw:
+            self._flash_move_entry()
+            return
+        try:
+            target = int(raw)
+        except ValueError:
+            self._flash_move_entry()
+            return
+        names = self._get_priority_list()
+        # Clamp to valid range (1-based input)
+        target = max(1, min(target, len(names)))
+        target_idx = target - 1
+        if target_idx == active_idx:
+            return
+        item = names.pop(active_idx)
+        names.insert(target_idx, item)
+        self._save_priority_list(names)
+        self._selected_indices = {target_idx}
+        self._move_entry.delete(0, "end")
+        self._move_entry.insert(0, str(target))
+        self._render_grid()
+
+    def _flash_move_entry(self):
+        """Brief red flash on the position entry to indicate invalid input."""
+        self._move_entry.configure(border_color="#e81123")
+        self.after(800, lambda: self._move_entry.configure(
+            border_color=get_color("colors.border.subtle")))
 
     # ───────────── add ─────────────
     def _show_add_input(self):

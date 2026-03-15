@@ -17,12 +17,14 @@ class AutomationEngine:
         config: ConfigManager,
         log_func=None,
         stop_func=None,
+        **kwargs
     ):
         self.lcu = lcu
         self.assets = assets
         self.config = config
         self.log = log_func
         self.stop_func = stop_func
+        self.stats_func = kwargs.get("stats_func")
         self.running = False
         self.paused = False
         self.thread = None
@@ -188,10 +190,17 @@ class AutomationEngine:
         if phase != "ChampSelect":
             self.setup_done = False
             self._skin_equipped = False
+            if self.stats_func: self.stats_func([], [])
             return
         if not session: return
 
-        has_bench = len(session.get("benchChampions", [])) > 0
+        my_team = session.get("myTeam", [])
+        bench = session.get("benchChampions", [])
+        
+        if self.stats_func:
+            self.stats_func(my_team, bench)
+
+        has_bench = len(bench) > 0
         is_arena = self.current_queue_id == 1700
 
         if has_bench and not is_arena:

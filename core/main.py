@@ -6,13 +6,16 @@ import time
 import tkinter
 import traceback
 import queue
+import subprocess
 
 import customtkinter as ctk
+import keyboard
 from PIL import Image
 
 from services.api_handler import LCUClient
 from services.asset_manager import AssetManager, ConfigManager
 from services.automation import AutomationEngine
+from services.stats_scraper import StatsScraper
 from utils.logger import Logger
 from utils.path_utils import resource_path
 from core.version import __version__
@@ -47,6 +50,7 @@ class LeagueLoopApp(ctk.CTk):
         self.config = ConfigManager()
         self.assets = AssetManager()
         self.lcu = LCUClient()
+        self.scraper = StatsScraper(mode=self.config.get("aram_mode", "ARAM"))
         
         self.automation = None
         self.running = True
@@ -56,12 +60,23 @@ class LeagueLoopApp(ctk.CTk):
         self.setup_ui()
         self._setup_window_dragging()
 
+        # Keyboard shortcuts
+        self._compact_mode = False
+        self._full_geometry = None
+        self._compact_hotkey = None
+        self._launch_hotkey = None
+        self._automation_hotkey = None
+        self._queue_hotkey = None
+        self._bind_hotkeys()
+
+        # Automation Engine
         self.automation = AutomationEngine(
             self.lcu,
             self.assets,
             self.config,
             log_func=self.sidebar.update_action_log,
-            stop_func=lambda: self.after(0, lambda: self.sidebar._on_power_click())
+            stop_func=lambda: self.after(0, lambda: self.sidebar._on_power_click()),
+            stats_func=lambda team, bench: self.after(0, lambda: self.sidebar.update_lobby_stats(team, bench))
         )
         self.automation.start(start_paused=True)
 
@@ -93,26 +108,13 @@ class LeagueLoopApp(ctk.CTk):
             return "queued"
 
     def setup_ui(self):
-        self.sidebar = SidebarWidget(self, self.toggle_power, self.config, lcu=self.lcu, assets=self.assets)
+        self.sidebar = SidebarWidget(self, self.toggle_power, self.config, lcu=self.lcu, assets=self.assets, scraper=self.scraper)
         self.sidebar.pack(fill="both", expand=True)
 
     def _setup_window_dragging(self):
         for widget in self.sidebar.drag_widgets:
             widget.bind("<ButtonPress-1>", self.on_drag_start)
             widget.bind("<B1-Motion>", self.on_drag_motion)
-            
-        # Add exit button manually somewhere or hotkey. We'll add a small 'X' top right
-        self.btn_close = ctk.CTkButton(
-            self.sidebar.header, 
-            text="✕", 
-            width=24, 
-            height=24,
-            corner_radius=12,
-            fg_color="transparent", 
-            hover_color="#e81123", # Windows close red
-            command=self._on_close
-        )
-        self.btn_close.pack(side="right", padx=5)
 
     def on_drag_start(self, event):
         self._drag_data["x"] = event.x
@@ -122,6 +124,120 @@ class LeagueLoopApp(ctk.CTk):
         x = self.winfo_x() - self._drag_data["x"] + event.x
         y = self.winfo_y() - self._drag_data["y"] + event.y
         self.geometry(f"+{x}+{y}")
+
+    def _hotkey_find_match(self):
+        self.after(0, self.sidebar._find_match)
+
+    def _hotkey_launch_client(self):
+        def _launch():
+            path_override = self.config.get("league_path_override", "")
+            if path_override and os.path.exists(path_override):
+                candidates = [path_override]
+            else:
+                candidates = [
+                    r"C:\Riot Games\Riot Client\RiotClientServices.exe",
+                    r"D:\Riot Games\Riot Client\RiotClientServices.exe",
+                    r"E:\Riot Games\Riot Client\RiotClientServices.exe"
+                ]
+            for c in candidates:
+                if os.path.exists(c):
+                    if self.sidebar:
+                        self.sidebar.update_action_log("Launching Riot Client...")
+                    subprocess.Popen([c, "--launch-product=league_of_legends", "--launch-patchline=live"])
+                    return
+            if self.sidebar:
+                self.sidebar.update_action_log("Error: Could not find Riot Client.")
+        self.after(0, _launch)
+
+    def _hotkey_toggle_automation(self):
+        self.after(0, self.sidebar._on_power_click)
+
+    def _bind_hotkeys(self):
+        try:
+            keyboard.unhook_all()
+        except:
+            pass
+            
+        self._compact_hotkey = self.config.get("hotkey_compact_mode", "ctrl+shift+m")
+        self._launch_hotkey = self.config.get("hotkey_launch_client", "ctrl+shift+l")
+        self._automation_hotkey = self.config.get("hotkey_toggle_automation", "ctrl+shift+a")
+        self._queue_hotkey = self.config.get("hotkey_find_match", "ctrl+shift+f")
+
+        try:
+            keyboard.add_hotkey(self._compact_hotkey, lambda: self.after(0, self.toggle_compact_mode), suppress=False)
+            keyboard.add_hotkey(self._launch_hotkey, self._hotkey_launch_client, suppress=False)
+            keyboard.add_hotkey(self._automation_hotkey, self._hotkey_toggle_automation, suppress=False)
+            keyboard.add_hotkey(self._queue_hotkey, self._hotkey_find_match, suppress=False)
+        except Exception as e:
+            Logger.error("SYS", f"Failed to register hotkeys: {e}")
+
+    def on_settings_saved(self):
+        self._bind_hotkeys()
+        self.scraper.set_mode(self.config.get("aram_mode", "ARAM"))
+
+    def toggle_compact_mode(self):
+        if self._compact_mode:
+            self._compact_mode = False
+            self.attributes("-topmost", True)
+            self.overrideredirect(True)
+            try:
+                self.attributes("-transparentcolor", "")
+            except Exception:
+                pass
+
+            self.sidebar.grid()
+            if hasattr(self, "_compact_frame"):
+                self._compact_frame.destroy()
+
+            if self._full_geometry:
+                self.geometry(self._full_geometry)
+            else:
+                self.geometry("200x400")
+
+            if self.sidebar:
+                self.sidebar.update_action_log("Restored Full Mode")
+        else:
+            self._compact_mode = True
+            self._full_geometry = self.geometry()
+            self.sidebar.grid_remove()
+
+            trans_color = "black"
+            self._compact_frame = ctk.CTkFrame(self, fg_color=trans_color, corner_radius=0)
+            self._compact_frame.grid(row=0, column=0, sticky="nsew")
+
+            compact_icon = self.sidebar.img_on if self.sidebar.power_state else self.sidebar.img_off
+            compact_text = "" if compact_icon else "⏻"
+            
+            ring_color = get_color("colors.accent.primary") if self.sidebar.power_state else get_color("colors.text.muted")
+            
+            glow_frame = ctk.CTkFrame(
+                self._compact_frame, fg_color=trans_color, bg_color=trans_color,
+                corner_radius=40, border_width=3, border_color=ring_color,
+                width=80, height=80
+            )
+            glow_frame.place(relx=0.5, rely=0.5, anchor="center")
+            glow_frame.pack_propagate(False)
+
+            btn_compact = ctk.CTkButton(
+                glow_frame, text=compact_text, image=compact_icon,
+                font=("Arial", 20, "bold"), width=72, height=72, corner_radius=36,
+                fg_color=trans_color, hover_color=get_color("colors.state.hover"),
+                command=self.toggle_compact_mode,
+            )
+            btn_compact.place(relx=0.5, rely=0.5, anchor="center")
+
+            self.geometry("90x90")
+            self.attributes("-topmost", True)
+            self.overrideredirect(True)
+            try:
+                self.attributes("-transparentcolor", trans_color)
+            except Exception:
+                pass
+
+            self._compact_frame.bind("<ButtonPress-1>", self.on_drag_start)
+            btn_compact.bind("<ButtonPress-1>", self.on_drag_start)
+            self._compact_frame.bind("<B1-Motion>", self.on_drag_motion)
+            btn_compact.bind("<B1-Motion>", self.on_drag_motion)
 
     def toggle_power(self, power_state):
         Logger.info("SYS", f"Power Toggled: {power_state}")
@@ -176,6 +292,10 @@ class LeagueLoopApp(ctk.CTk):
 
     def _on_close(self):
         self.running = False
+        try:
+            keyboard.unhook_all()
+        except:
+            pass
         self._stop_event.set()
         self.destroy()
 

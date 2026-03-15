@@ -7,9 +7,10 @@ from utils.path_utils import resource_path
 from ui.components.factory import get_color, get_font, get_radius, TOKENS, make_button
 from ui.ui_shared import CTkTooltip
 from ui.components.priority_grid import PriorityIconGrid
+from ui.components.settings_modal import SettingsModal
 
 class SidebarWidget(ctk.CTkFrame):
-    def __init__(self, master, toggle_callback, config, lcu=None, assets=None):
+    def __init__(self, master, toggle_callback, config, lcu=None, assets=None, scraper=None):
         super().__init__(
             master, 
             corner_radius=0,
@@ -21,6 +22,7 @@ class SidebarWidget(ctk.CTkFrame):
         self.config = config
         self.lcu = lcu
         self.assets = assets
+        self.scraper = scraper
         self.power_state = False
 
         self._setup_ui()
@@ -36,6 +38,32 @@ class SidebarWidget(ctk.CTkFrame):
             text_color=get_color("colors.text.primary")
         )
         self.lbl_title.pack(side="left", padx=6)
+
+        # Add exit button manually somewhere or hotkey. We'll add a small 'X' top right
+        self.btn_close = ctk.CTkButton(
+            self.header, 
+            text="✕", 
+            width=24, 
+            height=24,
+            corner_radius=12,
+            fg_color="transparent", 
+            hover_color="#e81123", # Windows close red
+            command=self.master._on_close
+        )
+        self.btn_close.pack(side="right", padx=(0, 5))
+
+        self.btn_settings = ctk.CTkButton(
+            self.header, 
+            text="⚙️", 
+            width=24, 
+            height=24,
+            corner_radius=12,
+            fg_color="transparent", 
+            text_color=get_color("colors.text.muted"),
+            hover_color=get_color("colors.state.hover"),
+            command=self._open_settings
+        )
+        self.btn_settings.pack(side="right", padx=(0, 2))
 
         # Collapse toggle for the whole sidebar body
         self._body_expanded = True
@@ -156,8 +184,21 @@ class SidebarWidget(ctk.CTkFrame):
         self.priority_grid.pack(fill="x", padx=10, pady=2)
 
         # ── Action Log (Bottom) ──
-        spacer = ctk.CTkFrame(self.main_body, fg_color="transparent")
-        spacer.pack(fill="both", expand=True)
+        self.spacer = ctk.CTkFrame(self.main_body, fg_color="transparent")
+        self.spacer.pack(fill="both", expand=True)
+
+        # ── Lobby Stats (Hidden initially, packed before spacer when shown) ──
+        self.stats_frame = ctk.CTkFrame(self.main_body, fg_color="transparent")
+        
+        self.lbl_stats_title = ctk.CTkLabel(
+            self.stats_frame, text="Lobby Stats", font=get_font("caption", "bold"),
+            text_color=get_color("colors.accent.primary"), anchor="w"
+        )
+        self.lbl_stats_title.pack(fill="x", pady=(0, 4))
+        
+        self.stats_content = ctk.CTkFrame(self.stats_frame, fg_color="transparent")
+        self.stats_content.pack(fill="x")
+        # stats_frame is NOT packed yet — it appears only during ChampSelect
 
         ctk.CTkFrame(self.main_body, height=1, fg_color=get_color("colors.border.subtle")).pack(fill="x", padx=12)
         self.lbl_action = ctk.CTkLabel(
@@ -199,8 +240,32 @@ class SidebarWidget(ctk.CTkFrame):
 
     def _find_match(self):
         if self.lcu:
+            # 1. Check current state
+            state_req = self.lcu.request("GET", "/lol-lobby/v2/lobby/matchmaking/search-state")
+            state_data = state_req.json() if state_req and state_req.status_code == 200 else {}
+            
+            if state_data.get("searchState") == "Searching":
+                # Cancel search if already searching
+                self.lcu.request("DELETE", "/lol-lobby/v2/lobby/matchmaking/search")
+                self.update_action_log("Matchmaking Cancelled.")
+                if self.power_state:
+                    self._on_power_click()
+                return
+
+            # 2. Determine Queue ID based on ARAM Mode
+            mode = self.config.get("aram_mode", "ARAM")
+            # ARAM is generally 450. ARAM Mayhem queue ID varies depending on event, usually 1110 or similar.
+            # We'll default to 450 for ARAM and a placeholder or known RGM ID for mayhem for now.
+            queue_id = 450 if mode == "ARAM" else 1110 
+            
+            # 3. Create Lobby if needed
+            self.lcu.request("POST", "/lol-lobby/v2/lobby", data={"queueId": queue_id})
+            
+            # 4. Start Search
             self.lcu.request("POST", "/lol-lobby/v2/lobby/matchmaking/search")
-            self.update_action_log("Starting Matchmaking...")
+            self.update_action_log(f"Starting Matchmaking ({mode})...")
+            
+            # 5. Turn on auto if it isn't
             if not self.power_state:
                 self._on_power_click()
 
@@ -217,3 +282,59 @@ class SidebarWidget(ctk.CTkFrame):
 
     def update_action_log(self, text):
         self.lbl_action.configure(text=text)
+
+    def update_lobby_stats(self, team, bench):
+        """Called from AutomationEngine during ChampSelect to show winrate stats."""
+        if not team and not bench:
+            self.stats_frame.pack_forget()
+            return
+
+        self.stats_frame.pack(fill="x", padx=12, pady=6, before=self.spacer)
+
+        # Clear existing rows
+        for child in self.stats_content.winfo_children():
+            child.destroy()
+
+        if not self.scraper:
+            return
+
+        mode = self.config.get("aram_mode", "ARAM")
+        self.lbl_stats_title.configure(text=f"{mode} Win Rates")
+
+        # Collect available champion IDs
+        available = []
+        for p in team:
+            cid = p.get("championId")
+            if cid:
+                available.append(cid)
+        for p in bench:
+            cid = p.get("championId")
+            if cid:
+                available.append(cid)
+
+        # Resolve names and winrates
+        champ_stats = []
+        for cid in set(available):
+            cname = self.assets.get_champ_name(cid) if self.assets else None
+            if cname:
+                wr = self.scraper.get_winrate(cname)
+                champ_stats.append((cname, wr))
+
+        # Sort descending by win rate
+        champ_stats.sort(key=lambda x: x[1], reverse=True)
+
+        # Render Top 5
+        for i, (cname, wr) in enumerate(champ_stats[:5]):
+            row = ctk.CTkFrame(self.stats_content, fg_color="transparent")
+            row.pack(fill="x", pady=1)
+
+            lbl_name = ctk.CTkLabel(row, text=cname, font=get_font("body"), text_color=get_color("colors.text.primary"))
+            lbl_name.pack(side="left")
+
+            color = "#00cc66" if wr >= 52.0 else "#ff4444" if wr < 48.0 else get_color("colors.text.muted")
+
+            lbl_wr = ctk.CTkLabel(row, text=f"{wr:.1f}%", font=get_font("body", "bold"), text_color=color)
+            lbl_wr.pack(side="right")
+
+    def _open_settings(self):
+        SettingsModal(self.master, self.config, on_save_callback=self.master.on_settings_saved)
