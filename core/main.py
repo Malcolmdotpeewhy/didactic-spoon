@@ -76,7 +76,8 @@ class LeagueLoopApp(ctk.CTk):
             self.config,
             log_func=self.sidebar.update_action_log,
             stop_func=lambda: self.after(0, lambda: self.sidebar._on_power_click()),
-            stats_func=lambda team, bench: self.after(0, lambda: self.sidebar.update_lobby_stats(team, bench))
+            stats_func=lambda team, bench: self.after(0, lambda: self.sidebar.update_lobby_stats(team, bench)),
+            window_func=lambda state: self.after(0, lambda: self._handle_window_state(state))
         )
         self.automation.start(start_paused=True)
 
@@ -126,7 +127,19 @@ class LeagueLoopApp(ctk.CTk):
         self.geometry(f"+{x}+{y}")
 
     def _hotkey_find_match(self):
+        self.state("normal")
+        self.attributes("-topmost", True)
         self.after(0, self.sidebar._find_match)
+
+    def _handle_window_state(self, state):
+        if state == "minimize":
+            self.state("iconic")
+            Logger.info("SYS", "Game started. Minimizing window.")
+        elif state == "restore":
+            self.state("normal")
+            self.attributes("-topmost", True)
+            self.lift()
+            Logger.info("SYS", "Game ended. Restoring window.")
 
     def _hotkey_launch_client(self):
         def _launch():
@@ -263,14 +276,20 @@ class LeagueLoopApp(ctk.CTk):
 
     def docking_loop(self):
         """Finds League of Legends client and clips to the right side of it."""
+        last_hwnd = 0
         while self.running and not self._stop_event.is_set():
             try:
-                # We can check for standard Riot Client or League Client
-                hwnd = ctypes.windll.user32.FindWindowW(None, "League of Legends")
-                if hwnd == 0:
-                     hwnd = ctypes.windll.user32.FindWindowW(None, "Riot Client")
-                     
+                hwnd = 0
+                if last_hwnd != 0 and ctypes.windll.user32.IsWindow(last_hwnd):
+                    hwnd = last_hwnd
+                else:
+                    # We can check for standard Riot Client or League Client
+                    hwnd = ctypes.windll.user32.FindWindowW(None, "League of Legends")
+                    if hwnd == 0:
+                        hwnd = ctypes.windll.user32.FindWindowW(None, "Riot Client")
+
                 if hwnd != 0:
+                    last_hwnd = hwnd
                     rect = ctypes.wintypes.RECT()
                     ctypes.windll.user32.GetWindowRect(hwnd, ctypes.byref(rect))
                     
@@ -286,6 +305,10 @@ class LeagueLoopApp(ctk.CTk):
                         my_h = min(client_h, 800) # Max height
                         # Snap to the right
                         self.after(0, lambda x=client_x + client_w, y=client_y, h=my_h: self.geometry(f"{my_w}x{h}+{x}+{y}"))
+                    time.sleep(0.5)
+                else:
+                    last_hwnd = 0
+                    time.sleep(2.0)
             except Exception as e:
                 Logger.debug("SYS", f"Docking loop error: {e}")
             time.sleep(0.5)

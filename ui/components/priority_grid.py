@@ -247,8 +247,6 @@ class PriorityIconGrid(ctk.CTkFrame):
                 row_frame = ctk.CTkFrame(self.scroll, fg_color="transparent")
                 row_frame.pack(fill="x", pady=GRID_PAD)
 
-            icon_img = self._load_icon(name)
-
             # Slightly larger cell in edit mode to fit rank badge
             cell_size = ICON_SIZE + 4
             cell = ctk.CTkFrame(
@@ -258,17 +256,18 @@ class PriorityIconGrid(ctk.CTkFrame):
             cell.pack(side="left", padx=GRID_PAD)
             cell.pack_propagate(False)
 
-            if icon_img:
-                lbl = ctk.CTkLabel(cell, text="", image=icon_img, width=ICON_SIZE, height=ICON_SIZE)
-            else:
-                lbl = ctk.CTkLabel(
-                    cell, text=name[:2], width=ICON_SIZE, height=ICON_SIZE,
-                    font=("Arial", 10, "bold"),
-                    fg_color=get_color("colors.background.card"),
-                    corner_radius=4,
-                    text_color=get_color("colors.text.primary"),
-                )
+            # Set a placeholder label first
+            lbl = ctk.CTkLabel(
+                cell, text=name[:2], width=ICON_SIZE, height=ICON_SIZE,
+                font=("Arial", 10, "bold"),
+                fg_color=get_color("colors.background.card"),
+                corner_radius=4,
+                text_color=get_color("colors.text.primary"),
+            )
             lbl.pack(expand=True)
+
+            # Start async load
+            self.after(10 * i, lambda n=name, l=lbl: self._load_icon_async(n, l))
 
             lbl.bind("<Enter>", lambda e, n=name, idx=i: self._show_tooltip(e, n, idx))
             lbl.bind("<Leave>", lambda e: self._hide_tooltip())
@@ -278,6 +277,21 @@ class PriorityIconGrid(ctk.CTkFrame):
             self._icon_widgets.append((cell, lbl, i))
 
         self._refresh_visuals()
+
+    def _load_icon_async(self, champ_name, label_widget):
+        try:
+            # Safely check if widget still exists
+            if not label_widget.winfo_exists():
+                return
+        except Exception:
+            return
+
+        icon_img = self._load_icon(champ_name)
+        if icon_img:
+            try:
+                label_widget.configure(image=icon_img, text="", fg_color="transparent")
+            except Exception:
+                pass
 
     # ───────────── tooltip ─────────────
     def _show_tooltip(self, event, name, idx=None):

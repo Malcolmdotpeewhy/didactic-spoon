@@ -100,12 +100,26 @@ class HotkeyRecorder(ctk.CTkButton):
         return self._hotkey_value
 
     def destroy(self):
-        if self._hook is not None:
+        """Custom destroy with safety guards for CustomTkinter's '_font' bug."""
+        if getattr(self, "_hook", None) is not None:
             try:
                 keyboard.unhook(self._hook)
+                self._hook = None
             except Exception:
                 pass
-        super().destroy()
+        
+        # If _font is already gone, or it's already being destroyed, don't re-enter
+        if not hasattr(self, "_font"):
+            return
+            
+        try:
+            # Call the underlying tkinter destroy if super().destroy() fails
+            super().destroy()
+        except Exception:
+            try:
+                tk.Button.destroy(self)
+            except Exception:
+                pass
 
 
 class SettingsModal(ctk.CTkToplevel):
@@ -123,11 +137,17 @@ class SettingsModal(ctk.CTkToplevel):
         
         self.configure(fg_color=get_color("colors.background.app"))
         
-        # Center relative to master
+        # Center relative to master, but shift to the left of the sidebar
         self.update_idletasks()
-        x = master.winfo_rootx() + (master.winfo_width() // 2) - (self.winfo_width() // 2)
+        # master is the sidebar (200px), we want to be to the left of it
+        # master.winfo_rootx() is the left edge of the sidebar
+        x = master.winfo_rootx() - self.winfo_width() - 20
         y = master.winfo_rooty() + (master.winfo_height() // 2) - (self.winfo_height() // 2)
-        self.geometry(f"+{x}+{y}")
+        
+        # Ensure we don't go off-screen to the left
+        if x < 10: x = 10
+        
+        self.geometry(f"+{int(x)}+{int(y)}")
         
         self.protocol("WM_DELETE_WINDOW", self._close)
         
@@ -251,17 +271,46 @@ class SettingsModal(ctk.CTkToplevel):
         self._close()
 
     def _close(self):
-        """Properly release grab, clean up recorders, and destroy."""
-        # Unhook any active recorder keyboard listeners
-        for recorder in getattr(self, "recorders", {}).values():
-            try:
-                if recorder._hook is not None:
-                    keyboard.unhook(recorder._hook)
-                    recorder._hook = None
-            except Exception:
-                pass
+        """Properly clean up recorders and destroy the window with extreme prejudice."""
         try:
-            self.grab_release()
+            # 1. Unhook recorders immediately
+            for recorder in getattr(self, "recorders", {}).values():
+                try:
+                    if hasattr(recorder, "_hook") and recorder._hook is not None:
+                        keyboard.unhook(recorder._hook)
+                        recorder._hook = None
+                except Exception:
+                    pass
         except Exception:
             pass
-        self.destroy()
+
+        try:
+            # 2. Clear reference in parent
+            if hasattr(self.master, "settings_window"):
+                self.master.settings_window = None
+        except Exception:
+            pass
+            
+        try:
+            # 3. Explicitly destroy children first with guards
+            # This helps prevent CTkButton._font errors during recursive destruction
+            children = self.winfo_children()
+            for child in children:
+                try:
+                    if hasattr(child, "destroy"):
+                        # If it's a CTk widget, check for _font safety if possible
+                        if hasattr(child, "_font") or not hasattr(child, "configure"):
+                            child.destroy()
+                except Exception:
+                    pass
+
+            # 4. Final destruction of the Toplevel
+            self.destroy()
+        except Exception as e:
+            Logger.error("SYS", f"Failed to destroy settings modal: {e}")
+            # Absolute fallback: skip all framework logic and kill the window via tk
+            try:
+                import tkinter as tk
+                tk.Toplevel.destroy(self)
+            except Exception:
+                pass
