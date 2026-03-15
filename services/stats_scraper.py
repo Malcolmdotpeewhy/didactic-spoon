@@ -126,10 +126,15 @@ class StatsScraper:
                 props = nd.get("props", {}).get("pageProps", {})
                 champs = props.get("data", props.get("champions", {}))
                 if isinstance(champs, dict):
-                    for cid_str, cdata in champs.items():
-                        if isinstance(cdata, dict):
-                            wr = cdata.get("wr") or cdata.get("winRate")
-                            name = cdata.get("name", "")
+                    for cdata in champs.values():
+                        if type(cdata) is dict:
+                            try:
+                                name = cdata["name"]
+                                wr = cdata["wr"]
+                            except KeyError:
+                                name = cdata.get("name", "")
+                                wr = cdata.get("wr") or cdata.get("winRate")
+
                             if wr and name:
                                 clean = name.replace("'", "").replace(" ", "").replace(".", "").lower()
                                 results[clean] = float(wr)
