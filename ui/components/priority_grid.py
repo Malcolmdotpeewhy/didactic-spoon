@@ -8,7 +8,7 @@ import tkinter as tk
 import customtkinter as ctk
 from PIL import Image
 
-from utils.path_utils import resource_path
+from utils.path_utils import get_asset_path
 from ui.components.factory import get_color, get_font, get_radius, TOKENS
 
 
@@ -48,7 +48,7 @@ class PriorityIconGrid(ctk.CTkFrame):
         known = set()
         cache_dir = os.path.join("cache", "assets")
         if not os.path.isdir(cache_dir):
-            cache_dir = resource_path(cache_dir)
+            cache_dir = get_asset_path(cache_dir)
         if os.path.isdir(cache_dir):
             for f in os.listdir(cache_dir):
                 if f.startswith("champion_") and f.endswith(".png"):
@@ -59,7 +59,7 @@ class PriorityIconGrid(ctk.CTkFrame):
         normalized = raw.replace(" ", "").replace("'", "").lower()
         cache_dir = os.path.join("cache", "assets")
         if not os.path.isdir(cache_dir):
-            cache_dir = resource_path(cache_dir)
+            cache_dir = get_asset_path(cache_dir)
         if os.path.isdir(cache_dir):
             for f in os.listdir(cache_dir):
                 if f.startswith("champion_") and f.endswith(".png"):
@@ -93,7 +93,7 @@ class PriorityIconGrid(ctk.CTkFrame):
             return self._icon_cache[champ_name]
         paths = [
             os.path.join("cache", "assets", f"champion_{champ_name}.png"),
-            resource_path(os.path.join("cache", "assets", f"champion_{champ_name}.png")),
+            get_asset_path(os.path.join("cache", "assets", f"champion_{champ_name}.png")),
         ]
         for p in paths:
             if os.path.exists(p):
@@ -505,7 +505,7 @@ class PriorityIconGrid(ctk.CTkFrame):
             names = self._get_priority_list()
             cache_dir = os.path.join("cache", "assets")
             if not os.path.isdir(cache_dir):
-                cache_dir = resource_path(cache_dir)
+                cache_dir = get_asset_path(cache_dir)
             if os.path.isdir(cache_dir):
                 for f in sorted(os.listdir(cache_dir)):
                     if f.startswith("champion_") and f.endswith(".png"):

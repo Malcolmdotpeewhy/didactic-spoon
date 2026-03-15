@@ -3,7 +3,7 @@ import customtkinter as ctk
 import os
 from PIL import Image
 
-from utils.path_utils import resource_path
+from utils.path_utils import get_asset_path
 from ui.components.factory import get_color, get_font, get_radius, TOKENS, make_button
 from ui.ui_shared import CTkTooltip
 from ui.components.priority_grid import PriorityIconGrid
@@ -206,8 +206,8 @@ class SidebarWidget(ctk.CTkFrame):
     # ── Callbacks ──
     def _load_icons_async(self):
         try:
-            idle_path = resource_path("assets/icon_idle.png")
-            active_path = resource_path("assets/icon_active.png")
+            idle_path = get_asset_path("assets/icon_idle.png")
+            active_path = get_asset_path("assets/icon_active.png")
             if os.path.exists(idle_path):
                 self.img_off = ctk.CTkImage(Image.open(idle_path), size=(56, 56))
             if os.path.exists(active_path):
