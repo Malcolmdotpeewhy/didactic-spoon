@@ -1046,7 +1046,7 @@ class AssetManager:
                                 url = f"https://ddragon.leagueoflegends.com/cdn/img/{r_icon}"
                                 download_queue.append((url, path, f"Rune: {rune.get('name', '?')}"))
 
-        roles = ["top", "jungle", "middle", "bottom", "utility", "fill"]
+        roles = ("top", "jungle", "middle", "bottom", "utility", "fill")
         for r_name in roles:
             fname = f"icon-position-{r_name}.png"
             path = os.path.join(ASSETS_DIR, fname)
