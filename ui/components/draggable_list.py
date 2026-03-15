@@ -1,3 +1,4 @@
+import tkinter as tk
 import customtkinter as ctk
 from ui.components.factory import get_color, get_font
 from utils.logger import Logger
@@ -169,8 +170,11 @@ class DraggableList(ctk.CTkScrollableFrame):
 
             if step < 10:
                 # Slide right by increasing left padding
-                frame.pack_configure(padx=(left_pad + step * 10, right_pad))
-                self.after(16, lambda: slide(step + 1))
+                try:
+                    frame.pack_configure(padx=(left_pad + step * 10, right_pad))
+                    self.after(16, lambda: slide(step + 1))
+                except tk.TclError:
+                    self._do_remove(item)
             else:
                 self._do_remove(item)
 
