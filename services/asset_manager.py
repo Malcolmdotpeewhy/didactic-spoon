@@ -942,34 +942,6 @@ class AssetManager:
             Logger.error("asset_manager.py", f"Handled exception: {type(e).__name__}: {e}")
             return []
 
-    def get_profile_icon(self, icon_id: int, size=(100, 100)) -> Optional[ctk.CTkImage]:
-        """Get a CTkImage for the specified profile icon."""
-        path = os.path.join(ASSETS_DIR, f"profileicon_{icon_id}.png")
-
-        # Check Cache
-        cache_key = f"profile_{icon_id}_{size[0]}"
-        if cache_key in self.icons:
-            return self.icons[cache_key]
-
-        if os.path.exists(path):
-            try:
-                pil_img = Image.open(path)
-                img = ctk.CTkImage(pil_img, size=size)
-                self.icons[cache_key] = img
-                return img
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                Logger.error("asset_manager.py", f"Handled exception: {type(e).__name__}: {e}")
-                return None
-
-        # Download
-        # Use dynamic version or fallback to CommunityDragon
-        # CommunityDragon is safer for new icons
-        # url = f"https://ddragon.leagueoflegends.com/cdn/{self.ddragon_ver}/img/profileicon/{icon_id}.png"
-        url = f"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/{icon_id}.jpg"
-        
-        self._start_download(url, path)
-        return None
-
     def get_splash_art(
         self, skin_id: int, width=1280, opacity=1.0
     ) -> Optional[ctk.CTkImage]:
