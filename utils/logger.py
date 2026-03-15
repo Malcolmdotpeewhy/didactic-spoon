@@ -59,6 +59,16 @@ class Logger:
         """Log a debug message."""
         _logger.debug(f"[{tag}] {msg}")
 
+    @classmethod
+    def get_logs(cls, module=None, limit=100):
+        cls._prune()
+        if limit <= 0:
+            return []
+        if module:
+            filtered = [log for log in cls._logs if log["module"] == module]
+            return filtered[-limit:]
+        return cls._logs[-limit:]
+
     @staticmethod
     def error(tag, msg):
         """Log an error message."""
