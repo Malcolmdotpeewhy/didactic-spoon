@@ -145,7 +145,7 @@ class AutomationEngine:
         sleep_time = 3.0
         if phase == "ChampSelect": sleep_time = 1.0
         elif phase == "ReadyCheck": sleep_time = 1.0
-        elif phase in ["Lobby", "Matchmaking"]: sleep_time = 2.0
+        elif phase in ("Lobby", "Matchmaking"): sleep_time = 2.0
         elif phase == "InProgress": sleep_time = 30.0
 
         self._stop_event.wait(sleep_time)
