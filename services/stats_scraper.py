@@ -2,7 +2,6 @@ import urllib.request
 import json
 import re
 import threading
-import time
 import socket
 import ssl
 from utils.logger import Logger
