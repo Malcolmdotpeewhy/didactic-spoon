@@ -13,9 +13,7 @@ import requests
 import urllib3
 
 from utils.logger import Logger
-
-# Disable SSL warnings for LCU (self-signed cert)
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+from utils.path_utils import get_asset_path
 
 
 class LCUClient:
@@ -33,7 +31,7 @@ class LCUClient:
         self.is_connected = False
         self.headers = {}
         self.session = requests.Session()
-        self.session.verify = False
+        self.session.verify = get_asset_path("assets/riotgames.pem")
         self._client_pid = None
 
         # Do NOT connect immediately to avoid blocking UI startup.
@@ -177,7 +175,6 @@ class LCUClient:
                 url=url,
                 # headers=self.headers, # Already in session
                 json=data,
-                verify=False,
                 timeout=2,  # Prevent blocking UI
             )
 
