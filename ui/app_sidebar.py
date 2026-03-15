@@ -29,53 +29,47 @@ class SidebarWidget(ctk.CTkFrame):
 
     def _setup_ui(self):
         # ── Header / Drag Area ──
-        self.header = ctk.CTkFrame(self, fg_color="transparent", height=36)
-        self.header.pack(fill="x", pady=(8, 0), padx=8)
+        self.header = ctk.CTkFrame(self, fg_color="transparent", height=32)
+        self.header.pack(fill="x", pady=(6, 0), padx=4)
         
         self.lbl_title = ctk.CTkLabel(
             self.header, text="League Loop", 
-            font=get_font("title", "bold"),
+            font=get_font("body", "bold"),
             text_color=get_color("colors.text.primary")
         )
-        self.lbl_title.pack(side="left", padx=6)
+        self.lbl_title.pack(side="left", padx=4)
 
-        # Add exit button manually somewhere or hotkey. We'll add a small 'X' top right
+        # ✕ Close
         self.btn_close = ctk.CTkButton(
-            self.header, 
-            text="✕", 
-            width=24, 
-            height=24,
-            corner_radius=12,
-            fg_color="transparent", 
-            hover_color="#e81123", # Windows close red
+            self.header, text="✕", width=20, height=20,
+            corner_radius=10, font=("Arial", 11),
+            fg_color="transparent", hover_color="#e81123",
             command=self.master._on_close
         )
-        self.btn_close.pack(side="right", padx=(0, 5))
+        self.btn_close.pack(side="right", padx=(0, 2))
 
+        # ⚙ Settings
         self.btn_settings = ctk.CTkButton(
-            self.header, 
-            text="⚙️", 
-            width=24, 
-            height=24,
-            corner_radius=12,
-            fg_color="transparent", 
+            self.header, text="⚙", width=20, height=20,
+            corner_radius=10, font=("Arial", 13),
+            fg_color="transparent",
             text_color=get_color("colors.text.muted"),
             hover_color=get_color("colors.state.hover"),
             command=self._open_settings
         )
-        self.btn_settings.pack(side="right", padx=(0, 2))
+        self.btn_settings.pack(side="right", padx=(0, 1))
 
-        # Collapse toggle for the whole sidebar body
+        # ▼ Collapse
         self._body_expanded = True
         self.btn_collapse = ctk.CTkButton(
-            self.header, text="▼", width=24, height=24,
-            corner_radius=12, font=("Arial", 12, "bold"),
+            self.header, text="▼", width=20, height=20,
+            corner_radius=10, font=("Arial", 10, "bold"),
             fg_color="transparent",
             text_color=get_color("colors.text.muted"),
             hover_color=get_color("colors.state.hover"),
             command=self._toggle_body_collapse,
         )
-        self.btn_collapse.pack(side="right", padx=(0, 2))
+        self.btn_collapse.pack(side="right", padx=(0, 1))
 
         self.drag_widgets = [self, self.header, self.lbl_title]
 

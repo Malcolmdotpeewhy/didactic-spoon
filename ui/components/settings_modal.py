@@ -131,6 +131,7 @@ class SettingsModal(ctk.CTkToplevel):
         self.geometry(f"+{x}+{y}")
         
         self._setup_ui()
+        self.protocol("WM_DELETE_WINDOW", self._close)
 
     def _setup_ui(self):
         # ── Title ──
@@ -214,7 +215,7 @@ class SettingsModal(ctk.CTkToplevel):
         btn_frame.pack(fill="x", padx=20, side="bottom", pady=20)
         
         btn_cancel = make_button(
-            parent=btn_frame, text="Cancel", command=self.destroy,
+            parent=btn_frame, text="Cancel", command=self._close,
             variant="secondary", width=100
         )
         btn_cancel.pack(side="left")
@@ -241,4 +242,20 @@ class SettingsModal(ctk.CTkToplevel):
             except Exception as e:
                 Logger.error("SYS", f"Settings callback failed: {e}")
                 
+        self._close()
+
+    def _close(self):
+        """Properly release grab, clean up recorders, and destroy."""
+        # Unhook any active recorder keyboard listeners
+        for recorder in getattr(self, "recorders", {}).values():
+            try:
+                if recorder._hook is not None:
+                    keyboard.unhook(recorder._hook)
+                    recorder._hook = None
+            except Exception:
+                pass
+        try:
+            self.grab_release()
+        except Exception:
+            pass
         self.destroy()
