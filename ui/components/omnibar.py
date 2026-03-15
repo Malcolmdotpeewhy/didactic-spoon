@@ -129,14 +129,20 @@ class Omnibar(ctk.CTkFrame):
             self._filtered_commands = self._all_commands[:]
         else:
             # Simple fuzzy/substring search
-            self._filtered_commands = []
-            for cmd in self._all_commands:
-                search_target = f"{cmd.get('title', '')} {cmd.get('subtitle', '')}".lower()
-                if query in search_target:
-                    self._filtered_commands.append(cmd)
+            exact_matches = []
+            other_matches = []
 
-            # Basic ranking: exact starts with is better
-            self._filtered_commands.sort(key=lambda c: 0 if c.get("title", "").lower().startswith(query) else 1)
+            for cmd in self._all_commands:
+                title = cmd.get("title", "")
+                search_target = f"{title} {cmd.get('subtitle', '')}".lower()
+
+                if query in search_target:
+                    if title.lower().startswith(query):
+                        exact_matches.append(cmd)
+                    else:
+                        other_matches.append(cmd)
+
+            self._filtered_commands = exact_matches + other_matches
 
         self._selected_index = 0
         self._render_results()
