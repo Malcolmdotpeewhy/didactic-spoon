@@ -18,7 +18,6 @@ from services.automation import AutomationEngine
 from services.stats_scraper import StatsScraper
 from utils.logger import Logger
 from utils.path_utils import get_asset_path
-from core.version import __version__
 
 from ui.app_sidebar import SidebarWidget
 from ui.components.factory import get_color, get_font, TOKENS

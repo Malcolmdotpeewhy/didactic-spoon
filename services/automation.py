@@ -256,7 +256,6 @@ class AutomationEngine:
             skin_id = chosen.get("id", 0)
 
             # Patch the skin selection
-            me_action_id = me.get("cellId")
             self.lcu.request(
                 "PATCH",
                 f"/lol-champ-select/v1/session/my-selection",

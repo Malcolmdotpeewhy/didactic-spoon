@@ -201,28 +201,3 @@ class LCUClient:
             self.is_connected = False
             return None
 
-    # --- Convenience Methods ---
-
-    def get_summoner_current_summoner(self):
-        """Get current summoner info."""
-        return self.request("GET", "/lol-summoner/v1/current-summoner")
-
-    def get_champ_select_session(self):
-        """Get champion select session."""
-        return self.request("GET", "/lol-champ-select/v1/session")
-
-    def action_champ_select(
-        self, action_id: int, champion_id: int, complete: bool = False
-    ):
-        """Perform a champion select action (pick/ban)."""
-        data = {"championId": champion_id}
-        if complete:
-            data["completed"] = True
-        return self.request(
-            "PATCH", f"/lol-champ-select/v1/session/actions/{action_id}", data=data
-        )
-
-    def set_champ_select_intent(self, action_id: int, champion_id: int):
-        """Set champion select intent (hover)."""
-        # Usually for pick intent, you act on the 'pick' action but just don't complete it
-        return self.action_champ_select(action_id, champion_id, complete=False)
