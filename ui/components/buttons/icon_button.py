@@ -10,6 +10,7 @@ class IconButton(ctk.CTkButton):
         text_color = kwargs.pop('text_color', get_color("colors.text.secondary", default="#A09B8C"))
         font = kwargs.pop('font', get_font("title"))
         corner_radius = kwargs.pop('corner_radius', size // 2)
+        cursor = kwargs.pop('cursor', "hand2")
         kwargs.pop('fg_color', None)  # Pop to allow override below
 
         if style == "primary":
@@ -28,6 +29,7 @@ class IconButton(ctk.CTkButton):
             text_color=text_color,
             font=font,
             corner_radius=corner_radius,
+            cursor=cursor,
             **kwargs
         )
 
