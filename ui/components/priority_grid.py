@@ -10,6 +10,7 @@ from PIL import Image
 
 from utils.path_utils import get_asset_path
 from ui.components.factory import get_color, get_font, get_radius, TOKENS
+from ui.ui_shared import CTkTooltip
 
 
 ICON_SIZE = 28
@@ -140,6 +141,7 @@ class PriorityIconGrid(ctk.CTkFrame):
             command=self._show_add_input,
         )
         self.btn_add.pack(side="right")
+        CTkTooltip(self.btn_add, "Add Champion")
 
     # ───────────── body ─────────────
     def _build_body(self):
@@ -197,9 +199,13 @@ class PriorityIconGrid(ctk.CTkFrame):
         )
 
         self.btn_top.pack(side="left", padx=1)
+        CTkTooltip(self.btn_top, "Move to Top")
         self.btn_up.pack(side="left", padx=1)
+        CTkTooltip(self.btn_up, "Move Up")
         self.btn_down.pack(side="left", padx=1)
+        CTkTooltip(self.btn_down, "Move Down")
         self.btn_del.pack(side="right", padx=1)
+        CTkTooltip(self.btn_del, "Remove")
 
         # ── Move-to-position entry (inline in edit bar) ──
         self._move_to_frame = ctk.CTkFrame(self.edit_bar, fg_color="transparent")

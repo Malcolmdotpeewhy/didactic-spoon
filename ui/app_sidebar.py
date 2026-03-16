@@ -48,6 +48,7 @@ class SidebarWidget(ctk.CTkFrame):
             command=self.master._on_close
         )
         self.btn_close.pack(side="right", padx=(0, 2))
+        CTkTooltip(self.btn_close, "Close Application")
 
         # ⚙ Settings
         self.btn_settings = ctk.CTkButton(
@@ -59,6 +60,7 @@ class SidebarWidget(ctk.CTkFrame):
             command=self._open_settings
         )
         self.btn_settings.pack(side="right", padx=(0, 1))
+        CTkTooltip(self.btn_settings, "Open Settings")
 
         # ▼ Collapse
         self._body_expanded = True
@@ -71,6 +73,7 @@ class SidebarWidget(ctk.CTkFrame):
             command=self._toggle_body_collapse,
         )
         self.btn_collapse.pack(side="right", padx=(0, 1))
+        self.tooltip_collapse = CTkTooltip(self.btn_collapse, "Collapse Sidebar")
 
         self.drag_widgets = [self, self.header, self.lbl_title]
 
@@ -224,10 +227,14 @@ class SidebarWidget(ctk.CTkFrame):
             self.main_body.pack(fill="both", expand=True)
             self.btn_collapse.configure(text="▼")
             self.master.geometry("200x400")
+            if hasattr(self, 'tooltip_collapse'):
+                self.tooltip_collapse.text = "Collapse Sidebar"
         else:
             self.main_body.pack_forget()
             self.btn_collapse.configure(text="▶")
             self.master.geometry("200x44")
+            if hasattr(self, 'tooltip_collapse'):
+                self.tooltip_collapse.text = "Expand Sidebar"
     # ── Quick Toggle Logic ──
     def _get_status_text(self):
         state = "▶ Active" if self.power_state else "⏸ Paused"
