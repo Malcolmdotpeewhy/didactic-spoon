@@ -101,10 +101,7 @@ class LeagueLoopApp(ctk.CTk):
             if ms == 0:
                 self._ui_queue.put((func, args, {}))
             else:
-                def _delayed():
-                    time.sleep(ms / 1000.0)
-                    self._ui_queue.put((func, args, {}))
-                threading.Thread(target=_delayed, daemon=True).start()
+                self._ui_queue.put((super().after, (ms, func) + args, {}))
             return "queued"
 
     def setup_ui(self):
