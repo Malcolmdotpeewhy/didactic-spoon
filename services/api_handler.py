@@ -11,11 +11,9 @@ from typing import Dict, Optional
 import psutil
 import requests
 import urllib3
+import warnings
 
 from utils.logger import Logger
-
-# Disable SSL warnings for LCU (self-signed cert)
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class LCUClient:
@@ -172,14 +170,16 @@ class LCUClient:
         try:
             if not silent:
                 Logger.debug("LCU", f"REQ -> {method} {endpoint}")
-            response = self.session.request(
-                method=method,
-                url=url,
-                # headers=self.headers, # Already in session
-                json=data,
-                verify=False,
-                timeout=2,  # Prevent blocking UI
-            )
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
+                response = self.session.request(
+                    method=method,
+                    url=url,
+                    # headers=self.headers, # Already in session
+                    json=data,
+                    verify=False,
+                    timeout=2,  # Prevent blocking UI
+                )
 
             dur = time.time() - t_start
             if not silent:
