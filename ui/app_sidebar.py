@@ -31,8 +31,8 @@ class SidebarWidget(ctk.CTkFrame):
 
     def _setup_ui(self):
         # ── Header / Drag Area ──
-        self.header = ctk.CTkFrame(self, fg_color="transparent", height=32)
-        self.header.pack(fill="x", pady=(6, 0), padx=4)
+        self.header = ctk.CTkFrame(self, fg_color="transparent", height=36)
+        self.header.pack(fill="x", pady=(12, 0), padx=12)
         
         self.lbl_title = ctk.CTkLabel(
             self.header, text="League Loop", 
@@ -80,19 +80,18 @@ class SidebarWidget(ctk.CTkFrame):
 
         # ── Collapsible Body ──
         self.main_body = ctk.CTkFrame(self, fg_color="transparent")
-        self.main_body.pack(fill="both", expand=True)
+        self.main_body.pack(fill="both", expand=True, padx=12, pady=12)
 
         # ── Status & Mode Selection ──
         status_frame = ctk.CTkFrame(self.main_body, fg_color="transparent")
-        status_frame.pack(fill="x", padx=14, pady=(12, 8))
+        status_frame.pack(fill="x", pady=(0, 8))
 
-        self.btn_power_status = ctk.CTkButton(
+        self.btn_power_status = make_button(
             status_frame, 
             text="▶ Active" if getattr(self, "power_state", False) else "⏸ Paused", 
+            style="ghost",
             font=get_font("body", "bold"),
             text_color=get_color("colors.accent.primary") if getattr(self, "power_state", False) else get_color("colors.text.muted"),
-            fg_color="transparent",
-            hover_color=get_color("colors.state.hover"),
             width=80,
             height=28,
             command=self._on_power_click
@@ -140,12 +139,12 @@ class SidebarWidget(ctk.CTkFrame):
         btn_frame = ctk.CTkFrame(self.main_body, fg_color="transparent")
         btn_frame.pack(fill="x", padx=10, pady=6)
 
-        self.btn_find_match = ctk.CTkButton(
-            btn_frame, text="▶  Find Match",
-            font=get_font("body", "bold"), height=32,
-            corner_radius=get_radius("sm"),
-            fg_color=get_color("colors.accent.primary"),
-            hover_color=get_color("colors.state.hover"),
+        self.btn_find_match = make_button(
+            btn_frame, 
+            text="▶  Find Match",
+            style="primary",
+            font=get_font("body", "bold"), 
+            height=32,
             command=self._find_match
         )
         self.btn_find_match.pack(fill="x", pady=2)

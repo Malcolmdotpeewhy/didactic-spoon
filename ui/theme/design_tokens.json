@@ -5,21 +5,21 @@
     },
     "colors": {
         "background": {
-            "app": "#0A0F14",
-            "panel": "#0E141B",
-            "card": "#111A23",
+            "app": "#091428",
+            "panel": "#0A1428",
+            "card": "#0A1428",
             "overlay": "rgba(0,0,0,0.6)"
         },
         "text": {
-            "primary": "#E6F1FF",
-            "secondary": "#9FB3C8",
-            "muted": "#6B7C8F",
+            "primary": "#F0E6D2",
+            "secondary": "#C8AA6E",
+            "muted": "#6C757D",
             "disabled": "#3A4654"
         },
         "accent": {
-            "primary": "#C8A45D",
-            "gold": "#C8A45D",
-            "blue": "#3FA9F5",
+            "primary": "#C8AA6E",
+            "gold": "#C8AA6E",
+            "blue": "#0BC6E3",
             "green": "#2ECC71",
             "red": "#E74C3C",
             "purple": "#9B59B6"
@@ -93,34 +93,34 @@
         "xxl": 32
     },
     "borders": {
-        "subtle": "1px solid rgba(255,255,255,0.04)",
-        "soft": "1px solid rgba(255,255,255,0.08)",
-        "strong": "1px solid rgba(255,255,255,0.14)",
-        "gold": "1px solid rgba(200,164,93,0.5)"
+        "subtle": "1px solid #1E2328",
+        "soft": "1px solid #1E2328",
+        "strong": "1px solid #3C3C41",
+        "gold": "1px solid #C8AA6E"
     },
     "buttons": {
         "primary": {
-            "bg": "#2ECC71",
-            "text": "#0A0F14",
-            "hover": "#27AE60",
-            "glow": "0 0 12px rgba(46,204,113,0.6)"
+            "bg": "#C8AA6E",
+            "text": "#091428",
+            "hover": "#D3B679",
+            "glow": "0 0 12px rgba(200,170,110,0.6)"
         },
         "secondary": {
-            "bg": "#1C2630",
-            "text": "#E6F1FF",
-            "hover": "#243140",
-            "glow": "0 0 10px rgba(63,169,245,0.4)"
+            "bg": "transparent",
+            "text": "#C8AA6E",
+            "hover": "#1E2328",
+            "glow": "0 0 10px rgba(200,170,110,0.4)"
         },
         "danger": {
-            "bg": "#E74C3C",
-            "text": "#FFFFFF",
+            "bg": "transparent",
+            "text": "#E74C3C",
             "hover": "#C0392B",
             "glow": "0 0 12px rgba(231,76,60,0.6)"
         },
         "ghost": {
             "bg": "transparent",
-            "text": "#9FB3C8",
-            "hover": "#2A2A2D"
+            "text": "#F0E6D2",
+            "hover": "#1E2328"
         }
     },
     "animations": {
@@ -156,8 +156,8 @@
         "glow_intensity": 0.6
     },
     "typography": {
-        "font_primary": "Inter",
-        "font_secondary": "Cinzel",
+        "font_primary": "Spiegel",
+        "font_secondary": "Beaufort for LoL",
         "weights": {
             "regular": 400,
             "medium": 500,

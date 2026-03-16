@@ -18,9 +18,9 @@ ICONS_PER_ROW = 4
 GRID_PAD = 1
 
 # Selection colours
-SEL_BORDER = "#4da6ff"      # blue ring for single-select in edit mode
-SEL_BG     = "#1a2a3e"      # dark blue tint
-DEL_BORDER = "#ff4444"      # red for delete-marked
+SEL_BORDER = "#C8AA6E"      # gold ring for single-select in edit mode
+SEL_BG     = "#141E28"      # dark blue tint
+DEL_BORDER = "#E74C3C"      # red for delete-marked
 DEL_BG     = "#4d1111"
 
 
@@ -250,6 +250,8 @@ class PriorityIconGrid(ctk.CTkFrame):
             cell = ctk.CTkFrame(
                 row_frame, width=cell_size, height=cell_size,
                 fg_color="transparent", corner_radius=4,
+                border_width=1,
+                border_color=get_color("colors.border.subtle")
             )
             cell.pack(side="left", padx=GRID_PAD)
             cell.pack_propagate(False)
@@ -267,8 +269,19 @@ class PriorityIconGrid(ctk.CTkFrame):
             # Start async load
             self.after(10 * i, lambda n=name, l=lbl: self._load_icon_async(n, l))
 
-            lbl.bind("<Enter>", lambda e, n=name, idx=i: self._show_tooltip(e, n, idx))
-            lbl.bind("<Leave>", lambda e: self._hide_tooltip())
+            # Hover animations for grid
+            def _on_enter(e, n=name, idx=i, c=cell):
+                self._show_tooltip(e, n, idx)
+                if not self._edit_mode and idx not in self._selected_indices and idx not in self._delete_marked:
+                    c.configure(border_color=get_color("colors.accent.gold", "#C8AA6E"))
+
+            def _on_leave(e, c=cell):
+                self._hide_tooltip()
+                if not self._edit_mode and c._border_color != SEL_BORDER and c._border_color != DEL_BORDER:
+                    c.configure(border_color=get_color("colors.border.subtle"))
+
+            lbl.bind("<Enter>", _on_enter)
+            lbl.bind("<Leave>", _on_leave)
             lbl.bind("<Button-1>", lambda e, idx=i: self._on_cell_click(idx))
             lbl.bind("<Shift-Button-1>", lambda e, idx=i: self._on_shift_click(idx))
 
