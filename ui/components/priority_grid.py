@@ -13,9 +13,9 @@ from ui.components.factory import get_color, get_font, get_radius, TOKENS
 from ui.ui_shared import CTkTooltip
 
 
-ICON_SIZE = 28
+ICON_SIZE = 40
 ICONS_PER_ROW = 4
-GRID_PAD = 1
+GRID_PAD = 4
 
 # Selection colours
 SEL_BORDER = "#C8AA6E"      # gold ring for single-select in edit mode
@@ -117,7 +117,7 @@ class PriorityIconGrid(ctk.CTkFrame):
             self.header, text="Edit", width=40, height=20,
             corner_radius=get_radius("sm"), font=get_font("caption"),
             fg_color="transparent",
-            text_color=get_color("colors.accent.primary"),
+            text_color="#C8AA6E",
             hover_color=get_color("colors.state.hover"),
             command=self._toggle_edit_mode,
         )

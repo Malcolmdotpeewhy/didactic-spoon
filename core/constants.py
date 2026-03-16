@@ -21,7 +21,7 @@ GEOMETRY_THRESHOLD = 2             # pixels of movement before triggering geomet
 PRIORITY_SWAP_COOLDOWN = 1.0       # seconds between priority sniper swaps
 
 # --- UI Dimensions ---
-SIDEBAR_WIDTH = 240
+SIDEBAR_WIDTH = 300
 SIDEBAR_HEIGHT = 500
 COMPACT_SIZE = 90
 COMPACT_BUTTON_SIZE = 72

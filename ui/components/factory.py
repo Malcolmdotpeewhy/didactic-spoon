@@ -257,7 +257,13 @@ def make_button(parent, text, style="primary", width=None, command=None, icon=No
         **kw
     )
     
-    apply_hover_brightness(btn, fg_color)
+    if style == "primary":
+        btn.configure(border_width=1, border_color="#C8AA6E")
+        # Ensure deep color pop on hover
+        apply_hover_brightness(btn, fg_color, 12)
+    else:
+        apply_hover_brightness(btn, fg_color)
+        
     apply_press_effect(btn, fg_color)
 
     return btn

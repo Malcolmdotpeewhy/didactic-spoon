@@ -9,6 +9,7 @@ from ui.components.factory import get_color, get_font, get_radius, TOKENS, make_
 from ui.ui_shared import CTkTooltip
 from ui.components.priority_grid import PriorityIconGrid
 from ui.components.settings_modal import SettingsModal
+from ui.components.lol_toggle import LolToggle
 
 class SidebarWidget(ctk.CTkFrame):
     def __init__(self, master, toggle_callback, config, lcu=None, assets=None, scraper=None):
@@ -37,9 +38,10 @@ class SidebarWidget(ctk.CTkFrame):
         self.lbl_title = ctk.CTkLabel(
             self.header, text="League Loop", 
             font=get_font("body", "bold"),
-            text_color=get_color("colors.text.primary")
+            text_color=get_color("colors.text.primary"),
+            anchor="w"
         )
-        self.lbl_title.pack(side="left", padx=4)
+        self.lbl_title.pack(side="left", fill="x", expand=True, padx=4)
 
         # ✕ Close
         self.btn_close = ctk.CTkButton(
@@ -48,7 +50,7 @@ class SidebarWidget(ctk.CTkFrame):
             fg_color="transparent", hover_color="#e81123",
             command=self.master._on_close
         )
-        self.btn_close.pack(side="right", padx=(0, 2))
+        self.btn_close.pack(side="right", padx=(4, 2))
         CTkTooltip(self.btn_close, "Close Application")
 
         # ⚙ Settings
@@ -60,7 +62,7 @@ class SidebarWidget(ctk.CTkFrame):
             hover_color=get_color("colors.state.hover"),
             command=self._open_settings
         )
-        self.btn_settings.pack(side="right", padx=(0, 1))
+        self.btn_settings.pack(side="right", padx=(4, 1))
         CTkTooltip(self.btn_settings, "Open Settings")
 
         # ▼ Collapse
@@ -73,7 +75,7 @@ class SidebarWidget(ctk.CTkFrame):
             hover_color=get_color("colors.state.hover"),
             command=self._toggle_body_collapse,
         )
-        self.btn_collapse.pack(side="right", padx=(0, 1))
+        self.btn_collapse.pack(side="right", padx=(4, 1))
         self.tooltip_collapse = CTkTooltip(self.btn_collapse, "Collapse Sidebar")
 
         self.drag_widgets = [self, self.header, self.lbl_title]
@@ -133,69 +135,74 @@ class SidebarWidget(ctk.CTkFrame):
         self.opt_game_mode.pack(side="left", fill="x", expand=True)
 
         # ── Divider ──
-        ctk.CTkFrame(self.main_body, height=1, fg_color=get_color("colors.border.subtle")).pack(fill="x", padx=12, pady=4)
+        ctk.CTkFrame(self.scroll, height=1, fg_color=get_color("colors.border.subtle")).pack(fill="x", padx=12, pady=4)
 
         # ── Action Buttons ──
-        btn_frame = ctk.CTkFrame(self.main_body, fg_color="transparent")
-        btn_frame.pack(fill="x", padx=10, pady=6)
+        btn_frame = ctk.CTkFrame(self.scroll, fg_color="transparent")
+        btn_frame.pack(fill="x", padx=12, pady=8)
 
         self.btn_find_match = make_button(
             btn_frame, 
             text="▶  Find Match",
             style="primary",
-            font=get_font("body", "bold"), 
+            font=("Arial", 13, "bold"), 
             height=32,
+            border_width=1,
+            border_color="#F0E6D2",
             command=self._find_match
         )
         self.btn_find_match.pack(fill="x", pady=2)
 
         # ── Toggles Section ──
-        ctk.CTkFrame(self.main_body, height=1, fg_color=get_color("colors.border.subtle")).pack(fill="x", padx=12, pady=6)
-
         toggles_label = ctk.CTkLabel(
-            self.main_body, text="AUTOMATION", font=get_font("caption", "bold"),
-            text_color=get_color("colors.text.muted"), anchor="w"
+            self.main_body, text="AUTOMATION", font=("Arial", 11, "bold"),
+            text_color=get_color("colors.accent.gold", "#C8AA6E"), anchor="w"
         )
-        toggles_label.pack(fill="x", padx=14, pady=(2, 4))
+        toggles_label.pack(fill="x", padx=14, pady=(8, 2))
+        
+        ctk.CTkFrame(self.main_body, height=1, fg_color=get_color("colors.border.subtle")).pack(fill="x", padx=14, pady=(0, 8))
 
         # Auto Accept
         self.var_accept = ctk.BooleanVar(value=self.config.get("auto_accept", True))
-        self.sw_accept = ctk.CTkSwitch(
-            self.main_body, text="Auto Accept", font=get_font("body"),
-            variable=self.var_accept, command=self._on_toggle_accept,
-            fg_color=get_color("colors.text.disabled"),
-            progress_color=get_color("colors.accent.primary"),
-            button_color=get_color("colors.text.primary"),
-        )
-        self.sw_accept.pack(fill="x", padx=14, pady=2)
+        row1 = ctk.CTkFrame(self.main_body, fg_color="transparent")
+        row1.pack(fill="x", padx=14, pady=4)
+        ctk.CTkLabel(row1, text="Auto Accept", font=get_font("body"), width=120, anchor="w", text_color="#F0E6D2").pack(side="left")
+        self.sw_accept = LolToggle(row1, variable=self.var_accept, command=self._on_toggle_accept)
+        self.sw_accept.pack(side="right")
 
         # Auto Re-Queue
         self.var_requeue = ctk.BooleanVar(value=self.config.get("auto_requeue", False))
-        self.sw_requeue = ctk.CTkSwitch(
-            self.main_body, text="Auto Re-Queue", font=get_font("body"),
-            variable=self.var_requeue, command=self._on_toggle_requeue,
-            fg_color=get_color("colors.text.disabled"),
-            progress_color=get_color("colors.accent.primary"),
-            button_color=get_color("colors.text.primary"),
-        )
-        self.sw_requeue.pack(fill="x", padx=14, pady=2)
+        row2 = ctk.CTkFrame(self.main_body, fg_color="transparent")
+        row2.pack(fill="x", padx=14, pady=4)
+        ctk.CTkLabel(row2, text="Auto Re-Queue", font=get_font("body"), width=120, anchor="w", text_color="#F0E6D2").pack(side="left")
+        self.sw_requeue = LolToggle(row2, variable=self.var_requeue, command=self._on_toggle_requeue)
+        self.sw_requeue.pack(side="right")
 
         # Priority Picker
         self.var_priority = ctk.BooleanVar(value=self.config.get("priority_picker", {}).get("enabled", False))
-        self.sw_priority = ctk.CTkSwitch(
-            self.main_body, text="Priority Sniper", font=get_font("body"),
-            variable=self.var_priority, command=self._on_toggle_priority,
-            fg_color=get_color("colors.text.disabled"),
-            progress_color=get_color("colors.accent.primary"),
-            button_color=get_color("colors.text.primary"),
-        )
-        self.sw_priority.pack(fill="x", padx=14, pady=2)
+        row3 = ctk.CTkFrame(self.main_body, fg_color="transparent")
+        row3.pack(fill="x", padx=14, pady=4)
+        ctk.CTkLabel(row3, text="Priority Sniper", font=get_font("body"), width=120, anchor="w", text_color="#F0E6D2").pack(side="left")
+        self.sw_priority = LolToggle(row3, variable=self.var_priority, command=self._on_toggle_priority)
+        self.sw_priority.pack(side="right")
 
         # ── Priority Icon Grid ──
         ctk.CTkFrame(self.main_body, height=1, fg_color=get_color("colors.border.subtle")).pack(fill="x", padx=12, pady=6)
 
         self.priority_grid = PriorityIconGrid(self.main_body, self.config, self.assets)
         self.priority_grid.pack(fill="x", padx=10, pady=2)
+
+        # ── Status Readout (Bottom Area) ──
+        ctk.CTkFrame(self.main_body, height=1, fg_color=get_color("colors.border.subtle")).pack(fill="x", padx=14, pady=(2, 6))
+        
+        status_info_frame = ctk.CTkFrame(self.main_body, fg_color="transparent")
+        status_info_frame.pack(fill="x", padx=14, pady=2)
+        
+        self.lbl_match_status = ctk.CTkLabel(status_info_frame, text="Status: Connected", font=("Arial", 10), text_color="#6C757D", anchor="w")
+        self.lbl_match_status.pack(fill="x")
+        
+        self.lbl_queue_timer = ctk.CTkLabel(status_info_frame, text="Queue: Idle", font=("Arial", 10), text_color="#6C757D", anchor="w")
+        self.lbl_queue_timer.pack(fill="x")
 
         # ── Action Log (Bottom) ──
         self.spacer = ctk.CTkFrame(self.main_body, fg_color="transparent")
@@ -205,21 +212,23 @@ class SidebarWidget(ctk.CTkFrame):
         self.stats_frame = ctk.CTkFrame(self.main_body, fg_color="transparent")
         
         self.lbl_stats_title = ctk.CTkLabel(
-            self.stats_frame, text="Lobby Stats", font=get_font("caption", "bold"),
-            text_color=get_color("colors.accent.primary"), anchor="w"
+            self.stats_frame, text="LOBBY STATS", font=("Arial", 11, "bold"),
+            text_color=get_color("colors.accent.gold", "#C8AA6E"), anchor="w"
         )
-        self.lbl_stats_title.pack(fill="x", pady=(0, 4))
+        self.lbl_stats_title.pack(fill="x", padx=14, pady=(8, 2))
+        
+        ctk.CTkFrame(self.stats_frame, height=1, fg_color=get_color("colors.border.subtle")).pack(fill="x", padx=14, pady=(0, 8))
         
         self.stats_content = ctk.CTkFrame(self.stats_frame, fg_color="transparent")
-        self.stats_content.pack(fill="x")
+        self.stats_content.pack(fill="x", padx=14)
         # stats_frame is NOT packed yet — it appears only during ChampSelect
 
-        ctk.CTkFrame(self.main_body, height=1, fg_color=get_color("colors.border.subtle")).pack(fill="x", padx=12)
+        ctk.CTkFrame(self.main_body, height=1, fg_color=get_color("colors.border.subtle")).pack(fill="x", padx=14)
         self.lbl_action = ctk.CTkLabel(
             self.main_body, text="Waiting for client...",
             font=get_font("caption"),
             text_color=get_color("colors.text.muted"),
-            wraplength=170, anchor="w"
+            wraplength=200, anchor="w"
         )
         self.lbl_action.pack(fill="x", padx=14, pady=8)
 
