@@ -90,6 +90,11 @@ class ConfigManager:
         if save:
             self.save()
 
+    def set_batch(self, updates: dict, save=True):
+        """Set multiple configuration values and optionally save to file."""
+        self.cfg.update(updates)
+        if save:
+            self.save()
 
     def save(self):
         """Save configuration to file."""
