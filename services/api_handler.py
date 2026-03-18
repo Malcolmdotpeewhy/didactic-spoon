@@ -4,6 +4,7 @@ Manages communication with the League of Legends Client Update (LCU).
 """
 import base64
 import os
+import sys
 import threading
 import time
 from typing import Dict, Optional
