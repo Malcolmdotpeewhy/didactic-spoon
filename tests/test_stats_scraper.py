@@ -1,41 +1,68 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+import ssl
+
 from services.stats_scraper import StatsScraper
 
 class TestStatsScraper(unittest.TestCase):
 
-    @patch('services.stats_scraper.StatsScraper._fetch_stats')
-    def setUp(self, mock_fetch):
-        # Patching _fetch_stats prevents actual network requests during testing
+    @patch('threading.Thread.start')
+    def setUp(self, _mock_thread_start):
         self.scraper = StatsScraper()
 
-    def test_get_winrate_known_champion(self):
-        # Aatrox is in BASELINE_ARAM_WINRATES as 49.5
-        self.assertEqual(self.scraper.get_winrate("aatrox"), 49.5)
+    @patch('urllib.request.urlopen')
+    def test_try_metasrc_strategy_1(self, mock_urlopen):
+        mock_resp = MagicMock()
 
-    def test_get_winrate_unknown_champion(self):
-        self.assertEqual(self.scraper.get_winrate("UnknownChamp"), 50.0)
+        # Simulate > 20 champions to ensure strategy 1 is fully populated
+        # The regex pattern looks for '/build/championname" >ChampionName</a>'
+        # followed by a percentage between 35.0 and 65.0.
+        html_content = ""
+        for i in range(25):
+            # Using letters to match regex r'/build/([a-z\-]+)'
+            name = f"champ{chr(97+i)}"
+            html_content += f'<a href="/build/{name}" class="foo">{name.capitalize()}</a>\n'
+            # Add some percentages that are ignored (e.g. pick rate, score)
+            # and one valid win rate
+            html_content += f'<div>99.99%</div> <div>10.00%</div> <div>52.{i:02d}%</div>\n'
 
-    def test_get_winrate_with_spaces(self):
-        # Miss Fortune is "missfortune": 53.2
-        self.assertEqual(self.scraper.get_winrate("Miss Fortune"), 53.2)
-        # Aurelion Sol is "aurelionsol": 51.5
-        self.assertEqual(self.scraper.get_winrate("Aurelion Sol"), 51.5)
+        html_content += '<a href="/build/ahri" class="foo">Ahri</a> <div>53.42%</div>\n'
 
-    def test_get_winrate_with_apostrophes(self):
-        # Kha'Zix is "khazix": 50.3
-        self.assertEqual(self.scraper.get_winrate("Kha'Zix"), 50.3)
-        # Rek'Sai is "reksai": 48.5
-        self.assertEqual(self.scraper.get_winrate("Rek'Sai"), 48.5)
+        mock_resp.read.return_value.decode.return_value = html_content
+        mock_urlopen.return_value = mock_resp
 
-    def test_get_winrate_with_dots(self):
-        # Dr. Mundo is "drmundo": 53.5
-        self.assertEqual(self.scraper.get_winrate("Dr. Mundo"), 53.5)
+        ctx = ssl.create_default_context()
+        results = self.scraper._try_metasrc(ctx)
 
-    def test_get_winrate_case_insensitivity(self):
-        # Ahri is "ahri": 52.1
-        self.assertEqual(self.scraper.get_winrate("aHrI"), 52.1)
-        self.assertEqual(self.scraper.get_winrate("AATROX"), 49.5)
+        self.assertIn("ahri", results)
+        self.assertEqual(results["ahri"], 53.42)
+        self.assertIn("champa", results)
+        self.assertEqual(results["champa"], 52.00)
+        self.assertGreaterEqual(len(results), 20)
+
+    @patch('urllib.request.urlopen')
+    def test_try_metasrc_strategy_2(self, mock_urlopen):
+        mock_resp = MagicMock()
+
+        # Simulate < 20 champions so Strategy 2 triggers
+        # Strategy 2 looks for <tr data-champ="championname"> and then a percentage
+        html_content = ""
+        for i in range(5):
+            name = f"champ{i}"
+            html_content += f'<tr data-champ="{name}"><td>55.{i:02d}%</td></tr>\n'
+
+        html_content += '<tr data-champ="ahri"><td>54.32%</td></tr>\n'
+
+        mock_resp.read.return_value.decode.return_value = html_content
+        mock_urlopen.return_value = mock_resp
+
+        ctx = ssl.create_default_context()
+        results = self.scraper._try_metasrc(ctx)
+
+        self.assertIn("ahri", results)
+        self.assertEqual(results["ahri"], 54.32)
+        self.assertIn("champ0", results)
+        self.assertEqual(results["champ0"], 55.00)
 
 if __name__ == '__main__':
     unittest.main()

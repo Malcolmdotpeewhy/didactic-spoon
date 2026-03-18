@@ -4,13 +4,13 @@ from .color_utils import lighten_color
 
 def _apply_hover(widget, normal_fg, hover_fg, normal_border, hover_border):
     """Bind hover animation to a widget for brightness transition."""
-    def on_enter(e):  # pylint: disable=unused-argument
+    def on_enter(_):
         try:
             widget.configure(fg_color=hover_fg, border_color=hover_border)
         except Exception as e:  # pylint: disable=broad-exception-caught
             Logger.error("hover.py", f"Handled exception: {e}")
 
-    def on_leave(e):  # pylint: disable=unused-argument
+    def on_leave(_):
         try:
             widget.configure(fg_color=normal_fg, border_color=normal_border)
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -24,13 +24,13 @@ def apply_hover_brightness(widget, normal_color, boost_percent=8):
     """Simple hover brightness boost for any CTk widget with fg_color."""
     hover_color = lighten_color(normal_color, boost_percent)
 
-    def on_enter(e):  # pylint: disable=unused-argument
+    def on_enter(_):
         try:
             widget.configure(fg_color=hover_color)
         except Exception as e:  # pylint: disable=broad-exception-caught
             Logger.error("hover.py", f"Handled exception: {e}")
 
-    def on_leave(e):  # pylint: disable=unused-argument
+    def on_leave(_):
         try:
             widget.configure(fg_color=normal_color)
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -49,7 +49,7 @@ def apply_click_animation(widget, normal_color, pulse_color=None, button_num=1):
     from .color_utils import lighten_color
     from utils.logger import Logger
 
-    def on_click(e):
+    def on_click(_):
         try:
             # Skip if widget is disabled
             if hasattr(widget, "cget") and widget.cget("state") == "disabled":
@@ -111,13 +111,13 @@ def apply_press_effect(widget, normal_color, press_color=None):
     
     active_color = press_color or darken_color(normal_color, 10)
 
-    def on_press(e):
+    def on_press(_):
         try:
             widget.configure(fg_color=active_color)
         except Exception as e:
             Logger.error("hover.py", f"Handled exception: {e}")
 
-    def on_release(e):
+    def on_release(_):
         try:
             # We assume the mouse is still hovering, so we might want to return to 
             # hover state if possible, but simplest is return to normal and let hover re-trigger
@@ -134,7 +134,7 @@ def apply_press_effect(widget, normal_color, press_color=None):
     widget.bind("<ButtonRelease-1>", on_release, add="+")
 
 def apply_card_hover(widget):
-    def on_enter(event):
+    def on_enter(_):
         try:
             from ui.ui_shared import get_color
             widget.configure(border_color=get_color("colors.accent.primary", default="#0AC8B9"))
@@ -142,7 +142,7 @@ def apply_card_hover(widget):
             from utils.logger import Logger
             Logger.error("hover.py", f"Handled exception: {type(e).__name__}: {e}")
 
-    def on_leave(event):
+    def on_leave(_):
         try:
             from ui.components.factory import parse_border
             _, border_color = parse_border("subtle")

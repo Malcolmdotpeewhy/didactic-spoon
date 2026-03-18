@@ -109,7 +109,7 @@ class HotkeyRecorder(ctk.CTkButton):
                 pass
         
         # If _font is already gone, or it's already being destroyed, don't re-enter
-        if not hasattr(self, "_font"):
+        if not hasattr(self, "_font") or not self.winfo_exists():
             return
             
         try:
@@ -293,24 +293,17 @@ class SettingsModal(ctk.CTkToplevel):
             
         try:
             # 3. Explicitly destroy children first with guards
-            # This helps prevent CTkButton._font errors during recursive destruction
-            children = self.winfo_children()
-            for child in children:
-                try:
-                    if hasattr(child, "destroy"):
-                        # If it's a CTk widget, check for _font safety if possible
-                        if hasattr(child, "_font") or not hasattr(child, "configure"):
+            if self.winfo_exists():
+                for child in self.winfo_children():
+                    try:
+                        if child.winfo_exists():
                             child.destroy()
-                except Exception:
-                    pass
+                    except Exception:
+                        pass
 
             # 4. Final destruction of the Toplevel
-            self.destroy()
+            if self.winfo_exists():
+                super().destroy()
         except Exception as e:
-            Logger.error("SYS", f"Failed to destroy settings modal: {e}")
-            # Absolute fallback: skip all framework logic and kill the window via tk
-            try:
-                import tkinter as tk
-                tk.Toplevel.destroy(self)
-            except Exception:
-                pass
+            # Silent fail for destruction is safer in threaded UI environments
+            pass

@@ -2,7 +2,6 @@ import urllib.request
 import json
 import re
 import threading
-import time
 import socket
 import ssl
 from utils.logger import Logger
@@ -127,10 +126,15 @@ class StatsScraper:
                 props = nd.get("props", {}).get("pageProps", {})
                 champs = props.get("data", props.get("champions", {}))
                 if isinstance(champs, dict):
-                    for cid_str, cdata in champs.items():
-                        if isinstance(cdata, dict):
-                            wr = cdata.get("wr") or cdata.get("winRate")
-                            name = cdata.get("name", "")
+                    for cdata in champs.values():
+                        if type(cdata) is dict:
+                            try:
+                                name = cdata["name"]
+                                wr = cdata["wr"]
+                            except KeyError:
+                                name = cdata.get("name", "")
+                                wr = cdata.get("wr") or cdata.get("winRate")
+
                             if wr and name:
                                 clean = name.replace("'", "").replace(" ", "").replace(".", "").lower()
                                 results[clean] = float(wr)
@@ -224,3 +228,7 @@ class StatsScraper:
         clean = champ_name.replace("'", "").replace(" ", "").replace(".", "").lower()
         return self.win_rates.get(clean, 50.0)
 
+    @property
+    def is_offline(self) -> bool:
+        """True when all fetch sources failed and we're using pure baseline data."""
+        return not self._fetched and not self._fetching

@@ -257,7 +257,13 @@ def make_button(parent, text, style="primary", width=None, command=None, icon=No
         **kw
     )
     
-    apply_hover_brightness(btn, fg_color)
+    if style == "primary":
+        btn.configure(border_width=1, border_color="#C8AA6E")
+        # Ensure deep color pop on hover
+        apply_hover_brightness(btn, fg_color, 12)
+    else:
+        apply_hover_brightness(btn, fg_color)
+        
     apply_press_effect(btn, fg_color)
 
     return btn
@@ -314,23 +320,6 @@ def make_input(parent, placeholder="", width=None, **kw):
 
 
 
-def make_switch(parent, text, command=None, variable=None, **kw):
-    """
-    Create a standardized switch.
-    """
-    switch = ctk.CTkSwitch(
-        parent,
-        text=text,
-        font=get_font("body"),
-        fg_color=get_color("colors.text.disabled"),
-        progress_color=get_color("colors.accent.primary"),
-        button_color=get_color("colors.text.primary"),
-        button_hover_color=get_color("colors.text.secondary"),
-        command=command,
-        variable=variable,
-        **kw
-    )
-    return switch
 
 
 

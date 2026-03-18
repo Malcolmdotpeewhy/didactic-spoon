@@ -13,10 +13,15 @@ def _resolve_token_path():
 
 TOKEN_PATH = _resolve_token_path()
 
+DEFAULT_TOKENS = {}
+
 class DesignTokens:
     def __init__(self):
-        with open(TOKEN_PATH, "r") as f:
-            self.tokens = json.load(f)
+        try:
+            with open(TOKEN_PATH, "r") as f:
+                self.tokens = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.tokens = DEFAULT_TOKENS
 
     def get(self, *keys, default=None):
         keys = list(keys)
