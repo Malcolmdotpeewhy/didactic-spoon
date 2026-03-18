@@ -128,8 +128,8 @@ class LeagueLoopApp(ctk.CTk):
                 task, args, kwargs = self._ui_queue.get_nowait()
                 if task:
                     task(*args, **kwargs)
-        except queue.Empty:
-            pass
+            except queue.Empty:
+                break
         super().after(16, self._process_ui_queue)
 
     def after(self, ms, func=None, *args):
