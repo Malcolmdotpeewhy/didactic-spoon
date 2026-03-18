@@ -1,0 +1,10 @@
+
+--- Phase 1: Clear Search ---
+Status: 204
+
+--- Phase 2: Check & Delete Lobby ---
+Traceback (most recent call last):
+  File "c:\Users\Administrator\Desktop\LeagueLoop\raw_lobby_test.py", line 30, in <module>
+    lobby_req = requests.get(url, headers=headers, verify=False)
+                             ^^^
+NameError: name 'url' is not defined

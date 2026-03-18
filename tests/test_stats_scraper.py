@@ -7,7 +7,7 @@ from services.stats_scraper import StatsScraper
 class TestStatsScraper(unittest.TestCase):
 
     @patch('threading.Thread.start')
-    def setUp(self, mock_thread_start):
+    def setUp(self, _mock_thread_start):
         self.scraper = StatsScraper()
 
     @patch('urllib.request.urlopen')

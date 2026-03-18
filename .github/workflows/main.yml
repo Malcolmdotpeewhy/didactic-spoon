@@ -1,51 +1,27 @@
-name: merge-all
+name: Auto Merge PRs
 
 on:
+  schedule:
+    - cron: "*/15 * * * *"   # every 15 minutes
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
-  merge:
+  automerge:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Configure git
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@users.noreply.github.com"
-
-      - name: Fetch branches
-        run: git fetch --all --prune
-
-      - name: Merge everything into master
-        run: |
-          TARGET=master
-
-          git checkout $TARGET
-          git pull origin $TARGET
-
-          for branch in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin/ | sed 's/origin\///'); do
-
-            if [ "$branch" = "$TARGET" ]; then
-              continue
-            fi
-
-            echo "Attempting merge: $branch"
-
-            if git merge origin/$branch --no-edit; then
-              echo "Merged $branch"
-            else
-              echo "Conflict in $branch — skipping"
-              git merge --abort || true
-            fi
-
-          done
-
-      - name: Push merged master
-        run: git push origin master
+      - name: Auto-merge PRs
+        uses: pascalgn/automerge-action@v0.16.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MERGE_METHOD: merge      # merge | squash | rebase
+          UPDATE_METHOD: rebase
+          MERGE_LABELS: ""         # empty = merge all eligible
+          MERGE_FILTER_AUTHOR: ""  # optional
+          MERGE_FORKS: "true"
+          DELETE_BRANCH_AFTER_MERGE: "true"

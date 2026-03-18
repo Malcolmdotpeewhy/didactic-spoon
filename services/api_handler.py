@@ -4,6 +4,7 @@ Manages communication with the League of Legends Client Update (LCU).
 """
 import base64
 import os
+import sys
 import threading
 import time
 from typing import Dict, Optional
@@ -11,9 +12,9 @@ from typing import Dict, Optional
 import psutil
 import requests
 import urllib3
+import warnings
 
 from utils.logger import Logger
-from utils.path_utils import get_asset_path
 
 
 class LCUClient:
@@ -24,15 +25,15 @@ class LCUClient:
 
     def __init__(self):
         self._lock = threading.Lock()
-        self.port = None
-        self.auth_token = None
-        self.protocol = "https"
-        self.base_url = None
-        self.is_connected = False
-        self.headers = {}
+        self.port: Optional[str] = None
+        self.auth_token: Optional[str] = None
+        self.protocol: str = "https"
+        self.base_url: Optional[str] = None
+        self.is_connected: bool = False
+        self.headers: Dict[str, str] = {}
         self.session = requests.Session()
-        self.session.verify = get_asset_path("assets/riotgames.pem")
-        self._client_pid = None
+        self.session.verify = False
+        self._client_pid: Optional[int] = None
 
         # Do NOT connect immediately to avoid blocking UI startup.
         # Connection is handled by the background loop in main.py.
@@ -107,9 +108,11 @@ class LCUClient:
                             self.port = arg.split("=")[1]
                         if "--remoting-auth-token=" in arg:
                             self.auth_token = arg.split("=")[1]
-                except (psutil.AccessDenied, Exception):  # pylint: disable=broad-exception-caught
+                except psutil.AccessDenied:
                     # Access Denied on cmdline is common if running non-admin. Fallback to lockfile.
-                    Logger.debug("LCU", "Could not read process command line. Falling back to lockfile scan.")
+                    Logger.warning("LCU", "Access denied reading process cmdline. Falling back to lockfile.")
+                except Exception as e:  # pylint: disable=broad-exception-caught
+                    Logger.debug("LCU", f"Could not read process cmdline: {e}. Falling back to lockfile.")
 
                 # Fallback: Check for 'lockfile' in the process directory if we miss port/token
                 if not self.port or not self.auth_token:
@@ -128,7 +131,9 @@ class LCUClient:
                                     Logger.debug(
                                         "LCU", f"Extracted from lockfile: Port {self.port}"
                                     )
-                    except (psutil.AccessDenied, Exception) as e:  # pylint: disable=broad-exception-caught
+                    except psutil.AccessDenied:
+                        Logger.warning("LCU", "Access denied reading lockfile.")
+                    except Exception as e:  # pylint: disable=broad-exception-caught
                         Logger.debug("LCU", f"Lockfile check failed: {e}")
 
                 if self.port and self.auth_token:
@@ -170,13 +175,21 @@ class LCUClient:
         try:
             if not silent:
                 Logger.debug("LCU", f"REQ -> {method} {endpoint}")
-            response = self.session.request(
-                method=method,
-                url=url,
-                # headers=self.headers, # Already in session
-                json=data,
-                timeout=2,  # Prevent blocking UI
-            )
+            
+            # TRACE payload format
+            if endpoint == "/lol-lobby/v2/lobby" and method == "POST":
+                Logger.debug("LCU_TRACE", f"DATA TYPE: {type(data)} | RAW: {data}")
+                
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
+                response = self.session.request(
+                    method=method,
+                    url=url,
+                    # headers=self.headers, # Already in session
+                    json=data,
+                    verify=False,
+                    timeout=2,  # Prevent blocking UI
+                )
 
             dur = time.time() - t_start
             if not silent:
@@ -198,28 +211,3 @@ class LCUClient:
             self.is_connected = False
             return None
 
-    # --- Convenience Methods ---
-
-    def get_summoner_current_summoner(self):
-        """Get current summoner info."""
-        return self.request("GET", "/lol-summoner/v1/current-summoner")
-
-    def get_champ_select_session(self):
-        """Get champion select session."""
-        return self.request("GET", "/lol-champ-select/v1/session")
-
-    def action_champ_select(
-        self, action_id: int, champion_id: int, complete: bool = False
-    ):
-        """Perform a champion select action (pick/ban)."""
-        data = {"championId": champion_id}
-        if complete:
-            data["completed"] = True
-        return self.request(
-            "PATCH", f"/lol-champ-select/v1/session/actions/{action_id}", data=data
-        )
-
-    def set_champ_select_intent(self, action_id: int, champion_id: int):
-        """Set champion select intent (hover)."""
-        # Usually for pick intent, you act on the 'pick' action but just don't complete it
-        return self.action_champ_select(action_id, champion_id, complete=False)

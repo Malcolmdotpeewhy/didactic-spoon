@@ -1,0 +1,4 @@
+  File "c:\Users\Administrator\Desktop\LeagueLoop\raw_lobby_test.py", line 1
+    url = f\\" https://127.0.0.1: -encodedCommand cABvAHIAdAA= "/lol-lobby/v2/lobby\  
+            ^
+SyntaxError: unexpected character after line continuation character

@@ -1,0 +1,19 @@
+Lockfile not found at default path, trying Riot Client
+Using lockfile: C:\Users\Administrator\Riot Games\League of Legends\lockfile
+Connecting to https://127.0.0.1:58089/lol-lobby/v2/lobby
+
+--- Testing payload: {'queueId': 450} ---
+Status: 423
+Response: {"errorCode":"RPC_ERROR","httpStatus":423,"implementationDetails":{},"message":"Gameflow prevented a lobby."}
+
+--- Testing payload: {'gameConfig': {'queueId': 450}} ---
+Status: 500
+Response: {"errorCode":"RPC_ERROR","httpStatus":500,"implementationDetails":{},"message":"INVALID_LOBBY"}
+
+--- Testing payload: {'queueId': 430} ---
+Status: 500
+Response: {"errorCode":"RPC_ERROR","httpStatus":500,"implementationDetails":{},"message":"INVALID_LOBBY"}
+
+--- Testing payload: {'queueId': '450'} ---
+Status: 423
+Response: {"errorCode":"RPC_ERROR","httpStatus":423,"implementationDetails":{},"message":"Gameflow prevented a lobby."}
