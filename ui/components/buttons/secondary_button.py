@@ -35,6 +35,7 @@ class SecondaryButton(ctk.CTkButton):
             border_color=border_color,
             font=font,
             corner_radius=corner_radius,
+            cursor="hand2",
             **kwargs
         )
         apply_hover_brightness(self, bg_color)
