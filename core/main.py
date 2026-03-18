@@ -128,8 +128,8 @@ class LeagueLoopApp(ctk.CTk):
                 task, args, kwargs = self._ui_queue.get_nowait()
                 if task:
                     task(*args, **kwargs)
-            except queue.Empty:
-                break
+        except queue.Empty:
+            pass
         super().after(16, self._process_ui_queue)
 
     def after(self, ms, func=None, *args):
@@ -156,6 +156,18 @@ class LeagueLoopApp(ctk.CTk):
     def on_drag_start(self, event):
         self._drag_data["x"] = event.x
         self._drag_data["y"] = event.y
+        if getattr(self, "compact_mode", False) and hasattr(self, "_compact_frame"):
+            try:
+                self._compact_frame.configure(border_color=get_color("colors.accent.primary", "#0ac8b9"))
+            except Exception:
+                pass
+
+    def on_drag_stop(self, event):
+        if getattr(self, "compact_mode", False) and hasattr(self, "_compact_frame"):
+            try:
+                self._compact_frame.configure(border_color=get_color("colors.accent.gold", "#C8AA6E"))
+            except Exception:
+                pass
 
     def on_drag_motion(self, event):
         x = self.winfo_x() - self._drag_data["x"] + event.x
@@ -201,8 +213,12 @@ class LeagueLoopApp(ctk.CTk):
                             if val and "RiotClientServices.exe" in val:
                                 path = val.split('"')[1] if '"' in val else val.split(' ')[0]
                                 if os.path.exists(path): candidates.insert(0, path)
-                        except: pass
-                except: pass
+                        except Exception as e:
+                            from utils.logger import Logger
+                            Logger.debug("SYS", f"Registry iteration failed: {e}")
+                except Exception as e:
+                    from utils.logger import Logger
+                    Logger.debug("SYS", f"Registry module failed: {e}")
 
             for c in candidates:
                 if os.path.exists(c):
@@ -303,6 +319,8 @@ class LeagueLoopApp(ctk.CTk):
             btn_compact.bind("<ButtonPress-1>", self.on_drag_start)
             self._compact_frame.bind("<B1-Motion>", self.on_drag_motion)
             btn_compact.bind("<B1-Motion>", self.on_drag_motion)
+            self._compact_frame.bind("<ButtonRelease-1>", self.on_drag_stop)
+            btn_compact.bind("<ButtonRelease-1>", self.on_drag_stop)
 
     def toggle_power(self, power_state):
         Logger.info("SYS", f"Power Toggled: {power_state}")

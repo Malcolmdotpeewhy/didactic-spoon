@@ -21,21 +21,22 @@ def get_radius(size="md"):
 
 def get_font(type="body", weight=None):
     """Retrieve font tuple. Weight can be 'bold', 'medium', or 'normal'."""
-    family = TOKENS.get("typography", "font_primary", default="Segoe UI")
     if type == "header" or type == "title":
-        size = 18 if type == "title" else 14
+        family = "Cinzel"
+        size = 14 if type == "header" else 16
         weight_val = "bold"
     elif type == "caption":
+        family = "Inter"
         size = 11
         weight_val = "normal"
     else:
-        size = 13
+        family = "Inter"
+        size = 12
         weight_val = "normal"
     
-    # Caller override
-    if weight == "bold":
-        weight_val = "bold"
-    
+    if weight:
+        weight_val = weight
+        
     return (family, size, weight_val)
 
 def parse_border(token_key):
@@ -60,183 +61,79 @@ def parse_border(token_key):
 
 # --- Components ---
 
-def make_panel(parent, title=None, fg_color=None, pad=None, corner_radius=None, **kw):
-    """
-    Create an elevated panel frame with optional title and divider.
-    Supports collapsible behavior.
-    """
-    # Defaults
-    def_bg = get_color("colors.background.panel")
-    def_radius = get_radius("lg")
-    def_border_w, def_border_c = parse_border("subtle")
-    
-    # Resolve values (kw > arg > default)
-    bg_color = kw.pop("fg_color", fg_color or def_bg)
-    radius = kw.pop("corner_radius", corner_radius or def_radius)
-    border_w = kw.pop("border_width", def_border_w)
-    border_c = kw.pop("border_color", def_border_c)
-    
-    p = pad if pad is not None else TOKENS.get("spacing", "md")
-    
-    # Pop special args
-    collapsible = kw.pop("collapsible", False)
-    start_collapsed = kw.pop("start_collapsed", False)
-
-    # Outer frame (Structural)
-    outer = ctk.CTkFrame(
-        parent,
-        fg_color=bg_color,
-        corner_radius=radius,
-        border_width=border_w,
-        border_color=border_c,
-        **kw
-    )
-
-    # Inner frame for padding/structure
-    inner = ctk.CTkFrame(
-        outer,
-        fg_color=bg_color,
-        corner_radius=radius - 1,
-    )
-    inner.pack(fill="both", expand=True, padx=1, pady=1)
-
-    # Title bar
-    if title:
-        title_frame = ctk.CTkFrame(inner, fg_color="transparent")
-        title_frame.pack(fill="x", padx=p, pady=(p, 0))
-
-        ctk.CTkLabel(
-            title_frame,
-            text=title,
-            font=get_font("title"),
-            text_color=get_color("colors.text.primary")
-        ).pack(side="left")
-
-        # Gold underline
-        underline = ctk.CTkFrame(
-            inner, 
-            height=1, 
-            fg_color=get_color("colors.accent.gold", default="#C8A45D") 
-        )
-        underline.pack(fill="x", padx=p, pady=(8, 8))
-
-    # Content Area
-    content = ctk.CTkFrame(inner, fg_color="transparent")
-    content.pack(fill="both", expand=True, padx=p, pady=(0 if title else p, p))
-
-    # References for consumer access
-    outer._content = content
-    outer._inner = inner
-
-    # Collapsible Logic
-    if title and collapsible:
-        btn_toggle = make_button(
-            title_frame,
-            text="▼" if not start_collapsed else "▶",
-            style="ghost",
-            width=30,
-            height=24,
-            font=get_font("body")
-        )
-        btn_toggle.pack(side="right")
+class RiotButton(ctk.CTkFrame):
+    """Custom button emulating Riot's 2-layer depth with top highlight."""
+    def __init__(self, master, text, style="primary", width=120, height=30, command=None, font=None, **kwargs):
+        # Extract text styling
+        text_color = kwargs.pop("text_color", None)
         
-        is_expanded = not start_collapsed 
+        if style == "primary" or style == "success":
+            outer_color = "#C8AA6E"
+            inner_color = "#A98A48"
+            hover_color = "#C8AA6E" # Brighten on hover
+            base_text_color = text_color or "#091428"
+        elif style == "ghost" or style == "danger":
+            outer_color = "#1E2328" if style == "danger" else "transparent"
+            inner_color = "transparent"
+            hover_color = "#1C2630" if style == "ghost" else "#4d1111"
+            base_text_color = text_color or ("#E74C3C" if style == "danger" else "#F0E6D2")
+        else: # secondary
+            outer_color = "#1E2328"
+            inner_color = "#0A1428"
+            hover_color = "#1E2328"
+            base_text_color = text_color or "#C8AA6E"
 
-        def toggle():
-            nonlocal is_expanded
-            if is_expanded:
-                content.pack_forget()
-                if "underline" in locals():
-                    underline.pack_forget()
-                btn_toggle.configure(text="▶")
-                outer.configure(height=40) 
-                is_expanded = False
-            else:
-                if "underline" in locals():
-                    underline.pack(fill="x", padx=p, pady=(8, 8))
-                content.pack(fill="both", expand=True, padx=p, pady=(0, p))
-                btn_toggle.configure(text="▼")
-                is_expanded = True
+        super().__init__(master, width=width, height=height, fg_color=outer_color, corner_radius=2, **kwargs)
+        self.pack_propagate(False)
+        self.command = command
         
-        btn_toggle.configure(command=toggle)
+        padding = 1 if style not in ("ghost",) else 0
+        self.inner = ctk.CTkFrame(self, fg_color=inner_color, corner_radius=1)
+        self.inner.pack(fill="both", expand=True, padx=padding, pady=padding)
+        
+        if style == "primary":
+            self.highlight = ctk.CTkFrame(self.inner, height=1, fg_color="#D3B679", corner_radius=0)
+            self.highlight.pack(fill="x", side="top")
+            
+        btn_font = font or get_font("body", "bold")
+        self.lbl = ctk.CTkLabel(self.inner, text=text, font=btn_font, text_color=base_text_color)
+        self.lbl.pack(expand=True)
+        
+        for w in (self, self.inner, self.lbl):
+            w.bind("<Enter>", lambda e: self._on_enter(hover_color))
+            w.bind("<Leave>", lambda e: self._on_leave(inner_color))
+            w.bind("<Button-1>", self._on_click)
+            
+        self._inner_color = inner_color
+        
+    def _on_enter(self, h_color):
+        self.configure(cursor="hand2")
+        self.inner.configure(fg_color=h_color)
+        
+    def _on_leave(self, i_color):
+        self.configure(cursor="")
+        self.inner.configure(fg_color=i_color)
+        
+    def _on_click(self, e):
+        # Optional: Add small press scale if desired
+        if self.command:
+            self.command()
 
-        if start_collapsed:
-            content.pack_forget()
-            if "underline" in locals():
-                underline.pack_forget()
-            outer.configure(height=40)
-
-    return outer
-
+    def configure(self, **kwargs):
+        if "text" in kwargs:
+            self.lbl.configure(text=kwargs.pop("text"))
+        if "text_color" in kwargs:
+            self.lbl.configure(text_color=kwargs.pop("text_color"))
+        if "command" in kwargs:
+            self.command = kwargs.pop("command")
+        if kwargs:
+            super().configure(**kwargs)
 
 def make_button(parent, text, style="primary", width=None, command=None, icon=None, **kw):
-    """
-    Create a standardized button.
-    Styles matches tokens: primary, secondary, danger, ghost.
-    """
-    # Map 'default' to 'secondary' if not found
-    if style == "default": style = "secondary"
-    if style == "success": style = "primary"
-
-    style_def = TOKENS.get("buttons", style) or TOKENS.get("buttons", "secondary")
-    
-    # Base defaults
-    def_fg = style_def.get("bg")
-    def_text = style_def.get("text")
-    def_hover = style_def.get("hover")
-    
-    # Border defaults
-    def_bw, def_bc = parse_border("subtle")
-    if style == "ghost":
-        def_bw = 0
-        def_bc = None
-    if style == "danger":
-        def_bc = get_color("colors.state.danger")
-
-    # Double check for transparent color (crash prevention)
-    if def_bc == "transparent":
-        def_bc = None
-
-    # KW overrides
-    fg_color = kw.pop("fg_color", def_fg)
-    text_color = kw.pop("text_color", def_text)
-    hover_color = kw.pop("hover_color", def_hover)
-    
-    border_width = kw.pop("border_width", def_bw)
-    border_color = kw.pop("border_color", def_bc)
-    
-    radius = kw.pop("corner_radius", get_radius("sm"))
-    h = kw.pop("height", 32)
+    """Factory wrapper for new RiotButton."""
     w = kw.pop("width", width or 120)
-    font = kw.pop("font", get_font("body", "medium"))
-
-    btn = ctk.CTkButton(
-        parent,
-        text=text,
-        font=font,
-        width=w,
-        height=h,
-        corner_radius=radius,
-        fg_color=fg_color,
-        text_color=text_color,
-        hover_color=hover_color,
-        border_width=border_width,
-        border_color=border_color,
-        command=command,
-        image=icon,
-        **kw
-    )
-    
-    if style == "primary":
-        btn.configure(border_width=1, border_color="#C8AA6E")
-        # Ensure deep color pop on hover
-        apply_hover_brightness(btn, fg_color, 12)
-    else:
-        apply_hover_brightness(btn, fg_color)
-        
-    apply_press_effect(btn, fg_color)
-
-    return btn
+    h = kw.pop("height", 30)
+    return RiotButton(parent, text=text, style=style, width=w, height=h, command=command, **kw)
 
 
 def make_input(parent, placeholder="", width=None, **kw):

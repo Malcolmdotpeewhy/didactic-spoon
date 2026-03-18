@@ -117,11 +117,12 @@ class StatsScraper:
         html = resp.read().decode("utf-8", errors="ignore")
 
         results = {}
-        # lolalytics embeds champion data in __NEXT_DATA__ JSON
-        nd_match = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.DOTALL)
-        if nd_match:
-            try:
-                nd = json.loads(nd_match.group(1))
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html, "html.parser")
+            script_tag = soup.find("script", id="__NEXT_DATA__")
+            if script_tag and script_tag.string:
+                nd = json.loads(script_tag.string)
                 # Navigate the nested structure
                 props = nd.get("props", {}).get("pageProps", {})
                 champs = props.get("data", props.get("champions", {}))
@@ -138,8 +139,8 @@ class StatsScraper:
                             if wr and name:
                                 clean = name.replace("'", "").replace(" ", "").replace(".", "").lower()
                                 results[clean] = float(wr)
-            except (json.JSONDecodeError, ValueError):
-                pass
+        except Exception as e:
+            Logger.debug("Stats", f"BS4 parsing failed for lolalytics: {e}")
 
         # Also try regex fallback for win rate data in the HTML
         if not results:
@@ -175,51 +176,57 @@ class StatsScraper:
         html = resp.read().decode("utf-8", errors="ignore")
 
         results = {}
-
-        # metasrc structure: champion name in <a href=".../build/championname">Name</a>
-        # win rate appears as XX.XX% text near each champion row
-        # We'll find all build links and pair them with the nearest percentage
-
-        # Strategy 1: Find champion build links and nearby percentages
-        # Pattern: /build/championname followed eventually by a percentage
-        build_matches = re.finditer(r'/build/([a-z\-]+)"[^>]*>([^<]+)</a>', html, re.IGNORECASE)
-        
-        for match in build_matches:
-            slug = match.group(1).strip().lower().replace("-", "").replace("'", "")
-            display_name = match.group(2).strip()
-            
-            # Find the nearest percentage after this match within ~500 chars
-            after_text = html[match.end():match.end() + 800]
-            pcts = re.findall(r'(\d{2}\.\d{2})%', after_text)
-            
-            if pcts:
-                try:
-                    # The percentages in order are typically: Score, Trend, Win%, Pick%
-                    # Win% is usually the 3rd percentage, but let's take all and pick the one 
-                    # most likely to be a win rate (between 35-65%)
-                    for pct_str in pcts:
-                        wr = float(pct_str)
-                        if 35.0 <= wr <= 65.0:
-                            clean_name = display_name.replace("'", "").replace(" ", "").replace(".", "").lower()
-                            results[clean_name] = wr
-                            break
-                except ValueError:
-                    pass
-
-        # Strategy 2: If strategy 1 didn't find much, try data-champ attributes
-        if len(results) < 20:
-            rows = html.split("<tr")
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html, "html.parser")
+            # Metasrc typically uses a table where rows have data-champ
+            rows = soup.find_all("tr", attrs={"data-champ": True})
             for row in rows:
-                if "data-champ=" in row:
-                    champ_match = re.search(r'data-champ="([^"]+)"', row)
-                    if champ_match:
-                        champ = champ_match.group(1).replace("'", "").replace(" ", "").replace(".", "").lower()
-                        pcts = re.findall(r'([\d.]+)%', row)
-                        if pcts:
-                            try:
-                                results[champ] = float(pcts[0])
-                            except ValueError:
-                                pass
+                champ = row["data-champ"].replace("'", "").replace(" ", "").replace(".", "").lower()
+                # Find all percentages in text
+                text = row.get_text()
+                pcts = re.findall(r'([\d.]+)%', text)
+                if pcts:
+                    try:
+                        results[champ] = float(pcts[0])
+                    except ValueError:
+                        pass
+                        
+            # If the table structure changed, look for build links
+            if len(results) < 20:
+                links = soup.find_all("a", href=re.compile(r'/build/'))
+                for link in links:
+                    name_el = link.string
+                    if not name_el: continue
+                    champ = name_el.strip().replace("'", "").replace(" ", "").replace(".", "").lower()
+                    parent = link.find_parent(["tr", "div"])
+                    if parent:
+                        pcts = re.findall(r'(\d{2}\.\d{2})%', parent.get_text())
+                        for pct_str in pcts:
+                            wr = float(pct_str)
+                            if 35.0 <= wr <= 65.0:
+                                results[champ] = wr
+                                break
+        except Exception as e:
+            Logger.debug("Stats", f"BS4 parsing failed for metasrc: {e}")
+
+        # Strategy 2 Fallback: Regex
+        if len(results) < 20:
+            build_matches = re.finditer(r'/build/([a-z\-]+)"[^>]*>([^<]+)</a>', html, re.IGNORECASE)
+            for match in build_matches:
+                display_name = match.group(2).strip()
+                after_text = html[match.end():match.end() + 800]
+                pcts = re.findall(r'(\d{2}\.\d{2})%', after_text)
+                if pcts:
+                    try:
+                        for pct_str in pcts:
+                            wr = float(pct_str)
+                            if 35.0 <= wr <= 65.0:
+                                clean_name = display_name.replace("'", "").replace(" ", "").replace(".", "").lower()
+                                results[clean_name] = wr
+                                break
+                    except ValueError:
+                        pass
 
         return results
 

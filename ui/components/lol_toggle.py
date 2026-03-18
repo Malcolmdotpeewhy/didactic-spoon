@@ -1,86 +1,73 @@
+import tkinter as tk
 import customtkinter as ctk
 
-class LolToggle(ctk.CTkFrame):
-    """Custom Riot-style animated sliding toggle switch."""
-    def __init__(self, master, width=36, height=18,
-                 fg_color="#1E2328", progress_color="#C8AA6E", knob_color="#F0E6D2",
-                 variable=None, command=None, **kwargs):
-        super().__init__(master, width=width, height=height, fg_color=fg_color, corner_radius=height//2, **kwargs)
-        self.pack_propagate(False)
-
-        self._variable = variable
-        self._command = command
+class LolToggle(tk.Canvas):
+    """Custom Riot-style animated sliding toggle switch using pure Canvas for maximum fidelity."""
+    def __init__(self, master, width=32, height=16, variable=None, command=None, bg_color="#0A1428", **kwargs):
+        super().__init__(master, width=width, height=height, highlightthickness=0, bg=bg_color, **kwargs)
+        self.variable = variable
+        self.command = command
         self._state = False
+        if self.variable:
+            self._state = self.variable.get()
 
-        self._width = width
-        self._height = height
-        self._fg_color = fg_color
-        self._progress_color = progress_color
-        self._knob_color = knob_color
+        self.color_inactive = "#1E2328"
+        self.color_active = "#A88A4E" # C8AA6E dimmed
+        self.color_knob = "#F0E6D2"
 
-        if self._variable:
-            self._state = self._variable.get()
-
-        self._setup_ui()
-        self._bind_events()
-
-    def _setup_ui(self):
-        # Draw the knob
-        knob_size = self._height - 4
-        self.knob = ctk.CTkFrame(self, width=knob_size, height=knob_size, 
-                                 corner_radius=knob_size//2, fg_color=self._knob_color, bg_color="transparent")
-        
-        # Position logic
         self.pos_off = 2
-        self.pos_on = self._width - knob_size - 2
+        self.pos_on = 18 # 32 - 12 - 2
         self._current_x = self.pos_on if self._state else self.pos_off
         
-        self.knob.place(x=self._current_x, rely=0.5, anchor="w")
-        self.configure(fg_color=self._progress_color if self._state else self._fg_color)
-
-    def _bind_events(self):
         self.bind("<Button-1>", self.toggle)
-        self.knob.bind("<Button-1>", self.toggle)
+        self.bind("<Enter>", lambda e: self.configure(cursor="hand2"))
+        self.bind("<Leave>", lambda e: self.configure(cursor=""))
         
-        def _on_enter(e):
-            self.configure(cursor="hand2")
-        def _on_leave(e):
-            self.configure(cursor="")
-            
-        self.bind("<Enter>", _on_enter)
-        self.bind("<Leave>", _on_leave)
-        self.knob.bind("<Enter>", _on_enter)
-        self.knob.bind("<Leave>", _on_leave)
+        self._draw()
+
+    def _draw(self):
+        self.delete("all")
+        bg_col = self.color_active if self._state else self.color_inactive
+        
+        # Track (Pill shape)
+        self.create_oval(0, 0, 16, 16, fill=bg_col, outline=bg_col, tags="track")
+        self.create_oval(16, 0, 32, 16, fill=bg_col, outline=bg_col, tags="track")
+        self.create_rectangle(8, 0, 24, 16, fill=bg_col, outline=bg_col, tags="track")
+        
+        # Knob
+        k_y = 2
+        k_s = 12
+        x = self._current_x
+        self.knob_id = self.create_oval(x, k_y, x+k_s, k_y+k_s, fill=self.color_knob, outline=self.color_knob)
 
     def toggle(self, event=None):
         self._state = not self._state
-        if self._variable:
-            self._variable.set(self._state)
+        if self.variable:
+            self.variable.set(self._state)
+            
+        if self.command:
+            self.command()
             
         self._animate()
-        
-        if self._command:
-            self._command()
 
     def _animate(self):
         target_x = self.pos_on if self._state else self.pos_off
-        steps = 6
-        step_time = 120 // steps # 120ms total duration
         
-        start_x = self._current_x
-        diff = target_x - start_x
-        step_val = diff / steps
+        bg_col = self.color_active if self._state else self.color_inactive
+        self.itemconfig("track", fill=bg_col, outline=bg_col)
         
-        def _anim_step(current_step):
+        def step_animation():
             if not self.winfo_exists(): return
-            if current_step >= steps:
+            diff = target_x - self._current_x
+            
+            if abs(diff) < 0.5:
                 self._current_x = target_x
-                self.knob.place(x=self._current_x, rely=0.5, anchor="w")
-                self.configure(fg_color=self._progress_color if self._state else self._fg_color)
+                self.coords(self.knob_id, self._current_x, 2, self._current_x + 12, 14)
                 return
+                
+            self._current_x += diff * 0.3
+            self.coords(self.knob_id, self._current_x, 2, self._current_x + 12, 14)
+            self.after(8, step_animation)
             
-            self._current_x = start_x + (step_val * current_step)
-            self.knob.place(x=self._current_x, rely=0.5, anchor="w")
-            self.after(step_time, _anim_step, current_step + 1)
-            
-        _anim_step(1)
+        step_animation()
+

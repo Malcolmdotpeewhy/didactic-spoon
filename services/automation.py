@@ -52,7 +52,7 @@ class AutomationEngine:
         self._last_search_state_time: float = 0.0
         self._cached_search_state: Optional[dict] = None
 
-    def start(self, start_paused=False):
+    def start(self, start_paused: bool = False) -> None:
         if self.running: return
         self.running = True
         self.paused = start_paused
@@ -60,17 +60,17 @@ class AutomationEngine:
         self.thread = threading.Thread(target=self._loop, daemon=True)
         self.thread.start()
 
-    def stop(self):
+    def stop(self) -> None:
         self.running = False
         self._stop_event.set()
 
-    def pause(self):
+    def pause(self) -> None:
         self.paused = True
 
-    def resume(self):
+    def resume(self) -> None:
         self.paused = False
 
-    def _log(self, msg):
+    def _log(self, msg: str) -> None:
         log_hook = self.log
         if log_hook is not None:
             log_hook(msg)

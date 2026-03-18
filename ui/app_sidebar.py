@@ -135,10 +135,10 @@ class SidebarWidget(ctk.CTkFrame):
         self.opt_game_mode.pack(side="left", fill="x", expand=True)
 
         # ── Divider ──
-        ctk.CTkFrame(self.scroll, height=1, fg_color=get_color("colors.border.subtle")).pack(fill="x", padx=12, pady=4)
+        ctk.CTkFrame(self.main_body, height=1, fg_color=get_color("colors.border.subtle")).pack(fill="x", padx=12, pady=4)
 
         # ── Action Buttons ──
-        btn_frame = ctk.CTkFrame(self.scroll, fg_color="transparent")
+        btn_frame = ctk.CTkFrame(self.main_body, fg_color="transparent")
         btn_frame.pack(fill="x", padx=12, pady=8)
 
         self.btn_find_match = make_button(
@@ -271,8 +271,9 @@ class SidebarWidget(ctk.CTkFrame):
         self.power_state = state
         try:
             self.var_power.set(state)
-        except:
-            pass
+        except Exception as e:
+            from utils.logger import Logger
+            Logger.debug("UI", f"State sync error: {e}")
 
         if hasattr(self, "btn_power_status") and self.btn_power_status.winfo_exists():
             if state:

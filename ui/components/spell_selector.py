@@ -49,7 +49,9 @@ class SpellSelector(ctk.CTkFrame):
             self,
             fg_color="transparent",
             corner_radius=0,
-            bg_color="transparent"
+            bg_color="transparent",
+            scrollbar_button_color="#1E2328",
+            scrollbar_button_hover_color="#3A4654"
         )
         self.scroll.grid(row=1, column=0, sticky="nsew", padx=4, pady=(4, 0))
 

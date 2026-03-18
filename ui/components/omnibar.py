@@ -72,8 +72,8 @@ class Omnibar(ctk.CTkFrame):
             self,
             fg_color="transparent",
             height=300,
-            scrollbar_button_color=get_color("colors.accent.primary"),
-            scrollbar_button_hover_color=get_color("colors.accent.blue"),
+            scrollbar_button_color="#1E2328",
+            scrollbar_button_hover_color="#3A4654",
         )
         self.results_frame.pack(fill="both", expand=True, padx=TOKENS.get("spacing.xs"), pady=TOKENS.get("spacing.sm"))
 

@@ -70,6 +70,12 @@ class LCUClient:
                         self._client_pid = None
 
                 if not process:
+                    # Throttle process scans to once every 5 seconds to save CPU
+                    now = time.time()
+                    if now - getattr(self, "_last_scan_time", 0) < 5.0:
+                        return False
+                    self._last_scan_time = now
+
                     for p in psutil.process_iter(["name"]):
                         try:
                             name = p.info["name"]
@@ -152,6 +158,9 @@ class LCUClient:
 
                 Logger.debug("LCU", "Found process but could not extract credentials.")
 
+            except psutil.AccessDenied as e:
+                Logger.warning("LCU", f"Access Denied during connection check (requires Admin?): {e}")
+                self.is_connected = False
             except Exception as e:  # pylint: disable=broad-exception-caught
                 Logger.error("LCU", f"Connection Error: {e}")
                 self.is_connected = False

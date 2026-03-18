@@ -20,6 +20,7 @@ for payload in tests:
         print(f"Status: {res.status_code}")
         try:
             print(f"Response: {res.json()}")
-        except:
+        except Exception as e:
+            print(f"Error: {e}")
             print(f"Response: {res.text}")
     print("-" * 50)

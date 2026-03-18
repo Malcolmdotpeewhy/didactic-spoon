@@ -264,7 +264,8 @@ class PriorityIconGrid(ctk.CTkFrame):
                 corner_radius=4,
                 text_color=get_color("colors.text.primary"),
             )
-            lbl.pack(expand=True)
+            # Start with centered place for easy animation
+            lbl.place(relx=0.5, rely=0.5, anchor="center")
 
             # Start async load
             self.after(10 * i, lambda n=name, l=lbl: self._load_icon_async(n, l))
@@ -316,12 +317,15 @@ class PriorityIconGrid(ctk.CTkFrame):
         self._tip.geometry(f"+{x}+{y}")
         # Show rank in tooltip (e.g. "#3 Brand")
         display = f"#{idx + 1}  {name}" if idx is not None else name
-        tip_frame = tk.Frame(self._tip, bg="#1a1a2e")
+        tip_frame = tk.Frame(
+            self._tip, bg="#1E2328",
+            highlightbackground="#C8AA6E", highlightthickness=1, highlightcolor="#C8AA6E"
+        )
         tip_frame.pack()
-        tk.Label(tip_frame, text=display, bg="#1a1a2e", fg="#e0e0e0",
+        tk.Label(tip_frame, text=display, bg="#1E2328", fg="#e0e0e0",
                  font=("Segoe UI", 9), padx=6, pady=2).pack(side="left")
         if self._edit_mode and len(self._selected_indices) == 1 and idx not in self._selected_indices:
-            tk.Label(tip_frame, text="  ⇧Click to move here", bg="#1a1a2e",
+            tk.Label(tip_frame, text="  ⇧Click to move here", bg="#1E2328",
                      fg="#4da6ff", font=("Segoe UI", 8), padx=2, pady=2).pack(side="left")
 
     def _hide_tooltip(self):
@@ -347,10 +351,34 @@ class PriorityIconGrid(ctk.CTkFrame):
         if self._edit_mode:
             self.btn_edit.configure(text="Done", text_color="#ff4444")
             self.edit_bar.pack(fill="x", padx=2, pady=(4, 0))
+            self._shake_tick()
         else:
             self.btn_edit.configure(text="Edit", text_color=get_color("colors.accent.primary"))
             self.edit_bar.pack_forget()
         self._refresh_visuals()
+
+    def _shake_tick(self):
+        """iOS style wiggle for icons while in edit mode."""
+        if not getattr(self, "_edit_mode", False):
+            # Reset all coordinates
+            for cell, lbl, idx in getattr(self, "_icon_widgets", []):
+                try:
+                    if lbl.winfo_exists():
+                        lbl.place_configure(relx=0.5, rely=0.5, x=0, y=0)
+                except Exception:
+                    pass
+            return
+
+        import random
+        for cell, lbl, idx in getattr(self, "_icon_widgets", []):
+            try:
+                if lbl.winfo_exists():
+                    dx = random.choice([-1, 0, 1])
+                    dy = random.choice([-1, 0, 1])
+                    lbl.place_configure(relx=0.5, rely=0.5, x=dx, y=dy)
+            except Exception:
+                pass
+        self.after(50, self._shake_tick)
 
     def _sync_edit_bar_state(self):
         """Hides move controls if multiple champions are selected (mass-delete only)."""
@@ -492,9 +520,32 @@ class PriorityIconGrid(ctk.CTkFrame):
         self._move_entry.insert(0, str(target))
         self._render_grid()
 
+    def _shake_widget(self, widget, orig_padx, frames=6, dx=4):
+        """Horizontal shake by rapidly modifying padx on packed widgets."""
+        if not widget.winfo_exists() or frames <= 0:
+            widget.pack(padx=orig_padx)
+            return
+
+        offset = dx if frames % 2 == 0 else -dx
+        if isinstance(orig_padx, tuple):
+            new_padx = (max(0, orig_padx[0] + offset), max(0, orig_padx[1] - offset))
+        else:
+            new_padx = max(0, orig_padx + offset)
+            
+        widget.pack(padx=new_padx)
+        self.after(40, lambda: self._shake_widget(widget, orig_padx, frames - 1, dx))
+
     def _flash_move_entry(self):
-        """Brief red flash on the position entry to indicate invalid input."""
+        """Brief red flash and horizontal shake on the position entry."""
         self._move_entry.configure(border_color="#e81123")
+        
+        try:
+            # Shake the _move_to_frame wrapper since it contains the go button too
+            orig = self._move_to_frame.pack_info().get("padx", (6, 0))
+            self._shake_widget(self._move_to_frame, orig)
+        except Exception:
+            pass
+            
         self.after(800, lambda: self._move_entry.configure(
             border_color=get_color("colors.border.subtle")))
 
@@ -532,6 +583,11 @@ class PriorityIconGrid(ctk.CTkFrame):
         real_name = self._resolve_champion_name(raw)
         if real_name is None:
             self.add_entry.configure(border_color="#e81123")
+            try:
+                orig = self.add_entry.pack_info().get("padx", (0, 4))
+                self._shake_widget(self.add_entry, orig)
+            except Exception:
+                pass
             self.after(1200, lambda: self.add_entry.configure(
                 border_color=get_color("colors.border.subtle")))
             return

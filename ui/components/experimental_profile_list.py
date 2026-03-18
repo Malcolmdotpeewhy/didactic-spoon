@@ -5,6 +5,18 @@ Renders a dense, grid-based champion preference table.
 import time
 import customtkinter as ctk
 
+try:
+    from ui.ui_shared import get_font, get_color, get_radius
+    from ui.components.factory import CTkTooltip
+except ImportError:
+    # Fallback if ui_shared is missing or reorganized
+    from ui.theme.fonts import get_font
+    from ui.theme.colors import get_color
+    from ui.theme.metrics import get_radius
+    from ui.theme.fonts import get_font
+    from ui.theme.colors import get_color
+    from ui.theme.metrics import get_radius
+
 # ── Column Spec ──────────────────────────────────────────────────────────────
 # (label, width, anchor)
 COLUMNS = [

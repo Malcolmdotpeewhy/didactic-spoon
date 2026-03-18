@@ -12,7 +12,11 @@ class ActivityLogPanel(Card):
         self.content = CardContent(self)
         self.content.pack(fill="both", expand=True)
 
-        self.scroll = ctk.CTkScrollableFrame(self.content, fg_color="transparent")
+        self.scroll = ctk.CTkScrollableFrame(
+            self.content, fg_color="transparent",
+            scrollbar_button_color="#1E2328",
+            scrollbar_button_hover_color="#3A4654"
+        )
         self.scroll.pack(fill="both", expand=True)
 
     def add_log(self, text, level="info"):

@@ -3,6 +3,7 @@ import json
 import os
 import threading
 import queue
+import time
 from typing import Any, Dict, Optional
 
 import customtkinter as ctk
@@ -436,60 +437,137 @@ class AssetManager:
             Logger.error("asset_manager.py", f"Handled exception: {type(e).__name__}: {e}")
             return []
 
+    def _download_and_cache_image(self, url, path, cache_key, size=None, opacity=1.0):
+        if cache_key in self.icons:
+            return self.icons[cache_key]
+
+        # Check for pre-processed image on disk
+        # We replace spaces and invalid characters in cache_key to be safe
+        safe_key = cache_key.replace(" ", "_").replace(":", "").replace("/", "_")
+        processed_fname = f"processed_{safe_key}.png"
+        processed_path = os.path.join(ASSETS_DIR, processed_fname)
+        
+        if os.path.exists(processed_path):
+            try:
+                pil_img = Image.open(processed_path).convert("RGBA")
+                # CTkImage size requires integer tuple, fallback to original if size contains None
+                disp_size = size if size and size[1] is not None else pil_img.size
+                img = ctk.CTkImage(pil_img, size=disp_size)
+                self.icons[cache_key] = img
+                return img
+            except Exception:
+                pass  # Fall back to regenerating if the cached file is corrupt
+                
+        if os.path.exists(path):
+            try:
+                pil_img = Image.open(path).convert("RGBA")
+                
+                # Resize
+                if size and pil_img.size[:2] != size[:2]:
+                    # If only width is provided or aspect ratio should be kept, handle it:
+                    if size[1] is None:
+                        aspect = pil_img.height / pil_img.width
+                        height = int(size[0] * aspect)
+                        size = (size[0], height)
+                    pil_img = pil_img.resize(size, Image.Resampling.BICUBIC)
+                else:
+                    if size and size[1] is None:
+                        aspect = pil_img.height / pil_img.width
+                        size = (size[0], int(size[0] * aspect))
+
+                # Opacity
+                if opacity < 1.0:
+                    alpha = pil_img.split()[3]
+                    lut = [int(p * opacity) for p in range(256)]
+                    alpha = alpha.point(lut)
+                    pil_img.putalpha(alpha)
+
+                # Save processed version to disk for future fast-loads
+                try:
+                    pil_img.save(processed_path, "PNG")
+                except Exception:
+                    pass
+
+                img_size = size if size and size[1] is not None else pil_img.size
+                img = ctk.CTkImage(pil_img, size=img_size)
+                self.icons[cache_key] = img
+                return img
+            except Exception as e:
+                Logger.error("asset_manager.py", f"Image load error: {e}")
+                return None
+
+        self._start_download(url, path)
+        return None
+
+    def get_icon(self, type_, key, size=(40, 40)) -> Optional[ctk.CTkImage]:
+        """Synchronously get an icon if cached on disk, otherwise trigger a download and return None."""
+        cache_key = f"{type_}_{key}_{size[0]}x{size[1]}"
+        fname = ""
+        url = ""
+        
+        # Clean the key to support 'MonkeyKing' vs 'Wukong' issues gracefully if needed
+        if type_ == "champion":
+            fname = f"champion_{key}.png"
+            url = f"https://ddragon.leagueoflegends.com/cdn/{self.ddragon_ver}/img/champion/{key}.png"
+        elif type_ == "spell":
+            fname = f"spell_{key}.png"
+            url = f"https://ddragon.leagueoflegends.com/cdn/{self.ddragon_ver}/img/spell/{key}.png"
+        elif type_ == "item":
+            fname = f"item_{key}.png"
+            url = f"https://ddragon.leagueoflegends.com/cdn/{self.ddragon_ver}/img/item/{key}.png"
+        elif type_ == "rune":
+            # For runes, the key might be the relative path
+            safe_name = key.replace("/", "_").replace("\\", "_")
+            fname = f"rune_{safe_name}"
+            url = f"https://ddragon.leagueoflegends.com/cdn/img/{key}"
+        else:
+            return None
+
+        path = os.path.join(ASSETS_DIR, fname)
+        return self._download_and_cache_image(url, path, cache_key, size=size)
+
+    def get_icon_async(self, type_, key, callback, size=(40, 40), widget=None):
+        """Helper to get an icon and call the callback when it's ready."""
+        img = self.get_icon(type_, key, size=size)
+        if img:
+            callback(img)
+            return
+
+        def _wait():
+            for _ in range(50):  # Wait up to 5 seconds
+                if widget and not widget.winfo_exists():
+                    return
+                poll_img = self.get_icon(type_, key, size=size)
+                if poll_img:
+                    if widget and widget.winfo_exists():
+                        widget.after(0, lambda: callback(poll_img))
+                    return
+                time.sleep(0.1)
+
+        threading.Thread(target=_wait, daemon=True).start()
+
     def get_splash_art(
         self, skin_id: int, width=1280, opacity=1.0
     ) -> Optional[ctk.CTkImage]:
         """Get a CTkImage for the specified skin splash art."""
-        # Logic: SkinID usually ChampID*1000 + SkinIndex (e.g. 266006 -> 266, 006)
-
         cache_key = f"splash_{skin_id}_{width}_{opacity}"
+        
         if cache_key in self.icons:
             return self.icons[cache_key]
 
-        # Parse ID
         try:
             champ_id = skin_id // 1000
             skin_num = skin_id % 1000
             ddragon_id = self.get_champ_name(champ_id)
             if not ddragon_id or ddragon_id == str(champ_id):
                 return None
-        except Exception as e:  # pylint: disable=broad-exception-caught
+        except Exception as e:
             Logger.error("asset_manager.py", f"Handled exception: {type(e).__name__}: {e}")
             return None
 
         fname = f"splash_{ddragon_id}_{skin_num}.jpg"
         path = os.path.join(ASSETS_DIR, fname)
-
-        if os.path.exists(path):
-            try:
-                pil_img = Image.open(path).convert("RGBA")
-
-                # Resize (Aspect Ratio)
-                aspect = pil_img.height / pil_img.width
-                height = int(width * aspect)
-                # Bolt: Use BICUBIC instead of LANCZOS for ~25% faster resizing with acceptable quality
-                pil_img = pil_img.resize((width, height), Image.Resampling.BICUBIC)
-
-                # Opacity
-                if opacity < 1.0:
-                    alpha = pil_img.split()[3]
-                    # Bolt: Optimized opacity scaling using a Lookup Table (LUT).
-                    # This is significantly faster than lambda per pixel and preserves existing transparency.
-                    lut = [int(p * opacity) for p in range(256)]
-                    alpha = alpha.point(lut)
-                    pil_img.putalpha(alpha)
-
-                img = ctk.CTkImage(pil_img, size=(width, height))
-                self.icons[cache_key] = img
-                return img
-            except Exception as e:
-                Logger.error("asset_manager.py", f"Splash icon load error: {e}")
-                return None
-
-        # Download
         url = f"https://ddragon.leagueoflegends.com/cdn/img/champion/splash/{ddragon_id}_{skin_num}.jpg"
-        self._start_download(url, path)
-        return None
 
+        return self._download_and_cache_image(url, path, cache_key, size=(width, None), opacity=opacity)
 
-d

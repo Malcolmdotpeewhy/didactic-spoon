@@ -38,41 +38,17 @@ if not _logger.handlers:
     _logger.addHandler(console_handler)
 
 class Logger:
-    """Provides backwards compatibility with the legacy custom logger."""
+    """Provides standard logging access."""
     
-    _instance = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(Logger, cls).__new__(cls)
-        return cls._instance
-
-    def init_logger(self):
-        """Kept for backward compatibility if instantiated directly."""
-
-    def log(self, tag, message):
-        """Log a debug message."""
-        _logger.debug(f"[{tag}] {message}")
-
     @staticmethod
     def debug(tag, msg):
         """Log a debug message."""
         _logger.debug(f"[{tag}] {msg}")
 
-    @classmethod
-    def get_logs(cls, module=None, limit=100):
-        cls._prune()
-        if limit <= 0:
-            return []
-        if module:
-            filtered = [log for log in cls._logs if log["module"] == module]
-            return filtered[-limit:]
-        return cls._logs[-limit:]
-
     @staticmethod
     def error(tag, msg):
         """Log an error message."""
-        _logger.error(f"[ERROR:{tag}] {msg}")
+        _logger.error(f"[{tag}] {msg}")
 
     @staticmethod
     def info(tag, msg):
@@ -83,8 +59,3 @@ class Logger:
     def warning(tag, msg):
         """Log a warning message."""
         _logger.warning(f"[{tag}] {msg}")
-
-# Kept for backward compatibility — routes to Logger.debug
-def log(tag, msg):
-    """Module-level log helper function. Prefer Logger.debug() directly."""
-    Logger.debug(tag, msg)
