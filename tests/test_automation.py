@@ -1,67 +1,82 @@
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
-# Assuming the class exists in the module as specified by the issue
+# AutomationLogic seems to be an old class name. The actual class is AutomationEngine.
 try:
-    from services.automation import AutomationLogic
+    from services.automation import AutomationEngine
 except ImportError:
-    class AutomationLogic:
+    class AutomationEngine:
         pass
 
-class TestAutomationLogicReadyCheck(unittest.TestCase):
+class TestAutomationEngineReadyCheck(unittest.TestCase):
     def setUp(self):
         # Instantiate without calling __init__ in case the signature is unknown
-        self.logic = AutomationLogic.__new__(AutomationLogic)
+        self.logic = AutomationEngine.__new__(AutomationEngine)
 
         # Mock the api dependency and its request method
-        self.logic.api = MagicMock()
+        self.logic.lcu = MagicMock()
+        self.logic.config = MagicMock()
 
         # Mock the internal _log method to verify logging
         self.logic._log = MagicMock()
+        self.logic.ready_check_accepted = False
+        self.logic.ready_check_start = None
 
     def test_handle_ready_check_not_in_progress(self):
-        # Call with a phase that is not "InProgress"
+        # Call with a phase that is not "ReadyCheck"
         self.logic._handle_ready_check("Lobby")
 
         # api.request should not be called
-        self.logic.api.request.assert_not_called()
+        self.logic.lcu.request.assert_not_called()
         self.logic._log.assert_not_called()
 
-    def test_handle_ready_check_in_progress_status_200(self):
-        # Setup the mock to return status 200
-        self.logic.api.request.return_value = (200, None)
+    @patch("time.time", return_value=100)
+    def test_handle_ready_check_in_progress_status_200(self, mock_time):
+        self.logic.config.get.return_value = True # auto_accept
 
-        # Call with "InProgress"
-        self.logic._handle_ready_check("InProgress")
+        # Call with "ReadyCheck" - first tick sets start time
+        self.logic._handle_ready_check("ReadyCheck")
+
+        # Advance time to pass the delay
+        mock_time.return_value = 105
+
+        # Second tick accepts
+        self.logic._handle_ready_check("ReadyCheck")
 
         # Verify the api request was made with correct arguments
-        self.logic.api.request.assert_called_once_with("POST", "/lol-matchmaking/v1/ready-check/accept")
+        self.logic.lcu.request.assert_called_once_with("POST", "/lol-matchmaking/v1/ready-check/accept")
 
         # Verify logging was triggered
-        self.logic._log.assert_called_once_with("Match accepted")
+        self.logic._log.assert_called_once_with("Ready Check Accepted!")
 
-    def test_handle_ready_check_in_progress_status_204(self):
-        # Setup the mock to return status 204
-        self.logic.api.request.return_value = (204, None)
+    @patch("time.time", return_value=100)
+    def test_handle_ready_check_in_progress_status_204(self, mock_time):
+        self.logic.config.get.return_value = True # auto_accept
 
-        # Call with "InProgress"
-        self.logic._handle_ready_check("InProgress")
+        # Call with "ReadyCheck" - first tick sets start time
+        self.logic._handle_ready_check("ReadyCheck")
+
+        # Advance time to pass the delay
+        mock_time.return_value = 105
+
+        # Second tick accepts
+        self.logic._handle_ready_check("ReadyCheck")
 
         # Verify the api request was made
-        self.logic.api.request.assert_called_once_with("POST", "/lol-matchmaking/v1/ready-check/accept")
+        self.logic.lcu.request.assert_called_once_with("POST", "/lol-matchmaking/v1/ready-check/accept")
 
         # Verify logging was triggered
-        self.logic._log.assert_called_once_with("Match accepted")
+        self.logic._log.assert_called_once_with("Ready Check Accepted!")
 
     def test_handle_ready_check_in_progress_other_status(self):
-        # Setup the mock to return a non-success status, e.g., 500
-        self.logic.api.request.return_value = (500, None)
+        # Test when auto_accept is false
+        self.logic.config.get.return_value = False # auto_accept
 
-        # Call with "InProgress"
-        self.logic._handle_ready_check("InProgress")
+        # Call with "ReadyCheck"
+        self.logic._handle_ready_check("ReadyCheck")
 
-        # Verify the api request was still made
-        self.logic.api.request.assert_called_once_with("POST", "/lol-matchmaking/v1/ready-check/accept")
+        # Verify the api request was NOT made
+        self.logic.lcu.request.assert_not_called()
 
         # Verify logging was NOT triggered
         self.logic._log.assert_not_called()

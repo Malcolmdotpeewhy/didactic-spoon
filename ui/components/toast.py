@@ -237,14 +237,3 @@ class ToastManager:
                 self._toasts.remove(toast)
         
         toast.bind("<Destroy>", on_destroy)
-
-def show_toast(message, icon="✨", duration=3000, theme="primary", confetti=False):
-    """Global helper to show a toast. Requires ToastManager to be initialized."""
-    if ToastManager._instance is None:
-        return
-    try:
-        manager = ToastManager.get_instance()
-        manager.root.after(0, lambda: manager.show(message, icon, duration, theme, confetti))
-    except Exception as e:
-        # Fallback to silent if manager not ready
-        pass

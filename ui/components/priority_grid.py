@@ -10,16 +10,17 @@ from PIL import Image
 
 from utils.path_utils import get_asset_path
 from ui.components.factory import get_color, get_font, get_radius, TOKENS
+from ui.ui_shared import CTkTooltip
 
 
-ICON_SIZE = 28
-ICONS_PER_ROW = 6
-GRID_PAD = 1
+ICON_SIZE = 40
+ICONS_PER_ROW = 4
+GRID_PAD = 4
 
 # Selection colours
-SEL_BORDER = "#4da6ff"      # blue ring for single-select in edit mode
-SEL_BG     = "#1a2a3e"      # dark blue tint
-DEL_BORDER = "#ff4444"      # red for delete-marked
+SEL_BORDER = "#C8AA6E"      # gold ring for single-select in edit mode
+SEL_BG     = "#141E28"      # dark blue tint
+DEL_BORDER = "#E74C3C"      # red for delete-marked
 DEL_BG     = "#4d1111"
 
 
@@ -46,9 +47,7 @@ class PriorityIconGrid(ctk.CTkFrame):
     # ───────────── helpers ─────────────
     def _scan_known_champions(self):
         known = set()
-        cache_dir = os.path.join("cache", "assets")
-        if not os.path.isdir(cache_dir):
-            cache_dir = get_asset_path(cache_dir)
+        cache_dir = get_asset_path("assets")
         if os.path.isdir(cache_dir):
             for f in os.listdir(cache_dir):
                 if f.startswith("champion_") and f.endswith(".png"):
@@ -57,9 +56,7 @@ class PriorityIconGrid(ctk.CTkFrame):
 
     def _resolve_champion_name(self, raw):
         normalized = raw.replace(" ", "").replace("'", "").lower()
-        cache_dir = os.path.join("cache", "assets")
-        if not os.path.isdir(cache_dir):
-            cache_dir = get_asset_path(cache_dir)
+        cache_dir = get_asset_path("assets")
         if os.path.isdir(cache_dir):
             for f in os.listdir(cache_dir):
                 if f.startswith("champion_") and f.endswith(".png"):
@@ -91,18 +88,14 @@ class PriorityIconGrid(ctk.CTkFrame):
     def _load_icon(self, champ_name):
         if champ_name in self._icon_cache:
             return self._icon_cache[champ_name]
-        paths = [
-            os.path.join("cache", "assets", f"champion_{champ_name}.png"),
-            get_asset_path(os.path.join("cache", "assets", f"champion_{champ_name}.png")),
-        ]
-        for p in paths:
-            if os.path.exists(p):
-                try:
-                    img = ctk.CTkImage(Image.open(p), size=(ICON_SIZE, ICON_SIZE))
-                    self._icon_cache[champ_name] = img
-                    return img
-                except Exception:
-                    pass
+        p = get_asset_path(os.path.join("assets", f"champion_{champ_name}.png"))
+        if os.path.exists(p):
+            try:
+                img = ctk.CTkImage(Image.open(p), size=(ICON_SIZE, ICON_SIZE))
+                self._icon_cache[champ_name] = img
+                return img
+            except Exception:
+                pass
         return None
 
     # ───────────── header ─────────────
@@ -124,7 +117,7 @@ class PriorityIconGrid(ctk.CTkFrame):
             self.header, text="Edit", width=40, height=20,
             corner_radius=get_radius("sm"), font=get_font("caption"),
             fg_color="transparent",
-            text_color=get_color("colors.accent.primary"),
+            text_color="#C8AA6E",
             hover_color=get_color("colors.state.hover"),
             command=self._toggle_edit_mode,
         )
@@ -140,6 +133,7 @@ class PriorityIconGrid(ctk.CTkFrame):
             command=self._show_add_input,
         )
         self.btn_add.pack(side="right")
+        CTkTooltip(self.btn_add, "Add Champion")
 
     # ───────────── body ─────────────
     def _build_body(self):
@@ -197,9 +191,13 @@ class PriorityIconGrid(ctk.CTkFrame):
         )
 
         self.btn_top.pack(side="left", padx=1)
+        CTkTooltip(self.btn_top, "Move to Top")
         self.btn_up.pack(side="left", padx=1)
+        CTkTooltip(self.btn_up, "Move Up")
         self.btn_down.pack(side="left", padx=1)
+        CTkTooltip(self.btn_down, "Move Down")
         self.btn_del.pack(side="right", padx=1)
+        CTkTooltip(self.btn_del, "Remove")
 
         # ── Move-to-position entry (inline in edit bar) ──
         self._move_to_frame = ctk.CTkFrame(self.edit_bar, fg_color="transparent")
@@ -252,6 +250,8 @@ class PriorityIconGrid(ctk.CTkFrame):
             cell = ctk.CTkFrame(
                 row_frame, width=cell_size, height=cell_size,
                 fg_color="transparent", corner_radius=4,
+                border_width=1,
+                border_color=get_color("colors.border.subtle")
             )
             cell.pack(side="left", padx=GRID_PAD)
             cell.pack_propagate(False)
@@ -269,8 +269,19 @@ class PriorityIconGrid(ctk.CTkFrame):
             # Start async load
             self.after(10 * i, lambda n=name, l=lbl: self._load_icon_async(n, l))
 
-            lbl.bind("<Enter>", lambda e, n=name, idx=i: self._show_tooltip(e, n, idx))
-            lbl.bind("<Leave>", lambda e: self._hide_tooltip())
+            # Hover animations for grid
+            def _on_enter(e, n=name, idx=i, c=cell):
+                self._show_tooltip(e, n, idx)
+                if not self._edit_mode and idx not in self._selected_indices and idx not in self._delete_marked:
+                    c.configure(border_color=get_color("colors.accent.gold", "#C8AA6E"))
+
+            def _on_leave(e, c=cell):
+                self._hide_tooltip()
+                if not self._edit_mode and c._border_color != SEL_BORDER and c._border_color != DEL_BORDER:
+                    c.configure(border_color=get_color("colors.border.subtle"))
+
+            lbl.bind("<Enter>", _on_enter)
+            lbl.bind("<Leave>", _on_leave)
             lbl.bind("<Button-1>", lambda e, idx=i: self._on_cell_click(idx))
             lbl.bind("<Shift-Button-1>", lambda e, idx=i: self._on_shift_click(idx))
 
