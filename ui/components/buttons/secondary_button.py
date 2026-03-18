@@ -21,6 +21,7 @@ class SecondaryButton(ctk.CTkButton):
         border_color = kwargs.pop('border_color', border_color_def)
         font = kwargs.pop('font', get_font("body", "medium"))
         corner_radius = kwargs.pop('corner_radius', TOKENS.get("radius.sm", default=4))
+        cursor = kwargs.pop('cursor', "hand2")
 
         super().__init__(
             master,

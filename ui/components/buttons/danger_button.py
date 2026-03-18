@@ -16,6 +16,7 @@ class DangerButton(ctk.CTkButton):
         text_color = kwargs.pop('text_color', get_color("colors.text.primary", default="#F0E6D2"))
         font = kwargs.pop('font', get_font("body", "bold"))
         corner_radius = kwargs.pop('corner_radius', TOKENS.get("radius.sm", default=4))
+        cursor = kwargs.pop('cursor', "hand2")
 
         super().__init__(
             master,
