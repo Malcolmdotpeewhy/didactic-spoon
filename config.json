@@ -36,19 +36,18 @@
     "always_on_top": true,
     "aram_mode": "ARAM Mayhem",
     "priority_picker": {
-        "enabled": false,
+        "enabled": true,
         "list": [
             "Fizz",
             "Singed",
             "Brand",
             "TwistedFate",
             "Shaco",
-            "Lillia",
             "Fiddlesticks",
+            "AurelionSol",
             "Amumu",
             "Sion",
             "Karthus",
-            "AurelionSol",
             "Velkoz",
             "Heimerdinger",
             "Ziggs",
@@ -62,6 +61,7 @@
             "Tryndamere",
             "MasterYi",
             "Lux",
+            "Lillia",
             "Cassiopeia",
             "Briar",
             "Nunu",
@@ -73,7 +73,8 @@
             "Chogath",
             "Gangplank",
             "Ekko",
-            "Akshan"
+            "Akshan",
+            "Jax"
         ]
     }
 }

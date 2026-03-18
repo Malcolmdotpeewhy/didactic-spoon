@@ -28,6 +28,7 @@ class IconButton(ctk.CTkButton):
             text_color=text_color,
             font=font,
             corner_radius=corner_radius,
+            cursor="hand2",
             **kwargs
         )
 
