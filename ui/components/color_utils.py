@@ -1,5 +1,16 @@
+from typing import Tuple
 from utils.logger import Logger
 """Color utility functions."""
+
+def hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
+    """Convert hex color string to RGB tuple."""
+    hex_color = hex_color.lstrip('#')
+    if len(hex_color) == 3:
+        hex_color = ''.join(c + c for c in hex_color)
+    if len(hex_color) != 6:
+        raise ValueError(f"Invalid hex color length: {len(hex_color)}")
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
 
 def interpolate_color(color1, color2, factor):
     """Interpolate between two hex colors."""

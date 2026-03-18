@@ -46,6 +46,7 @@ class ShortcutOverlay(ctk.CTkFrame):
         self.config_ref = config
         self._visible = False
         self._fade_step = 0
+        self._anim_id = None  # Track animation after-ID
         self._build_ui()
 
     def _build_ui(self):
@@ -180,22 +181,69 @@ class ShortcutOverlay(ctk.CTkFrame):
     # ── Visibility Control ──
 
     def show(self):
-        """Display the overlay with a subtle entrance."""
+        """Display the overlay with a slide-in animation from above."""
         if self._visible:
             return
         self._visible = True
+        # Cancel any running animation
+        if self._anim_id:
+            try:
+                self.after_cancel(self._anim_id)
+            except Exception:
+                pass
+            self._anim_id = None
         # Refresh shortcuts in case config changed
         self._populate_shortcuts()
-        # Place centered over parent
-        self.place(relx=0.5, rely=0.5, anchor="center")
-        self.lift()  # Ensure on top of all siblings
+        # Start above center and slide down
+        self._anim_step = 0
+        self._anim_total = 12  # ~200ms at 16ms per frame
+        self._slide_in_tick()
+
+    def _slide_in_tick(self):
+        """Animate the overlay sliding in from above."""
+        if not self._visible:
+            return
+        t = self._anim_step / self._anim_total
+        # Ease-out cubic: 1 - (1-t)^3
+        ease = 1 - (1 - t) ** 3
+        # Start at rely=0.3, end at rely=0.5
+        rely = 0.3 + 0.2 * ease
+        self.place(relx=0.5, rely=rely, anchor="center")
+        self.lift()
+        self._anim_step += 1
+        if self._anim_step <= self._anim_total:
+            self._anim_id = self.after(16, self._slide_in_tick)
+        else:
+            self._anim_id = None
 
     def hide(self):
-        """Dismiss the overlay."""
+        """Dismiss the overlay with a slide-out animation."""
         if not self._visible:
             return
         self._visible = False
-        self.place_forget()
+        # Cancel any running animation
+        if self._anim_id:
+            try:
+                self.after_cancel(self._anim_id)
+            except Exception:
+                pass
+            self._anim_id = None
+        self._anim_step = 0
+        self._anim_total = 8  # ~130ms slide out
+        self._slide_out_tick()
+
+    def _slide_out_tick(self):
+        """Animate the overlay sliding out upward."""
+        t = self._anim_step / self._anim_total
+        ease = t ** 2  # Ease-in quadratic
+        rely = 0.5 - 0.25 * ease
+        self.place(relx=0.5, rely=rely, anchor="center")
+        self._anim_step += 1
+        if self._anim_step <= self._anim_total:
+            self._anim_id = self.after(16, self._slide_out_tick)
+        else:
+            self._anim_id = None
+            self.place_forget()
 
     def toggle(self):
         """Toggle overlay visibility."""

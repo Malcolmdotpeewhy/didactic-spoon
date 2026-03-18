@@ -1,0 +1,16 @@
+
+--- Testing payload: {'queueId': None} ---
+Status: 500
+Response: {"errorCode":"RPC_ERROR","httpStatus":500,"implementationDetails":{},"message":"INVALID_LOBBY"}
+
+--- Testing payload: {} ---
+Status: 500
+Response: {"errorCode":"RPC_ERROR","httpStatus":500,"implementationDetails":{},"message":"INVALID_LOBBY"}
+
+--- Testing payload: {'queueId': 'error'} ---
+Status: 400
+Response: {"errorCode":"RPC_ERROR","httpStatus":400,"implementationDetails":{},"message":"Value error for 'queueId' of type int32 is in an incorrect format"}
+
+--- Testing payload: {'random': 123} ---
+Status: 500
+Response: {"errorCode":"RPC_ERROR","httpStatus":500,"implementationDetails":{},"message":"INVALID_LOBBY"}
