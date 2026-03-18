@@ -31,6 +31,7 @@ class HotkeyRecorder(ctk.CTkButton):
             border_color=get_color("colors.border.subtle"),
             hover_color=get_color("colors.state.hover"),
             command=self._toggle_recording,
+            cursor="hand2",
             **kwargs,
         )
 
