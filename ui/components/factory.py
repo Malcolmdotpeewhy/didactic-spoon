@@ -3,6 +3,7 @@ from utils.logger import Logger
 New UI Component Factory using Design Tokens.
 Centralizes the creation of styled widgets (Panels, Cards, Buttons) ensuring visual consistency.
 """
+import functools
 import customtkinter as ctk
 from ..theme.token_loader import TOKENS
 from .hover import apply_hover_brightness, apply_press_effect
@@ -11,14 +12,17 @@ from .hover import apply_hover_brightness, apply_press_effect
 
 # --- Token Parsing Helpers ---
 
+@functools.lru_cache(maxsize=256)
 def get_color(path, default="#000000"):
     """Retrieve color from tokens."""
     return TOKENS.get(*path.split("."), default=default)
 
+@functools.lru_cache(maxsize=32)
 def get_radius(size="md"):
     """Retrieve corner radius."""
     return TOKENS.get("radius", size, default=10)
 
+@functools.lru_cache(maxsize=32)
 def get_font(type="body", weight=None):
     """Retrieve font tuple. Weight can be 'bold', 'medium', or 'normal'."""
     if type == "header" or type == "title":
@@ -39,6 +43,7 @@ def get_font(type="body", weight=None):
         
     return (family, size, weight_val)
 
+@functools.lru_cache(maxsize=32)
 def parse_border(token_key):
     """
     Parse a border token like '1px solid #RRGGBB'.
