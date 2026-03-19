@@ -68,13 +68,7 @@ class PriorityIconGrid(ctk.CTkFrame):
     @staticmethod
     def _dedup(seq):
         """Remove duplicates while preserving order."""
-        seen = set()
-        out = []
-        for item in seq:
-            if item not in seen:
-                seen.add(item)
-                out.append(item)
-        return out
+        return list(dict.fromkeys(seq))
 
     def _get_priority_list(self):
         raw = self.config.get("priority_picker", {}).get("list", [])
