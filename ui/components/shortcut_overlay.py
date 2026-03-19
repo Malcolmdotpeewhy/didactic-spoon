@@ -15,6 +15,7 @@ Accessibility:
 """
 import customtkinter as ctk
 from .factory import get_color, get_font, get_radius, parse_border, TOKENS
+from ui.ui_shared import CTkTooltip
 
 
 class ShortcutOverlay(ctk.CTkFrame):
@@ -77,6 +78,7 @@ class ShortcutOverlay(ctk.CTkFrame):
             cursor="hand2"
         )
         btn_close.pack(side="right")
+        CTkTooltip(btn_close, "Close Overlay")
 
         # ── Divider ──
         ctk.CTkFrame(
