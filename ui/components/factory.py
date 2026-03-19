@@ -39,7 +39,7 @@ def get_font(type="body", weight=None):
         weight_val = "normal"
     
     if weight:
-        weight_val = weight
+        weight_val = "normal" if weight == "medium" else weight
         
     return (family, size, weight_val)
 
