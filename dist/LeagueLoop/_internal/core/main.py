@@ -1,0 +1,469 @@
+import ctypes
+import os
+import sys
+import threading
+import time
+import traceback
+import queue
+import subprocess
+from tkinter import TclError
+
+import customtkinter as ctk
+import keyboard
+from PIL import Image
+
+from typing import Optional, TYPE_CHECKING
+
+from services.api_handler import LCUClient
+from services.asset_manager import AssetManager, ConfigManager
+from services.automation import AutomationEngine
+from services.stats_scraper import StatsScraper
+from utils.logger import Logger
+from utils.path_utils import get_asset_path
+from core.version import __version__
+from core.constants import (
+    SIDEBAR_WIDTH, SIDEBAR_HEIGHT, COMPACT_SIZE, COMPACT_BUTTON_SIZE,
+    COMPACT_GLOW_SIZE, DOCKING_POLL_INTERVAL, DOCKING_IDLE_INTERVAL,
+    CONNECTION_POLL_INTERVAL, CONNECTION_ERROR_INTERVAL,
+    GEOMETRY_THRESHOLD,
+)
+
+from ui.app_sidebar import SidebarWidget
+from ui.components.factory import get_color, get_font, TOKENS
+from ui.components.toast import ToastManager
+
+if TYPE_CHECKING:
+    import ctypes.wintypes
+
+ctk.set_appearance_mode("Dark")
+ctk.set_default_color_theme("dark-blue")
+
+def global_exception_handler(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+    err_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+    Logger.error("SYS", f"Uncaught exception:\n{err_str}")
+
+sys.excepthook = global_exception_handler
+
+class LeagueLoopApp(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        self.report_callback_exception = self._on_tk_error
+        
+        self._ui_queue = queue.Queue()
+        self._process_ui_queue()
+
+
+        self.title("League Loop")
+        self.geometry(f"{SIDEBAR_WIDTH}x{SIDEBAR_HEIGHT}+100+100") # Spawn visibly on screen
+        self.minsize(260, 520)
+        self.overrideredirect(True) # Borderless for docking
+        self.attributes("-topmost", True) # Keep visible until docked
+        self.attributes("-topmost", True)
+        
+        self.configure(fg_color=get_color("colors.background.app"))
+
+        try:
+            ToastManager(self)
+        except Exception as e:
+            Logger.error("SYS", f"ToastManager initialization error: {e}")
+            
+        self.config = ConfigManager()
+        self.assets = AssetManager()
+        self.lcu = LCUClient()
+        self.scraper = StatsScraper(mode=self.config.get("aram_mode", "ARAM"))
+        
+        self.running = True
+        self._stop_event = threading.Event()
+        self._drag_data = {"x": 0, "y": 0}
+
+        # Initialize automation before UI to avoid NoneType in callbacks
+        self.automation: Optional[AutomationEngine] = AutomationEngine(
+            self.lcu,
+            self.assets,
+            self.config,
+            log_func=None, # Will be set after sidebar is created
+            stop_func=lambda: self.after(0, lambda: self.sidebar._on_power_click()) if hasattr(self, "sidebar") else None,
+            stats_func=lambda team, bench: self.after(0, lambda: self.sidebar.update_lobby_stats(team, bench)) if hasattr(self, "sidebar") else None,
+            window_func=lambda state: self.after(0, lambda: self._handle_window_state(state))
+        )
+
+        self.setup_ui()
+        
+        # Link automation to sidebar log
+        auto = self.automation
+        if auto is not None and hasattr(self, "sidebar"):
+            auto.log = self.sidebar.update_action_log
+
+        self._setup_window_dragging()
+
+        # Keyboard shortcuts
+        self._compact_mode = False
+        self._full_geometry = None
+        self._compact_hotkey = None
+        self._launch_hotkey = None
+        self._automation_hotkey = None
+        self._queue_hotkey = None
+        self._bind_hotkeys()
+
+        if self.automation:
+            self.automation.start(start_paused=True)
+
+        self.assets.start_loading()
+        threading.Thread(target=self.connection_loop, daemon=True).start()
+        threading.Thread(target=self.docking_loop, daemon=True).start()
+        
+    def _on_tk_error(self, exc, val, tb):
+        err_str = "".join(traceback.format_exception(exc, val, tb))
+        Logger.error("UI", f"Tkinter Error:\n{err_str}")
+
+    def _process_ui_queue(self):
+        # Bolt optimization: checking .empty() is faster than catching queue.Empty
+        # in a 16ms polling loop where the queue is usually empty.
+        try:
+            for _ in range(100):
+                if self._ui_queue.empty():
+                    break
+                task, args, kwargs = self._ui_queue.get_nowait()
+                if task:
+                    task(*args, **kwargs)
+        except queue.Empty:
+            pass
+        super().after(16, self._process_ui_queue)
+
+    def after(self, ms, func=None, *args):
+        if threading.current_thread() is threading.main_thread():
+            return super().after(ms, func, *args)
+        else:
+            if ms == 0:
+                self._ui_queue.put((func, args, {}))
+            else:
+                self._ui_queue.put((super().after, (ms, func) + args, {}))
+            return "queued"
+
+    def setup_ui(self):
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.sidebar = SidebarWidget(self, self.toggle_power, self.config, lcu=self.lcu, assets=self.assets, scraper=self.scraper)
+        self.sidebar.grid(row=0, column=0, sticky="nsew")
+
+    def _setup_window_dragging(self):
+        for widget in self.sidebar.drag_widgets:
+            widget.bind("<ButtonPress-1>", self.on_drag_start)
+            widget.bind("<B1-Motion>", self.on_drag_motion)
+
+    def on_drag_start(self, event):
+        self._drag_data["x"] = event.x
+        self._drag_data["y"] = event.y
+        if getattr(self, "compact_mode", False) and hasattr(self, "_compact_frame"):
+            try:
+                self._compact_frame.configure(border_color=get_color("colors.accent.primary", "#0ac8b9"))
+            except Exception:
+                pass
+
+    def on_drag_stop(self, event):
+        if getattr(self, "compact_mode", False) and hasattr(self, "_compact_frame"):
+            try:
+                self._compact_frame.configure(border_color=get_color("colors.accent.gold", "#C8AA6E"))
+            except Exception:
+                pass
+
+    def on_drag_motion(self, event):
+        x = self.winfo_x() - self._drag_data["x"] + event.x
+        y = self.winfo_y() - self._drag_data["y"] + event.y
+        self.geometry(f"+{x}+{y}")
+
+    def _hotkey_find_match(self):
+        self.state("normal")
+        self.attributes("-topmost", True)
+        self.after(0, self.sidebar._find_match)
+
+    def _handle_window_state(self, state):
+        if state == "minimize":
+            self.state("iconic")
+            Logger.info("SYS", "Game started. Minimizing window.")
+        elif state == "restore":
+            self.state("normal")
+            self.attributes("-topmost", True)
+            self.lift()
+            Logger.info("SYS", "Game ended. Restoring window.")
+
+    def _hotkey_launch_client(self):
+        def _launch():
+            path_override = self.config.get("league_path_override", "")
+            if path_override and os.path.exists(path_override):
+                candidates = [path_override]
+            else:
+                candidates = [
+                    r"C:\Riot Games\Riot Client\RiotClientServices.exe",
+                    r"D:\Riot Games\Riot Client\RiotClientServices.exe",
+                    r"E:\Riot Games\Riot Client\RiotClientServices.exe",
+                    r"C:\Program Files (x86)\Riot Games\Riot Client\RiotClientServices.exe"
+                ]
+                
+                # Proactive Registry Lookup
+                try:
+                    import winreg
+                    for hkey in [winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE]:
+                        try:
+                            key = winreg.OpenKey(hkey, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Riot Game league_of_legends.live")
+                            val, _ = winreg.QueryValueEx(key, "UninstallString")
+                            # Typically "C:\Riot Games\Riot Client\RiotClientServices.exe" --uninstall-product=...
+                            if val and "RiotClientServices.exe" in val:
+                                path = val.split('"')[1] if '"' in val else val.split(' ')[0]
+                                if os.path.exists(path): candidates.insert(0, path)
+                        except Exception as e:
+                            from utils.logger import Logger
+                            Logger.debug("SYS", f"Registry iteration failed: {e}")
+                except Exception as e:
+                    from utils.logger import Logger
+                    Logger.debug("SYS", f"Registry module failed: {e}")
+
+            for c in candidates:
+                if os.path.exists(c):
+                    if hasattr(self, "sidebar") and self.sidebar.winfo_exists():
+                        self.sidebar.update_action_log("Launching Riot Client...")
+                    subprocess.Popen([c, "--launch-product=league_of_legends", "--launch-patchline=live"])
+                    return
+            if hasattr(self, "sidebar") and self.sidebar.winfo_exists():
+                self.sidebar.update_action_log("Error: Could not find Riot Client.")
+        self.after(0, _launch)
+
+    def _hotkey_toggle_automation(self):
+        self.after(0, self.sidebar._on_power_click)
+
+    def _bind_hotkeys(self):
+        try:
+            keyboard.unhook_all()
+        except Exception as e:
+            Logger.debug("SYS", f"Failed to unhook hotkeys: {e}")
+            
+        self._compact_hotkey = self.config.get("hotkey_compact_mode", "ctrl+shift+m")
+        self._launch_hotkey = self.config.get("hotkey_launch_client", "ctrl+shift+l")
+        self._automation_hotkey = self.config.get("hotkey_toggle_automation", "ctrl+shift+a")
+        self._queue_hotkey = self.config.get("hotkey_find_match", "ctrl+shift+f")
+
+        try:
+            keyboard.add_hotkey(self._compact_hotkey, lambda: self.after(0, self.toggle_compact_mode), suppress=False)
+            keyboard.add_hotkey(self._launch_hotkey, self._hotkey_launch_client, suppress=False)
+            keyboard.add_hotkey(self._automation_hotkey, self._hotkey_toggle_automation, suppress=False)
+            keyboard.add_hotkey(self._queue_hotkey, self._hotkey_find_match, suppress=False)
+        except Exception as e:
+            Logger.error("SYS", f"Failed to register hotkeys: {e}")
+
+    def on_settings_saved(self):
+        self._bind_hotkeys()
+        self.scraper.set_mode(self.config.get("aram_mode", "ARAM"))
+
+    def toggle_compact_mode(self):
+        if self._compact_mode:
+            self._compact_mode = False
+            self.attributes("-topmost", True)
+            self.overrideredirect(True)
+            try:
+                self.attributes("-transparentcolor", "")
+            except TclError:
+                pass
+
+            self.sidebar.grid()
+            if hasattr(self, "_compact_frame"):
+                self._compact_frame.destroy()
+
+            if self._full_geometry:
+                self.geometry(self._full_geometry)
+            else:
+                self.geometry(f"{SIDEBAR_WIDTH}x{SIDEBAR_HEIGHT}")
+
+            if self.sidebar:
+                self.sidebar.update_action_log("Restored Full Mode")
+        else:
+            self._compact_mode = True
+            self._full_geometry = self.geometry()
+            self.sidebar.grid_remove()
+
+            trans_color = "black"
+            self._compact_frame = ctk.CTkFrame(self, fg_color=trans_color, corner_radius=0)
+            self._compact_frame.grid(row=0, column=0, sticky="nsew")
+
+            compact_icon = self.sidebar.img_on if self.sidebar.power_state else self.sidebar.img_off
+            compact_text = "" if compact_icon else "⏻"
+            
+            ring_color = get_color("colors.accent.primary") if self.sidebar.power_state else get_color("colors.text.muted")
+            
+            glow_frame = ctk.CTkFrame(
+                self._compact_frame, fg_color=trans_color, bg_color=trans_color,
+                corner_radius=40, border_width=3, border_color=ring_color,
+                width=80, height=80
+            )
+            glow_frame.place(relx=0.5, rely=0.5, anchor="center")
+            glow_frame.pack_propagate(False)
+
+            btn_compact = ctk.CTkButton(
+                glow_frame, text=compact_text, image=compact_icon,
+                font=("Arial", 20, "bold"), width=72, height=72, corner_radius=36,
+                fg_color=trans_color, hover_color=get_color("colors.state.hover"),
+                command=self.toggle_compact_mode,
+            )
+            btn_compact.place(relx=0.5, rely=0.5, anchor="center")
+
+            self.geometry(f"{COMPACT_SIZE}x{COMPACT_SIZE}")
+            self.attributes("-topmost", True)
+            self.overrideredirect(True)
+            try:
+                self.attributes("-transparentcolor", trans_color)
+            except TclError:
+                pass
+
+            self._compact_frame.bind("<ButtonPress-1>", self.on_drag_start)
+            btn_compact.bind("<ButtonPress-1>", self.on_drag_start)
+            self._compact_frame.bind("<B1-Motion>", self.on_drag_motion)
+            btn_compact.bind("<B1-Motion>", self.on_drag_motion)
+            self._compact_frame.bind("<ButtonRelease-1>", self.on_drag_stop)
+            btn_compact.bind("<ButtonRelease-1>", self.on_drag_stop)
+
+    def toggle_power(self, power_state):
+        Logger.info("SYS", f"Power Toggled: {power_state}")
+        if self.automation:
+            if power_state:
+                self.automation.resume()
+            else:
+                self.automation.pause()
+
+    def connection_loop(self):
+        while self.running and not self._stop_event.is_set():
+            try:
+                if not self.lcu.is_connected:
+                    connected = self.lcu.connect()
+                    if connected:
+                        Logger.info("LCU", "Connected to League Client")
+                        self.after(0, lambda: self.sidebar.lbl_action.configure(text="Connected!"))
+                    else:
+                        self.after(0, lambda: self.sidebar.lbl_action.configure(text="Waiting for Client..."))
+                time.sleep(CONNECTION_POLL_INTERVAL)
+            except Exception as e:
+                Logger.error("SYS", f"Connection loop error: {e}")
+                time.sleep(CONNECTION_ERROR_INTERVAL)
+
+    def docking_loop(self):
+        """Finds League of Legends client and clips to the right side of it."""
+        last_hwnd = 0
+        last_geom = (0, 0, 0, 0) # x, y, w, h
+        
+        while self.running and not self._stop_event.is_set():
+            try:
+                hwnd = 0
+                windll = getattr(ctypes, "windll", None)
+                user32 = getattr(windll, "user32", None) if windll else None
+                
+                if not user32:
+                    time.sleep(2.0)
+                    continue
+
+                if last_hwnd != 0 and user32.IsWindow(last_hwnd):
+                    hwnd = last_hwnd
+                else:
+                    hwnd = user32.FindWindowW(None, "League of Legends")
+                    if hwnd == 0:
+                        hwnd = user32.FindWindowW(None, "Riot Client")
+
+                if hwnd != 0:
+                    last_hwnd = hwnd
+                    rect = ctypes.wintypes.RECT()
+                    user32.GetWindowRect(hwnd, ctypes.byref(rect))
+                    
+                    client_x = rect.left
+                    client_y = rect.top
+                    client_w = rect.right - rect.left
+                    client_h = rect.bottom - rect.top
+                    
+                    if client_w > 100:
+                        my_w = 200
+                        my_h = min(client_h, 800)
+                        target_x = client_x + client_w
+                        target_y = client_y
+                        
+                        curr_geom = (target_x, target_y, my_w, my_h)
+                        if any(abs(curr_geom[i] - last_geom[i]) > GEOMETRY_THRESHOLD for i in range(4)):
+                            self.after(0, lambda x=target_x, y=target_y, h=my_h: self.geometry(f"{my_w}x{h}+{x}+{y}"))
+                            last_geom = curr_geom
+                        
+                    time.sleep(DOCKING_POLL_INTERVAL)
+                else:
+                    last_hwnd = 0
+                    last_geom = (0, 0, 0, 0)
+                    time.sleep(DOCKING_IDLE_INTERVAL)
+            except Exception as e:
+                Logger.debug("SYS", f"Docking loop error: {e}")
+            time.sleep(DOCKING_POLL_INTERVAL)
+
+    def _on_close(self):
+        """Robust shutdown: stop all subsystems, then force-exit."""
+        Logger.info("SYS", "Exit requested — shutting down...")
+        self.running = False
+        self._stop_event.set()
+
+        # 1. Stop the automation engine
+        try:
+            if hasattr(self, 'engine') and self.engine:
+                self.engine.stop()
+        except Exception as e:
+            Logger.debug("SYS", f"Engine stop error: {e}")
+
+        # 2. Unhook keyboard hotkeys
+        try:
+            keyboard.unhook_all()
+        except Exception as e:
+            Logger.debug("SYS", f"Unhook error: {e}")
+
+        # 3. Destroy the Tk window
+        try:
+            self.destroy()
+        except Exception as e:
+            Logger.debug("SYS", f"Destroy error: {e}")
+
+        # 4. Force-exit to kill any lingering daemon threads
+        Logger.info("SYS", "Shutdown complete.")
+        os._exit(0)
+
+def _kill_other_instances():
+    """Terminate any other running instances of LeagueLoop."""
+    import psutil
+    my_pid = os.getpid()
+    # Also protect the parent (e.g. the shell that launched us)
+    try:
+        my_parent_pid = psutil.Process(my_pid).ppid()
+    except Exception:
+        my_parent_pid = -1
+    
+    safe_pids = {my_pid, my_parent_pid}
+    killed = 0
+    
+    for proc in psutil.process_iter(["pid", "name"]):
+        try:
+            if proc.pid in safe_pids:
+                continue
+            pname = (proc.info.get("name") or "").lower()
+            if "python" not in pname:
+                continue
+            # Only read cmdline for python processes (expensive call)
+            try:
+                cmdline = proc.cmdline()
+            except (psutil.AccessDenied, psutil.ZombieProcess):
+                continue
+            cmdline_str = " ".join(cmdline).lower()
+            if "core.main" in cmdline_str or "core\\main" in cmdline_str:
+                Logger.info("SYS", f"Killing stale instance PID {proc.pid}")
+                proc.kill()
+                killed += 1
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            continue
+    if killed:
+        Logger.info("SYS", f"Terminated {killed} stale instance(s).")
+        time.sleep(0.3)
+
+if __name__ == "__main__":
+    _kill_other_instances()
+    app = LeagueLoopApp()
+    app.mainloop()

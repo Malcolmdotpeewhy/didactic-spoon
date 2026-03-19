@@ -1,0 +1,299 @@
+"""
+🔮 Malcolm's Infusion: Omnibar (Command Palette)
+A frictionless, keyboard-first command palette triggered by Ctrl+K.
+Allows quick navigation, toggling settings, and executing actions without touching the mouse.
+
+UX Rationale:
+- Power users need a fast way to jump between views or trigger actions (like 'Clear Cache' or 'Launch Client')
+  without hunting through menus.
+- The Omnibar provides instant, predictive search across all app capabilities.
+
+Accessibility:
+- Fully keyboard-navigable (Up/Down, Enter to execute, Escape to dismiss).
+"""
+import customtkinter as ctk
+from .factory import get_color, get_font, get_radius, parse_border, TOKENS, make_input
+
+
+class Omnibar(ctk.CTkFrame):
+    """
+    A floating command palette overlay.
+    """
+
+    def __init__(self, parent, command_provider):
+        """
+        Args:
+            parent: The parent CTk widget (usually the root or content_area).
+            command_provider: A callable that returns a list of dicts:
+                              [{"title": "...", "subtitle": "...", "icon": "...", "action": func}, ...]
+        """
+        super().__init__(
+            parent,
+            fg_color=get_color("colors.background.panel"),
+            corner_radius=get_radius("lg"),
+            border_width=1,
+            border_color=get_color("colors.accent.gold"),
+        )
+        self.command_provider = command_provider
+        self._visible = False
+
+        # State
+        self._all_commands = ()
+        self._filtered_commands = []
+        self._selected_index = 0
+        self._result_widgets = []
+
+        self._build_ui()
+        self._bind_events()
+
+    def _build_ui(self):
+        """Construct the Omnibar layout."""
+        # ── Search Input ──
+        input_container = ctk.CTkFrame(self, fg_color="transparent")
+        input_container.pack(fill="x", padx=TOKENS.get("spacing.md"), pady=(TOKENS.get("spacing.md"), TOKENS.get("spacing.sm")))
+
+        self.search_input = make_input(
+            input_container,
+            placeholder="Search commands... (e.g. 'Launch', 'Dashboard')",
+            width=500,
+            height=40,
+            font=get_font("title", "medium"),
+            fg_color=get_color("colors.background.card"),
+        )
+        self.search_input.pack(fill="x", expand=True)
+
+        # ── Divider ──
+        ctk.CTkFrame(
+            self, height=1, fg_color=parse_border("subtle")[1],
+        ).pack(fill="x")
+
+        # ── Results Area ──
+        self.results_frame = ctk.CTkScrollableFrame(
+            self,
+            fg_color="transparent",
+            height=300,
+            scrollbar_button_color="#1E2328",
+            scrollbar_button_hover_color="#3A4654",
+        )
+        self.results_frame.pack(fill="both", expand=True, padx=TOKENS.get("spacing.xs"), pady=TOKENS.get("spacing.sm"))
+
+    def _bind_events(self):
+        self.search_input.bind("<KeyRelease>", self._on_search)
+        self.search_input.bind("<Down>", self._on_down)
+        self.search_input.bind("<Up>", self._on_up)
+        self.search_input.bind("<Return>", self._on_enter)
+        self.search_input.bind("<Escape>", lambda e: self.hide())
+
+    # --- Visibility ---
+
+    def show(self):
+        """Display the Omnibar and focus input."""
+        if self._visible:
+            return
+        self._visible = True
+
+        # Refresh commands on open
+        self._all_commands = tuple(self.command_provider())
+        self.search_input.delete(0, "end")
+        self._filter_results("")
+
+        self.place(relx=0.5, rely=0.3, anchor="center")
+        self.lift()
+        self.after(50, self.search_input.focus_set)
+
+    def hide(self):
+        """Dismiss the Omnibar."""
+        if not self._visible:
+            return
+        self._visible = False
+        self.place_forget()
+
+    # --- Logic ---
+
+    def _on_search(self, event):
+        # Ignore navigation keys
+        if event.keysym in ("Up", "Down", "Return", "Escape"):
+            return
+        query = self.search_input.get().strip().lower()
+        self._filter_results(query)
+
+    def _filter_results(self, query):
+        if not query:
+            self._filtered_commands = list(self._all_commands)
+        else:
+            # Simple fuzzy/substring search
+            exact_matches = []
+            other_matches = []
+
+            for cmd in self._all_commands:
+                title = cmd.get("title", "")
+                search_target = f"{title} {cmd.get('subtitle', '')}".lower()
+
+                if query in search_target:
+                    if title.lower().startswith(query):
+                        exact_matches.append(cmd)
+                    else:
+                        other_matches.append(cmd)
+
+            self._filtered_commands = exact_matches + other_matches
+
+        self._selected_index = 0
+        self._render_results()
+
+    def _render_results(self):
+        # Clear old
+        for w in self._result_widgets:
+            w.destroy()
+        self._result_widgets.clear()
+
+        if not self._filtered_commands:
+            lbl = ctk.CTkLabel(
+                self.results_frame,
+                text="No commands found.",
+                text_color=get_color("colors.text.muted"),
+                font=get_font("body")
+            )
+            lbl.pack(pady=TOKENS.get("spacing.xl"))
+            self._result_widgets.append(lbl)
+            return
+
+        for i, cmd in enumerate(self._filtered_commands):
+            is_selected = (i == self._selected_index)
+
+            bg_color = get_color("colors.accent.primary") if is_selected else "transparent"
+            text_color = get_color("colors.background.app") if is_selected else get_color("colors.text.primary")
+            sub_color = get_color("colors.background.card") if is_selected else get_color("colors.text.muted")
+
+            row = ctk.CTkFrame(
+                self.results_frame,
+                fg_color=bg_color,
+                corner_radius=get_radius("sm"),
+                height=48
+            )
+            row.pack(fill="x", padx=TOKENS.get("spacing.sm"), pady=2)
+            row.pack_propagate(False)
+
+            # Icon
+            ctk.CTkLabel(
+                row,
+                text=cmd.get("icon", "⚡"),
+                font=get_font("body"),
+                text_color=text_color,
+                width=30
+            ).pack(side="left", padx=(TOKENS.get("spacing.sm"), TOKENS.get("spacing.xs")))
+
+            # Text Container
+            text_cont = ctk.CTkFrame(row, fg_color="transparent")
+            text_cont.pack(side="left", fill="both", expand=True)
+
+            ctk.CTkLabel(
+                text_cont,
+                text=cmd.get("title", ""),
+                font=get_font("body", "bold"),
+                text_color=text_color,
+                anchor="w"
+            ).pack(fill="x", side="top", pady=(4, 0))
+
+            if cmd.get("subtitle"):
+                ctk.CTkLabel(
+                    text_cont,
+                    text=cmd.get("subtitle", ""),
+                    font=get_font("caption"),
+                    text_color=sub_color,
+                    anchor="w"
+                ).pack(fill="x", side="top")
+
+            # Click binding
+            def make_cmd(idx):
+                return lambda e: self._execute_command(idx)
+
+            row.bind("<Button-1>", make_cmd(i))
+            for child in row.winfo_children():
+                child.bind("<Button-1>", make_cmd(i))
+                if isinstance(child, ctk.CTkFrame):
+                    for grandchild in child.winfo_children():
+                        grandchild.bind("<Button-1>", make_cmd(i))
+
+            self._result_widgets.append(row)
+
+    def _update_selection_visuals(self):
+        """Update the visual state of the existing result widgets and ensure visibility."""
+        if not self._result_widgets or not self._filtered_commands:
+            return
+
+        for i, row in enumerate(self._result_widgets):
+            # Skip the "No commands found" label if that's what's rendering
+            if isinstance(row, ctk.CTkLabel):
+                continue
+
+            is_selected = (i == self._selected_index)
+
+            bg_color = get_color("colors.accent.primary") if is_selected else "transparent"
+            text_color = get_color("colors.background.app") if is_selected else get_color("colors.text.primary")
+            sub_color = get_color("colors.background.card") if is_selected else get_color("colors.text.muted")
+
+            # 1. Update row background
+            row.configure(fg_color=bg_color)
+
+            # 2. Update children (Icon, text container, labels)
+            children = row.winfo_children()
+            if len(children) >= 2:
+                # Icon is first child
+                children[0].configure(text_color=text_color)
+
+                # Text container is second child
+                text_cont = children[1]
+                text_children = text_cont.winfo_children()
+                if len(text_children) >= 1:
+                    text_children[0].configure(text_color=text_color) # Title
+                if len(text_children) >= 2:
+                    text_children[1].configure(text_color=sub_color)  # Subtitle
+
+        # Ensure the selected item is visible by manipulating the canvas yview
+        if hasattr(self.results_frame, "_parent_canvas"):
+            canvas = self.results_frame._parent_canvas
+            canvas.update_idletasks()
+
+            # A row is height=48 + pady=2 (top+bottom) = ~52px total per row
+            # Results frame height is 300px
+            row_h = 52.0
+            visible_rows = 300.0 / row_h
+            total_rows = len(self._filtered_commands)
+
+            if total_rows > visible_rows:
+                # Calculate scroll fraction (0.0 to 1.0)
+                # If we are near the top, scroll to 0
+                if self._selected_index <= 1:
+                    canvas.yview_moveto(0.0)
+                # If we are near the bottom, scroll to 1
+                elif self._selected_index >= total_rows - 2:
+                    canvas.yview_moveto(1.0)
+                else:
+                    # Try to center the item
+                    fraction = (self._selected_index - (visible_rows / 2.0)) / total_rows
+                    canvas.yview_moveto(max(0.0, min(1.0, fraction)))
+
+    def _on_down(self, event):
+        if self._filtered_commands:
+            self._selected_index = (self._selected_index + 1) % len(self._filtered_commands)
+            self._update_selection_visuals()
+        return "break"
+
+    def _on_up(self, event):
+        if self._filtered_commands:
+            self._selected_index = (self._selected_index - 1) % len(self._filtered_commands)
+            self._update_selection_visuals()
+        return "break"
+
+    def _on_enter(self, event):
+        self._execute_command(self._selected_index)
+        return "break"
+
+    def _execute_command(self, index):
+        if 0 <= index < len(self._filtered_commands):
+            cmd = self._filtered_commands[index]
+            action = cmd.get("action")
+            if action:
+                self.hide()
+                # Run the action slightly delayed so UI can update smoothly
+                self.after(50, action)

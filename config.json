@@ -1,6 +1,6 @@
 {
-    "auto_accept": false,
-    "auto_requeue": false,
+    "auto_accept": true,
+    "auto_requeue": true,
     "auto_pick": "",
     "auto_pick_backup": "",
     "auto_ban": "",
@@ -36,7 +36,7 @@
     "always_on_top": true,
     "aram_mode": "ARAM Mayhem",
     "priority_picker": {
-        "enabled": false,
+        "enabled": true,
         "list": [
             "Fizz",
             "Singed",
@@ -49,8 +49,8 @@
             "Sion",
             "Karthus",
             "Velkoz",
-            "Heimerdinger",
             "Ziggs",
+            "Heimerdinger",
             "Nautilus",
             "Zyra",
             "Hwei",
