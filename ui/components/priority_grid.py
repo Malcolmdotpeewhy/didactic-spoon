@@ -131,6 +131,32 @@ class PriorityIconGrid(ctk.CTkFrame):
         self.btn_add.pack(side="right")
         CTkTooltip(self.btn_add, "Add Champion")
 
+        # Import
+        self.btn_import = ctk.CTkButton(
+            self.header, text="⎗", width=20, height=20,
+            corner_radius=10, font=("Arial", 14),
+            fg_color="transparent",
+            text_color=get_color("colors.text.muted"),
+            hover_color=get_color("colors.state.hover"),
+            command=self._show_import_preview,
+            cursor="hand2"
+        )
+        self.btn_import.pack(side="right", padx=2)
+        CTkTooltip(self.btn_import, "Import Priority List from Clipboard")
+
+        # Export
+        self.btn_export = ctk.CTkButton(
+            self.header, text="⎘", width=20, height=20,
+            corner_radius=10, font=("Arial", 14),
+            fg_color="transparent",
+            text_color=get_color("colors.text.muted"),
+            hover_color=get_color("colors.state.hover"),
+            command=self._export_list,
+            cursor="hand2"
+        )
+        self.btn_export.pack(side="right")
+        CTkTooltip(self.btn_export, "Export Priority List to Clipboard")
+
     # ───────────── body ─────────────
     def _build_body(self):
         self.body = ctk.CTkFrame(self, fg_color="transparent")
@@ -189,6 +215,47 @@ class PriorityIconGrid(ctk.CTkFrame):
 
         # Suggestions frame (hidden initially)
         self.suggestions_frame = ctk.CTkFrame(self.add_container, fg_color="transparent")
+
+        # Import container (hidden initially)
+        self.import_container = ctk.CTkFrame(self.body, fg_color="transparent")
+
+        self.import_header = ctk.CTkFrame(self.import_container, fg_color="transparent", height=28)
+        self.import_header.pack(fill="x", pady=(0, 4))
+
+        self.lbl_import_preview = ctk.CTkLabel(
+            self.import_header, text="Preview Import",
+            font=get_font("caption", "bold"),
+            text_color=get_color("colors.accent.primary")
+        )
+        self.lbl_import_preview.pack(side="left", padx=(4, 0))
+
+        ctk.CTkButton(
+            self.import_header, text="✕", width=24, height=24,
+            corner_radius=get_radius("sm"), font=("Arial", 12),
+            fg_color="transparent", hover_color="#e81123",
+            text_color=get_color("colors.text.muted"),
+            command=lambda: self.import_container.pack_forget(),
+            cursor="hand2"
+        ).pack(side="right")
+
+        self.btn_import_apply = ctk.CTkButton(
+            self.import_header, text="✓ Apply", width=60, height=24,
+            corner_radius=get_radius("sm"), font=get_font("caption", "bold"),
+            fg_color=get_color("colors.state.success"),
+            hover_color="#00b359",
+            text_color="#ffffff",
+            command=self._commit_import,
+            cursor="hand2"
+        )
+        self.btn_import_apply.pack(side="right", padx=(0, 4))
+
+        self.import_scroll = ctk.CTkScrollableFrame(
+            self.import_container, height=60, fg_color="transparent",
+            orientation="horizontal",
+            scrollbar_button_color=get_color("colors.text.disabled"),
+            scrollbar_button_hover_color=get_color("colors.text.muted")
+        )
+        self.import_scroll.pack(fill="x", padx=4)
 
         # ── Edit-mode control bar (hidden until edit) ──
         self.edit_bar = ctk.CTkFrame(self.body, fg_color="transparent", height=30)
@@ -576,6 +643,104 @@ class PriorityIconGrid(ctk.CTkFrame):
             
         self.after(800, lambda: self._move_entry.configure(
             border_color=get_color("colors.border.subtle")))
+
+    # ───────────── export / import ─────────────
+    def _export_list(self):
+        names = self._get_priority_list()
+        if not names:
+            from ui.components.toast import ToastManager
+            ToastManager.get_instance().show("Priority List is empty!", icon="⚠️", theme="error")
+            return
+
+        export_str = ", ".join(names)
+        self.clipboard_clear()
+        self.clipboard_append(export_str)
+        self.update() # necessary to keep clipboard after window closes
+
+        from ui.components.toast import ToastManager
+        ToastManager.get_instance().show(
+            "Priority List Copied!",
+            icon="📋",
+            theme="success",
+            confetti=True
+        )
+
+    def _show_import_preview(self):
+        try:
+            raw = self.clipboard_get()
+        except Exception:
+            from ui.components.toast import ToastManager
+            ToastManager.get_instance().show("Clipboard is empty!", icon="⚠️", theme="error")
+            return
+
+        if not raw.strip():
+            from ui.components.toast import ToastManager
+            ToastManager.get_instance().show("Clipboard is empty!", icon="⚠️", theme="error")
+            return
+
+        # Hide add container if open
+        self.add_container.pack_forget()
+
+        # Parse comma-separated list
+        potential_champs = [c.strip() for c in raw.split(",") if c.strip()]
+
+        # Fast-path optimization avoiding redundant list creation
+        self._parsed_import = []
+        seen = set()
+
+        for p in potential_champs:
+            real_name = self._resolve_champion_name(p)
+            if real_name and real_name not in seen:
+                seen.add(real_name)
+                self._parsed_import.append(real_name)
+
+        if not self._parsed_import:
+            from ui.components.toast import ToastManager
+            ToastManager.get_instance().show("No valid champions found in clipboard.", icon="❌", theme="error")
+            return
+
+        # Show container
+        self.import_container.pack(fill="x", padx=4, pady=(4, 0))
+        self.lbl_import_preview.configure(text=f"Import ({len(self._parsed_import)} champs)")
+
+        # Clear old pills
+        for w in self.import_scroll.winfo_children():
+            w.destroy()
+
+        import string
+
+        # Render pills
+        for i, champ in enumerate(self._parsed_import):
+            display_name = string.capwords(champ.replace("'", "' "), " ").replace("' ", "'")
+            pill = ctk.CTkFrame(
+                self.import_scroll,
+                corner_radius=get_radius("sm"),
+                fg_color=get_color("colors.background.card"),
+                border_width=1,
+                border_color=get_color("colors.accent.gold", "#C8AA6E")
+            )
+            pill.pack(side="left", padx=2, pady=2)
+
+            ctk.CTkLabel(
+                pill, text=display_name,
+                font=get_font("caption"),
+                text_color=get_color("colors.text.primary")
+            ).pack(padx=8, pady=2)
+
+    def _commit_import(self):
+        if not hasattr(self, "_parsed_import") or not self._parsed_import:
+            return
+
+        self._save_priority_list(self._parsed_import)
+        self.import_container.pack_forget()
+        self._render_grid()
+
+        from ui.components.toast import ToastManager
+        ToastManager.get_instance().show(
+            f"Imported {len(self._parsed_import)} champions!",
+            icon="🎉",
+            theme="success"
+        )
 
     # ───────────── add ─────────────
     def _on_add_typing(self, event):
