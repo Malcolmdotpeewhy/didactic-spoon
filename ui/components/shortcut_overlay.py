@@ -74,6 +74,7 @@ class ShortcutOverlay(ctk.CTkFrame):
             text_color=get_color("colors.text.muted"),
             font=get_font("body"),
             command=self.hide,
+            cursor="hand2"
         )
         btn_close.pack(side="right")
 
