@@ -143,10 +143,16 @@ class PriorityIconGrid(ctk.CTkFrame):
         self.body.pack(fill="x", pady=(4, 0))
 
         self.scroll = ctk.CTkScrollableFrame(
-            self.body, fg_color="transparent", height=120,
+            self.body, fg_color="transparent", height=220,
             scrollbar_button_color=get_color("colors.text.disabled"),
             scrollbar_button_hover_color=get_color("colors.text.muted"),
+            scrollbar_fg_color="transparent",
         )
+        # Slim the scrollbar track so it doesn't eat into champion icons
+        try:
+            self.scroll._scrollbar.configure(width=6)
+        except Exception:
+            pass
         self.scroll.pack(fill="x")
 
         # Grid container enforcing 4 columns
