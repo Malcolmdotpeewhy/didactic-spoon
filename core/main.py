@@ -128,15 +128,15 @@ class LeagueLoopApp(ctk.CTk):
     def _process_ui_queue(self):
         # Bolt optimization: checking .empty() is faster than catching queue.Empty
         # in a 16ms polling loop where the queue is usually empty.
-        try:
-            for _ in range(100):
-                if self._ui_queue.empty():
-                    break
+        for _ in range(100):
+            if self._ui_queue.empty():
+                break
+            try:
                 task, args, kwargs = self._ui_queue.get_nowait()
                 if task:
                     task(*args, **kwargs)
-        except queue.Empty:
-            pass
+            except queue.Empty:
+                pass
         super().after(16, self._process_ui_queue)
 
     def after(self, ms, func=None, *args):

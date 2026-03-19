@@ -144,19 +144,22 @@ def apply_press_effect(widget, normal_color, press_color=None):
     widget.bind("<ButtonRelease-1>", on_release, add="+")
 
 def apply_card_hover(widget):
+    from ui.ui_shared import get_color
+    from ui.components.factory import parse_border
+
+    hover_border = get_color("colors.accent.primary", default="#0AC8B9")
+    _, normal_border = parse_border("subtle")
+
     def on_enter(_):
         try:
-            from ui.ui_shared import get_color
-            widget.configure(border_color=get_color("colors.accent.primary", default="#0AC8B9"))
+            widget.configure(border_color=hover_border)
         except Exception as e:
             from utils.logger import Logger
             Logger.error("hover.py", f"Handled exception: {type(e).__name__}: {e}")
 
     def on_leave(_):
         try:
-            from ui.components.factory import parse_border
-            _, border_color = parse_border("subtle")
-            widget.configure(border_color=border_color)
+            widget.configure(border_color=normal_border)
         except Exception as e:
             from utils.logger import Logger
             Logger.error("hover.py", f"Handled exception: {type(e).__name__}: {e}")
