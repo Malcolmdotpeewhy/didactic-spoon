@@ -1,5 +1,6 @@
 import ctypes
 import os
+import random
 import sys
 import threading
 import time
@@ -68,7 +69,7 @@ class LeagueLoopApp(ctk.CTk):
         self.configure(fg_color=get_color("colors.background.app"))
 
         try:
-            ToastManager(self)
+            ToastManager.get_instance(self)
         except Exception as e:
             Logger.error("SYS", f"ToastManager initialization error: {e}")
             
@@ -240,7 +241,7 @@ class LeagueLoopApp(ctk.CTk):
         self.after(0, self.sidebar._on_power_click)
 
     def _provide_commands(self):
-        return [
+        base_cmds = [
             {
                 "title": "Launch League of Legends",
                 "subtitle": "Opens the Riot Client and boots League",
@@ -270,8 +271,98 @@ class LeagueLoopApp(ctk.CTk):
                 "subtitle": "Closes the application completely",
                 "icon": "❌",
                 "action": self._on_close
+            },
+            {
+                "title": "Queue Roulette",
+                "subtitle": "Feeling lucky? Randomly pick a mode and queue up!",
+                "icon": "🎲",
+                "action": self._queue_roulette
             }
         ]
+
+        # Inject dynamic queue modes
+        modes = [
+            "Quickplay", "Draft Pick", "Ranked Solo/Duo", "Ranked Flex",
+            "ARAM", "ARAM Mayhem", "Arena", "URF", "ARURF", "Nexus Blitz",
+            "One For All", "Ultimate Spellbook", "TFT Normal", "TFT Ranked"
+        ]
+
+        for mode in modes:
+            # We capture the mode name via a default argument in the lambda
+            # so the loop closure binds correctly
+            base_cmds.append({
+                "title": f"Queue: {mode}",
+                "subtitle": f"Switch mode and start searching for {mode}",
+                "icon": "🎮",
+                "action": lambda m=mode: self._quick_queue(m)
+            })
+
+        return base_cmds
+
+    def _quick_queue(self, mode_name):
+        if not hasattr(self, "sidebar") or not self.sidebar.winfo_exists():
+            return
+
+        self.sidebar.var_game_mode.set(mode_name)
+        self.sidebar._on_mode_change(mode_name)
+        self.after(50, self.sidebar._find_match)
+
+        try:
+            ToastManager.get_instance().show(
+                f"Queued up for {mode_name}!",
+                icon="🎮",
+                duration=3000,
+                theme="success"
+            )
+        except Exception as e:
+            Logger.error("SYS", f"Toast error: {e}")
+
+    def _queue_roulette(self):
+        if not hasattr(self, "sidebar") or not self.sidebar.winfo_exists():
+            return
+
+        modes = [
+            "Quickplay", "Draft Pick", "Ranked Solo/Duo", "Ranked Flex",
+            "ARAM", "Arena", "TFT Normal"
+        ]
+
+        # 1. Cancel existing search
+        if getattr(self.sidebar, "power_state", False):
+            self.sidebar._on_power_click()
+
+        # 2. Spin animation parameters
+        spins = random.randint(15, 25)
+        delay = 50
+
+        def do_spin(count):
+            if count > 0:
+                current_mode = random.choice(modes)
+                self.sidebar.var_game_mode.set(current_mode)
+
+                # Slow down towards the end
+                next_delay = delay + int((spins - count) * 4)
+                self.after(next_delay, lambda: do_spin(count - 1))
+            else:
+                # Landed!
+                winner = self.sidebar.var_game_mode.get()
+                self.sidebar._on_mode_change(winner)
+
+                try:
+                    ToastManager.get_instance().show(
+                        f"Roulette landed on {winner}!",
+                        icon="🎰",
+                        duration=4000,
+                        theme="success",
+                        confetti=True
+                    )
+                except Exception as e:
+                    Logger.error("SYS", f"Toast error: {e}")
+
+                # Queue it up
+                self.after(500, self.sidebar._find_match)
+
+        # Start spin
+        do_spin(spins)
 
     def _restart_ux(self):
         if hasattr(self, "sidebar") and self.sidebar.winfo_exists():
