@@ -157,6 +157,7 @@ class SidebarWidget(ctk.CTkFrame):
             command=self._find_match
         )
         self.btn_find_match.pack(fill="x", pady=0)
+        CTkTooltip(self.btn_find_match, "Start or Cancel Matchmaking")
         
         # Divider after button
         divider_btn = ctk.CTkFrame(self.main_body, height=1, fg_color="#1E2328")
