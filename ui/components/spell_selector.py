@@ -1,6 +1,7 @@
 from utils.logger import Logger
 import customtkinter as ctk
 from .factory import get_color, get_font, make_button
+from ui.ui_shared import CTkTooltip
 
 class SpellSelector(ctk.CTkFrame):
     """Full-page summoner spell browser with a scrollable grid."""
@@ -43,6 +44,7 @@ class SpellSelector(ctk.CTkFrame):
             command=self.on_close
         )
         btn_close.pack(side="right", padx=16, pady=8)
+        CTkTooltip(btn_close, "Close Spell Selector")
 
         # ── SCROLLABLE LIST ──
         self.scroll = ctk.CTkScrollableFrame(

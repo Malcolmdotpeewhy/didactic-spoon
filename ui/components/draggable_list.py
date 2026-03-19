@@ -2,6 +2,7 @@ import tkinter as tk
 import customtkinter as ctk
 from ui.components.factory import get_color, get_font
 from utils.logger import Logger
+from ui.ui_shared import CTkTooltip
 
 class DraggableList(ctk.CTkScrollableFrame):
     def __init__(self, master, items, on_reorder, on_remove, asset_manager=None, **kwargs):
@@ -63,6 +64,7 @@ class DraggableList(ctk.CTkScrollableFrame):
                 cursor="hand2"
             )
             btn_up.pack(side="left", padx=2)
+            CTkTooltip(btn_up, "Move Up")
             if i == 0:
                 btn_up.configure(state="disabled", text_color="gray40")
                 
@@ -74,6 +76,7 @@ class DraggableList(ctk.CTkScrollableFrame):
                 cursor="hand2"
             )
             btn_down.pack(side="left", padx=2)
+            CTkTooltip(btn_down, "Move Down")
             if i == len(self.items) - 1:
                 btn_down.configure(state="disabled", text_color="gray40")
 
@@ -85,6 +88,7 @@ class DraggableList(ctk.CTkScrollableFrame):
                 cursor="hand2"
             )
             btn_remove.pack(side="left", padx=(5, 0))
+            CTkTooltip(btn_remove, "Remove Item")
             
             # Optional Drag Handle (Kept for flexibility but less buggy now)
             lbl_drag = ctk.CTkLabel(frame, text=" ↕ ", cursor="hand2")
