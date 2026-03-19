@@ -42,6 +42,8 @@ class Omnibar(ctk.CTkFrame):
         self._filtered_commands = []
         self._selected_index = 0
         self._result_widgets = []
+        self._animation_id = None
+        self._current_rely = 0.0
 
         self._build_ui()
         self._bind_events()
@@ -87,7 +89,7 @@ class Omnibar(ctk.CTkFrame):
     # --- Visibility ---
 
     def show(self):
-        """Display the Omnibar and focus input."""
+        """Display the Omnibar with a slide-in animation."""
         if self._visible:
             return
         self._visible = True
@@ -97,16 +99,45 @@ class Omnibar(ctk.CTkFrame):
         self.search_input.delete(0, "end")
         self._filter_results("")
 
-        self.place(relx=0.5, rely=0.3, anchor="center")
+        if self._animation_id:
+            self.after_cancel(self._animation_id)
+            
+        self._current_rely = 0.20
+        self.place(relx=0.5, rely=self._current_rely, anchor="center")
         self.lift()
-        self.after(50, self.search_input.focus_set)
+        self.after(10, self.search_input.focus_set)
+        
+        self._animate(target_rely=0.30, step=0.015)
 
     def hide(self):
-        """Dismiss the Omnibar."""
+        """Dismiss the Omnibar with a slide-out animation."""
         if not self._visible:
             return
         self._visible = False
-        self.place_forget()
+        
+        if self._animation_id:
+            self.after_cancel(self._animation_id)
+            
+        self._animate(target_rely=0.20, step=-0.02, on_complete=self.place_forget)
+
+    def _animate(self, target_rely, step, on_complete=None):
+        """Internal animator for rely property."""
+        if (step > 0 and self._current_rely >= target_rely) or (step < 0 and self._current_rely <= target_rely):
+            self._current_rely = target_rely
+            self.place(relx=0.5, rely=self._current_rely, anchor="center")
+            if on_complete:
+                on_complete()
+            return
+            
+        self._current_rely += step
+        
+        # Add friction mapping for ease-out effect
+        distance = abs(target_rely - self._current_rely)
+        adjusted_step = max(0.002, abs(step) * (distance * 10)) if step > 0 else step
+        if step > 0: step = adjusted_step
+
+        self.place(relx=0.5, rely=self._current_rely, anchor="center")
+        self._animation_id = self.after(16, lambda: self._animate(target_rely, step, on_complete))
 
     # --- Logic ---
 
