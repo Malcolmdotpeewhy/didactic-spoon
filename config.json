@@ -52,7 +52,6 @@
             "Ziggs",
             "Heimerdinger",
             "Nautilus",
-            "Zyra",
             "Hwei",
             "Yorick",
             "Malzahar",
@@ -71,7 +70,8 @@
             "Chogath",
             "Gangplank",
             "Ekko",
-            "Jax"
+            "Jax",
+            "Zyra"
         ]
     },
     "hotkey_launch_client": "ctrl+shift+l",

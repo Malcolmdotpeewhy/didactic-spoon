@@ -28,8 +28,11 @@ class SidebarWidget(ctk.CTkFrame):
         self.scraper = scraper
         self.power_state = False
         self.settings_window = None
+        self.img_on = None
+        self.img_off = None
 
         self._setup_ui()
+        self.after(100, self._load_icons_async)
 
     def _setup_ui(self):
         # ── Header / Drag Area ──
@@ -484,7 +487,13 @@ class SidebarWidget(ctk.CTkFrame):
         if not self.scraper:
             return
 
-        self.lbl_stats_title.configure(text=f"{mode} Win Rates")
+        title_text = f"{mode} Win Rates"
+        title_color = get_color("colors.accent.gold", "#C8AA6E")
+        if getattr(self.scraper, "is_offline", False):
+            title_text += " (Offline Mode)"
+            title_color = get_color("colors.text.muted", "#6C757D")
+            
+        self.lbl_stats_title.configure(text=title_text, text_color=title_color)
 
         # Resolve names and winrates
         champ_stats = []

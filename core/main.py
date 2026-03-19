@@ -31,6 +31,8 @@ from core.constants import (
 from ui.app_sidebar import SidebarWidget
 from ui.components.factory import get_color, get_font, TOKENS
 from ui.components.toast import ToastManager
+from ui.ui_shared import CTkTooltip
+from ui.components.omnibar import Omnibar
 
 if TYPE_CHECKING:
     import ctypes.wintypes
@@ -78,6 +80,7 @@ class LeagueLoopApp(ctk.CTk):
         self.running = True
         self._stop_event = threading.Event()
         self._drag_data = {"x": 0, "y": 0}
+        self.omnibar = None
 
         # Initialize automation before UI to avoid NoneType in callbacks
         self.automation: Optional[AutomationEngine] = AutomationEngine(
@@ -148,6 +151,8 @@ class LeagueLoopApp(ctk.CTk):
         self.grid_columnconfigure(0, weight=1)
         self.sidebar = SidebarWidget(self, self.toggle_power, self.config, lcu=self.lcu, assets=self.assets, scraper=self.scraper)
         self.sidebar.grid(row=0, column=0, sticky="nsew")
+        
+        self.omnibar = Omnibar(self, self._provide_commands)
 
     def _setup_window_dragging(self):
         for widget in self.sidebar.drag_widgets:
@@ -182,10 +187,10 @@ class LeagueLoopApp(ctk.CTk):
 
     def _handle_window_state(self, state):
         if state == "minimize":
-            self.state("iconic")
-            Logger.info("SYS", "Game started. Minimizing window.")
+            self.withdraw()
+            Logger.info("SYS", "Game started. Hiding window.")
         elif state == "restore":
-            self.state("normal")
+            self.deiconify()
             self.attributes("-topmost", True)
             self.lift()
             Logger.info("SYS", "Game ended. Restoring window.")
@@ -225,7 +230,7 @@ class LeagueLoopApp(ctk.CTk):
                 if os.path.exists(c):
                     if hasattr(self, "sidebar") and self.sidebar.winfo_exists():
                         self.sidebar.update_action_log("Launching Riot Client...")
-                    subprocess.Popen([c, "--launch-product=league_of_legends", "--launch-patchline=live"])
+                    subprocess.Popen(f'"{c}" --launch-product=league_of_legends --launch-patchline=live', shell=True)
                     return
             if hasattr(self, "sidebar") and self.sidebar.winfo_exists():
                 self.sidebar.update_action_log("Error: Could not find Riot Client.")
@@ -233,6 +238,59 @@ class LeagueLoopApp(ctk.CTk):
 
     def _hotkey_toggle_automation(self):
         self.after(0, self.sidebar._on_power_click)
+
+    def _provide_commands(self):
+        return [
+            {
+                "title": "Launch League of Legends",
+                "subtitle": "Opens the Riot Client and boots League",
+                "icon": "🚀",
+                "action": self._hotkey_launch_client
+            },
+            {
+                "title": "Restart League UX",
+                "subtitle": "Restarts LeagueClientUx without closing the game",
+                "icon": "🔄",
+                "action": self._restart_ux
+            },
+            {
+                "title": "Clear UI Cache",
+                "subtitle": "Deletes downloaded champion images",
+                "icon": "🗑️",
+                "action": self.assets.clear_cache
+            },
+            {
+                "title": "Toggle Compact Mode",
+                "subtitle": "Shrinks LeagueLoop to a glowing orb",
+                "icon": "🗖",
+                "action": lambda: self.after(0, self.toggle_compact_mode)
+            },
+            {
+                "title": "Quit LeagueLoop",
+                "subtitle": "Closes the application completely",
+                "icon": "❌",
+                "action": self._on_close
+            }
+        ]
+
+    def _restart_ux(self):
+        if hasattr(self, "sidebar") and self.sidebar.winfo_exists():
+            self.sidebar.update_action_log("Restarting League UX...")
+        
+        def _execute():
+            success = False
+            if self.lcu and self.lcu.is_connected:
+                res = self.lcu.request("POST", "/riotclient/kill-and-restart-ux")
+                if res and res.status_code in [200, 204]:
+                    success = True
+            
+            if not success:
+                import subprocess
+                subprocess.run(["taskkill", "/IM", "LeagueClientUx.exe", "/F"], capture_output=True)
+                
+            self.after(0, lambda: self.sidebar.update_action_log("UX Restart Triggered."))
+                
+        threading.Thread(target=_execute, daemon=True).start()
 
     def _bind_hotkeys(self):
         try:
@@ -244,12 +302,14 @@ class LeagueLoopApp(ctk.CTk):
         self._launch_hotkey = self.config.get("hotkey_launch_client", "ctrl+shift+l")
         self._automation_hotkey = self.config.get("hotkey_toggle_automation", "ctrl+shift+a")
         self._queue_hotkey = self.config.get("hotkey_find_match", "ctrl+shift+f")
+        self._omnibar_hotkey = self.config.get("hotkey_omnibar", "ctrl+k")
 
         try:
             keyboard.add_hotkey(self._compact_hotkey, lambda: self.after(0, self.toggle_compact_mode), suppress=False)
             keyboard.add_hotkey(self._launch_hotkey, self._hotkey_launch_client, suppress=False)
             keyboard.add_hotkey(self._automation_hotkey, self._hotkey_toggle_automation, suppress=False)
             keyboard.add_hotkey(self._queue_hotkey, self._hotkey_find_match, suppress=False)
+            keyboard.add_hotkey(self._omnibar_hotkey, lambda: self.after(0, self.omnibar.show), suppress=False)
         except Exception as e:
             Logger.error("SYS", f"Failed to register hotkeys: {e}")
 
@@ -307,6 +367,7 @@ class LeagueLoopApp(ctk.CTk):
                 command=self.toggle_compact_mode,
             )
             btn_compact.place(relx=0.5, rely=0.5, anchor="center")
+            CTkTooltip(btn_compact, "Return to Full Mode")
 
             self.geometry(f"{COMPACT_SIZE}x{COMPACT_SIZE}")
             self.attributes("-topmost", True)

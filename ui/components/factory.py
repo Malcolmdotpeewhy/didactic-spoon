@@ -138,6 +138,8 @@ def make_button(parent, text, style="primary", width=None, command=None, icon=No
     """Factory wrapper for new RiotButton."""
     w = kw.pop("width", width or 120)
     h = kw.pop("height", 30)
+    if "variant" in kw:
+        style = kw.pop("variant")
     return RiotButton(parent, text=text, style=style, width=w, height=h, command=command, **kw)
 
 
