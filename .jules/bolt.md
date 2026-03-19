@@ -1,0 +1,3 @@
+## 2024-05-24 - Optimize sequence deduplication with dict.fromkeys
+**Learning:** Python dictionaries preserve insertion order (since 3.7). Creating a new list from `dict.fromkeys(seq)` takes advantage of this and is implemented in highly optimized C code. It's significantly faster than a manual loop checking a `seen` set.
+**Action:** Use `list(dict.fromkeys(seq))` for deduplicating sequences while preserving order instead of writing manual `seen = set(); out = []; for x in seq...` loops.
