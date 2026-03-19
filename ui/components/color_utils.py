@@ -1,7 +1,11 @@
+import functools
 from typing import Tuple
 from utils.logger import Logger
 """Color utility functions."""
 
+# ⚡ Bolt: Memoize hex to RGB conversion.
+# Avoids redundant string parsing for frequently used UI theme colors.
+@functools.lru_cache(maxsize=128)
 def hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
     """Convert hex color string to RGB tuple."""
     hex_color = hex_color.lstrip('#')
@@ -12,6 +16,9 @@ def hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
 
+# ⚡ Bolt: Memoize color interpolation.
+# Caches intermediate gradient calculations to reduce main thread CPU overhead during UI rendering.
+@functools.lru_cache(maxsize=128)
 def interpolate_color(color1, color2, factor):
     """Interpolate between two hex colors."""
     if color1 == "transparent" or color2 == "transparent":
@@ -26,6 +33,9 @@ def interpolate_color(color1, color2, factor):
         return color1
 
 
+# ⚡ Bolt: Memoize color lightening.
+# Speeds up hover state generation for CustomTkinter widgets by caching the string math operations.
+@functools.lru_cache(maxsize=128)
 def lighten_color(hex_color, percent=10):
     """Lighten a hex color by a percentage (0-100)."""
     if hex_color == "transparent":
@@ -44,6 +54,9 @@ def lighten_color(hex_color, percent=10):
         return hex_color
 
 
+# ⚡ Bolt: Memoize color darkening.
+# Speeds up press state generation for UI buttons by caching the hex math operations.
+@functools.lru_cache(maxsize=128)
 def darken_color(hex_color, percent=10):
     """Darken a hex color by a percentage (0-100)."""
     if hex_color == "transparent":

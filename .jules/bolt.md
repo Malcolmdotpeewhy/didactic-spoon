@@ -1,0 +1,6 @@
+## 2024-05-24 - Optimize sequence deduplication with dict.fromkeys
+**Learning:** Python dictionaries preserve insertion order (since 3.7). Creating a new list from `dict.fromkeys(seq)` takes advantage of this and is implemented in highly optimized C code. It's significantly faster than a manual loop checking a `seen` set.
+**Action:** Use `list(dict.fromkeys(seq))` for deduplicating sequences while preserving order instead of writing manual `seen = set(); out = []; for x in seq...` loops.
+## 2024-05-18 - Fast-path execution for recursive UI token lookups
+**Learning:** `functools.lru_cache` applied to `get_color()` is great for caching previously computed key-value pairs, but it doesn't help when tokens are looked up sequentially as strings (like `"colors.background.app"`). The underlying function `tokens.get_old("colors", "background", "app")` would convert keys to a list, iterate, type-check, append to a new list, pop defaults, and do heavy object allocation. This made UI initialization slow. A fast-path execution loop explicitly skipping string manipulation and list allocation brings the execution time down.
+**Action:** When working on tight loop string-based dictionary lookups inside UI frameworks, provide a fast-path for the most common input format that avoids intermediate data structures like arrays and pops.

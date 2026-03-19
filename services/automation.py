@@ -196,6 +196,23 @@ class AutomationEngine:
             if self.poro_snack_func:
                 self.poro_snack_func()
 
+            # 🌟 Nova Feature: Match Accept Hype Mode
+            # Creative Rationale: Auto-accepting a match is a mundane utility function.
+            # By injecting a randomized motivational toast with confetti, we transform
+            # a basic system action into a delightful, rewarding user experience.
+            # Benefit: Increases user engagement and adds a spark of joy to the workflow.
+            tf = self.toast_func
+            if tf is not None:
+                messages = [
+                    "Time to shine! Let's get this W.",
+                    "Match accepted. GLHF!",
+                    "Your team needs you. Go get 'em!",
+                    "Queue popped! Time to lock in.",
+                    "Victory awaits. Good luck!"
+                ]
+                msg = random.choice(messages)
+                tf(msg, "🚀", "success", True)
+
     def _handle_auto_queue(self, phase):
         if not self.config.get("auto_requeue"): return
 

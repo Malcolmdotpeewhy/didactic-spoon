@@ -52,13 +52,7 @@
             "Ziggs",
             "Heimerdinger",
             "Nautilus",
-            "Hwei",
-            "Yorick",
             "Malzahar",
-            "Leona",
-            "Swain",
-            "Tryndamere",
-            "MasterYi",
             "Lux",
             "Lillia",
             "Cassiopeia",
@@ -71,7 +65,8 @@
             "Gangplank",
             "Ekko",
             "Jax",
-            "Zyra"
+            "Zyra",
+            "Zac"
         ]
     },
     "hotkey_launch_client": "ctrl+shift+l",

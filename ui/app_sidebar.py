@@ -157,6 +157,7 @@ class SidebarWidget(ctk.CTkFrame):
             command=self._find_match
         )
         self.btn_find_match.pack(fill="x", pady=0)
+        CTkTooltip(self.btn_find_match, "Start or Cancel Matchmaking")
         
         # Poro Snack Counter (Easter Egg)
         self.lbl_poro_snacks = make_button(
@@ -192,27 +193,36 @@ class SidebarWidget(ctk.CTkFrame):
         row1 = ctk.CTkFrame(automation_frame, fg_color="transparent", height=TOGGLE_ROW_HEIGHT)
         row1.pack(fill="x", padx=SPACING_MD, pady=(0, SPACING_SM))
         row1.pack_propagate(False)
-        ctk.CTkLabel(row1, text="Auto Accept", font=get_font("body"), width=120, anchor="w", text_color="#F0E6D2").pack(side="left")
+        lbl_accept = ctk.CTkLabel(row1, text="Auto Accept", font=get_font("body"), width=120, anchor="w", text_color="#F0E6D2")
+        lbl_accept.pack(side="left")
+        CTkTooltip(lbl_accept, "Automatically accepts match queue pops")
         self.sw_accept = LolToggle(row1, variable=self.var_accept, command=self._on_toggle_accept)
         self.sw_accept.pack(side="right")
+        CTkTooltip(self.sw_accept, "Automatically accepts match queue pops")
 
         # Auto Re-Queue
         self.var_requeue = ctk.BooleanVar(value=self.config.get("auto_requeue", False))
         row2 = ctk.CTkFrame(automation_frame, fg_color="transparent", height=TOGGLE_ROW_HEIGHT)
         row2.pack(fill="x", padx=SPACING_MD, pady=(0, SPACING_SM))
         row2.pack_propagate(False)
-        ctk.CTkLabel(row2, text="Auto Re-Queue", font=get_font("body"), width=120, anchor="w", text_color="#F0E6D2").pack(side="left")
+        lbl_requeue = ctk.CTkLabel(row2, text="Auto Re-Queue", font=get_font("body"), width=120, anchor="w", text_color="#F0E6D2")
+        lbl_requeue.pack(side="left")
+        CTkTooltip(lbl_requeue, "Automatically re-enters matchmaking after a game ends")
         self.sw_requeue = LolToggle(row2, variable=self.var_requeue, command=self._on_toggle_requeue)
         self.sw_requeue.pack(side="right")
+        CTkTooltip(self.sw_requeue, "Automatically re-enters matchmaking after a game ends")
 
         # Priority Picker
         self.var_priority = ctk.BooleanVar(value=self.config.get("priority_picker", {}).get("enabled", False))
         row3 = ctk.CTkFrame(automation_frame, fg_color="transparent", height=TOGGLE_ROW_HEIGHT)
         row3.pack(fill="x", padx=SPACING_MD, pady=(0, SPACING_SM))
         row3.pack_propagate(False)
-        ctk.CTkLabel(row3, text="Priority Sniper", font=get_font("body"), width=120, anchor="w", text_color="#F0E6D2").pack(side="left")
+        lbl_priority = ctk.CTkLabel(row3, text="Priority Sniper", font=get_font("body"), width=120, anchor="w", text_color="#F0E6D2")
+        lbl_priority.pack(side="left")
+        CTkTooltip(lbl_priority, "Attempts to pick highest available champion from Priority List")
         self.sw_priority = LolToggle(row3, variable=self.var_priority, command=self._on_toggle_priority)
         self.sw_priority.pack(side="right")
+        CTkTooltip(self.sw_priority, "Attempts to pick highest available champion from Priority List")
         
         # Divider after automation
         divider_auto = ctk.CTkFrame(self.main_body, height=1, fg_color="#1E2328")
