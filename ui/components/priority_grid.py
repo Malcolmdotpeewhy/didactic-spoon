@@ -166,7 +166,11 @@ class PriorityIconGrid(ctk.CTkFrame):
             self.grid_parent.grid_columnconfigure(i, weight=0, minsize=48)
 
         # Add-champion input row (hidden)
-        self.add_row = ctk.CTkFrame(self.body, fg_color="transparent", height=28)
+        self.add_container = ctk.CTkFrame(self.body, fg_color="transparent")
+
+        self.add_row = ctk.CTkFrame(self.add_container, fg_color="transparent", height=28)
+        self.add_row.pack(fill="x")
+
         self.add_entry = ctk.CTkEntry(
             self.add_row, placeholder_text="Champion name...",
             font=get_font("caption"), height=24, width=120,
@@ -178,6 +182,7 @@ class PriorityIconGrid(ctk.CTkFrame):
         )
         self.add_entry.pack(side="left", padx=(0, 4))
         self.add_entry.bind("<Return>", lambda e: self._commit_add())
+        self.add_entry.bind("<KeyRelease>", self._on_add_typing)
 
         ctk.CTkButton(
             self.add_row, text="Add", width=36, height=24,
@@ -187,6 +192,9 @@ class PriorityIconGrid(ctk.CTkFrame):
             command=self._commit_add,
             cursor="hand2"
         ).pack(side="left")
+
+        # Suggestions frame (hidden initially)
+        self.suggestions_frame = ctk.CTkFrame(self.add_container, fg_color="transparent")
 
         # ── Edit-mode control bar (hidden until edit) ──
         self.edit_bar = ctk.CTkFrame(self.body, fg_color="transparent", height=30)
@@ -576,11 +584,88 @@ class PriorityIconGrid(ctk.CTkFrame):
             border_color=get_color("colors.border.subtle")))
 
     # ───────────── add ─────────────
+    def _on_add_typing(self, event):
+        # Ignore navigation keys
+        if event.keysym in ("Return", "Escape", "Up", "Down", "Left", "Right", "Tab"):
+            return
+
+        query = self.add_entry.get().strip().lower()
+
+        # Clear existing suggestions
+        for widget in self.suggestions_frame.winfo_children():
+            widget.destroy()
+
+        if not query:
+            self.suggestions_frame.pack_forget()
+            return
+
+        # Find matches (fuzzy search logic)
+        matches = []
+        for champ in sorted(self._known_champions):
+            if champ.lower().startswith(query):
+                matches.append(champ)
+            elif query in champ.lower():
+                matches.append(champ)
+
+        # Deduplicate and sort starts-with matches first
+        seen = set()
+        unique_matches = []
+        for champ in matches:
+            if champ not in seen:
+                seen.add(champ)
+                unique_matches.append(champ)
+
+        if not unique_matches:
+            self.suggestions_frame.pack_forget()
+            return
+
+        # Display top 3 matches
+        self.suggestions_frame.pack(fill="x", pady=(4, 0))
+
+        for i, champ in enumerate(unique_matches[:3]):
+            # Use original casing from _known_champions (assuming it's formatted reasonably well)
+            # or use asset manager if we had one here. For now, rely on champ from matches.
+            # To handle cases like "Miss Fortune", we can use string capwords or title() if the
+            # input from _scan_known_champions() is strictly lowercase. Wait, _scan_known_champions()
+            # does `.lower()` on the filenames. So we have to format it cleanly.
+            # A simple heuristic for names with spaces/apostrophes:
+            import string
+            display_name = string.capwords(champ.replace("'", "' "), " ").replace("' ", "'")
+
+            pill = ctk.CTkButton(
+                self.suggestions_frame, text=display_name, width=0, height=20,
+                corner_radius=10, font=get_font("caption"),
+                fg_color=get_color("colors.background.card"),
+                border_width=1, border_color=get_color("colors.accent.gold", "#C8AA6E"),
+                hover_color=get_color("colors.state.hover"),
+                text_color=get_color("colors.text.primary"),
+                command=lambda c=display_name, raw=champ: self._select_suggestion(c, raw),
+                cursor="hand2"
+            )
+            pill.pack(side="left", padx=(0, 4))
+
+    def _select_suggestion(self, display_name, raw_name):
+        # Briefly pulse the input field color to confirm selection
+        self.add_entry.delete(0, "end")
+        self.add_entry.insert(0, display_name)
+        self.add_entry.configure(border_color=get_color("colors.accent.primary"))
+
+        # Hide suggestions but wait for animation to finish before committing
+        self.suggestions_frame.pack_forget()
+
+        def finalize():
+            self.add_entry.configure(border_color=get_color("colors.border.subtle"))
+            self._commit_add()
+
+        self.after(200, finalize)
+
     def _show_add_input(self):
-        if self.add_row.winfo_manager():
-            self.add_row.pack_forget()
+        if self.add_container.winfo_manager():
+            self.add_container.pack_forget()
+            self.suggestions_frame.pack_forget()
+            self.add_entry.delete(0, "end")
         else:
-            self.add_row.pack(fill="x", padx=4, pady=(4, 0))
+            self.add_container.pack(fill="x", padx=4, pady=(4, 0))
             self.add_entry.focus_set()
 
     def _commit_add(self):
@@ -623,5 +708,6 @@ class PriorityIconGrid(ctk.CTkFrame):
             names.append(real_name)
             self._save_priority_list(names)
         self.add_entry.delete(0, "end")
-        self.add_row.pack_forget()
+        self.suggestions_frame.pack_forget()
+        self.add_container.pack_forget()
         self._render_grid()

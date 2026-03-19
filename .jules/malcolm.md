@@ -1,0 +1,5 @@
+## 2024-05-18 - Predictive Micro-Animations in Search Flows
+
+**Learning:** Predictive autocomplete combined with inline micro-animations (like sliding pill buttons or ghosted text hints) significantly reduces interaction friction for text-heavy flows (like adding champions to a priority list). However, standard Entry widgets don't support overlays natively, so dynamic frame injection below the input is a scalable pattern that prevents layout shifts while maintaining visual context.
+
+**Action:** Whenever adding custom input fields that filter a known dataset (e.g., champion names, settings), implement a `suggestions_frame` that conditionally renders clickable pills based on fuzzy search, ensuring keyboard navigation and touch/click targets are explicitly managed without disrupting the parent layout.
