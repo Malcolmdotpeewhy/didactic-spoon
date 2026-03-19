@@ -49,7 +49,8 @@ class SidebarWidget(ctk.CTkFrame):
             self.header, text="✕", width=20, height=20,
             corner_radius=10, font=("Arial", 11),
             fg_color="transparent", hover_color="#e81123",
-            command=self.master._on_close
+            command=self.master._on_close,
+            cursor="hand2"
         )
         self.btn_close.pack(side="right", padx=(4, 2))
         CTkTooltip(self.btn_close, "Close Application")
@@ -61,7 +62,8 @@ class SidebarWidget(ctk.CTkFrame):
             fg_color="transparent",
             text_color=get_color("colors.text.muted"),
             hover_color=get_color("colors.state.hover"),
-            command=self._open_settings
+            command=self._open_settings,
+            cursor="hand2"
         )
         self.btn_settings.pack(side="right", padx=(4, 1))
         CTkTooltip(self.btn_settings, "Open Settings")
@@ -75,6 +77,7 @@ class SidebarWidget(ctk.CTkFrame):
             text_color=get_color("colors.text.muted"),
             hover_color=get_color("colors.state.hover"),
             command=self._toggle_body_collapse,
+            cursor="hand2"
         )
         self.btn_collapse.pack(side="right", padx=(4, 1))
         self.tooltip_collapse = CTkTooltip(self.btn_collapse, "Collapse Sidebar")
