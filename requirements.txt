@@ -5,3 +5,4 @@ pillow
 lcu-driver
 websocket-client
 urllib3
+keyboard>=0.13.5

@@ -10,6 +10,7 @@ from ui.ui_shared import CTkTooltip
 from ui.components.priority_grid import PriorityIconGrid
 from ui.components.settings_modal import SettingsModal
 from ui.components.lol_toggle import LolToggle
+from ui.components.account_switcher import AccountSwitcher
 from core.constants import SPACING_XS, SPACING_SM, SPACING_MD, SPACING_LG, SPACING_XL
 
 class SidebarWidget(ctk.CTkFrame):
@@ -158,7 +159,26 @@ class SidebarWidget(ctk.CTkFrame):
         )
         self.btn_find_match.pack(fill="x", pady=0)
         CTkTooltip(self.btn_find_match, "Start or Cancel Matchmaking")
+
+        self.btn_launch_client = make_button(
+            btn_frame,
+            text="🚀 Launch Client",
+            style="secondary",
+            font=get_font("body", "bold"),
+            height=32,
+            command=lambda: self.master._hotkey_launch_client() if hasattr(self.master, "_hotkey_launch_client") else None
+        )
+        self.btn_launch_client.pack(fill="x", pady=(SPACING_SM, 0))
+        CTkTooltip(self.btn_launch_client, "Open the Riot Client and start League")
         
+        # Account Switcher
+        acc_switch = AccountSwitcher(
+            btn_frame,
+            config=self.config,
+            on_launch_callback=lambda: self.master._hotkey_launch_client() if hasattr(self.master, "_hotkey_launch_client") else None
+        )
+        acc_switch.pack(fill="x", pady=(SPACING_MD, 0))
+
         # Poro Snack Counter (Easter Egg)
         self.lbl_poro_snacks = make_button(
             btn_frame,
