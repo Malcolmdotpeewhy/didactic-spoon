@@ -13,6 +13,7 @@ Accessibility:
 """
 import customtkinter as ctk
 from .factory import get_color, get_font, get_radius, parse_border, TOKENS, make_input
+from ui.components.toast import ToastManager
 
 
 class Omnibar(ctk.CTkFrame):
@@ -325,6 +326,40 @@ class Omnibar(ctk.CTkFrame):
             cmd = self._filtered_commands[index]
             action = cmd.get("action")
             if action:
-                self.hide()
-                # Run the action slightly delayed so UI can update smoothly
-                self.after(50, action)
+                # Malcolm's Infusion: Pre-execution micro-animation and contextual feedback
+
+                # 1. Show global success toast
+                title = cmd.get("title", "Command")
+                try:
+                    ToastManager.get_instance(self.winfo_toplevel()).show(
+                        message=f"Executed: {title}",
+                        icon="✨",
+                        theme="success",
+                        duration=2000
+                    )
+                except Exception as e:
+                    pass
+
+                # 2. Pulse the selected row before hiding
+                row_widget = None
+                # Skip the "No commands found" label if it somehow got triggered
+                for i, w in enumerate(self._result_widgets):
+                    if not isinstance(w, ctk.CTkLabel) and i == index:
+                        row_widget = w
+                        break
+
+                if row_widget and row_widget.winfo_exists():
+                    orig_color = row_widget.cget("fg_color")
+                    pulse_color = get_color("colors.accent.gold", "#C8AA6E")
+                    row_widget.configure(fg_color=pulse_color)
+
+                    def finish_execution():
+                        if row_widget.winfo_exists():
+                            row_widget.configure(fg_color=orig_color)
+                        self.hide()
+                        self.after(50, action)
+
+                    self.after(80, finish_execution)
+                else:
+                    self.hide()
+                    self.after(50, action)
