@@ -684,15 +684,9 @@ class PriorityIconGrid(ctk.CTkFrame):
         # Parse comma-separated list
         potential_champs = [c.strip() for c in raw.split(",") if c.strip()]
 
-        # Fast-path optimization avoiding redundant list creation
-        self._parsed_import = []
-        seen = set()
-
-        for p in potential_champs:
-            real_name = self._resolve_champion_name(p)
-            if real_name and real_name not in seen:
-                seen.add(real_name)
-                self._parsed_import.append(real_name)
+        # Fast-path optimization using dict keys for order-preserving deduplication
+        resolved_names = filter(None, (self._resolve_champion_name(p) for p in potential_champs))
+        self._parsed_import = list(dict.fromkeys(resolved_names))
 
         if not self._parsed_import:
             from ui.components.toast import ToastManager
@@ -767,12 +761,7 @@ class PriorityIconGrid(ctk.CTkFrame):
                 matches.append(champ)
 
         # Deduplicate and sort starts-with matches first
-        seen = set()
-        unique_matches = []
-        for champ in matches:
-            if champ not in seen:
-                seen.add(champ)
-                unique_matches.append(champ)
+        unique_matches = list(dict.fromkeys(matches))
 
         if not unique_matches:
             self.suggestions_frame.pack_forget()
