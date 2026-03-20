@@ -29,9 +29,15 @@ class DesignTokens:
         """Memoized helper to avoid repeated dict traversal and string splitting overhead."""
         data = self.tokens
         try:
+            # Single dot-separated string fast path
+            if len(keys) == 1 and isinstance(keys[0], str) and "." in keys[0]:
+                for part in keys[0].split("."):
+                    data = data[part]
+                return data
+
             for k in keys:
                 if isinstance(k, str) and "." in k:
-                    # Single dot-separated string fast path
+                    # Slow path fallback for mixed dot-separated string formats
                     for part in k.split("."):
                         data = data[part]
                 else:
@@ -57,43 +63,9 @@ class DesignTokens:
         if not keys:
             return default
 
-        data = self.tokens
-
-        # Fast path execution (~40% reduction in overhead for TOKENS.get())
-        # Avoids intermediate list allocations (keys = list(keys)) and string splits where unnecessary
-
-        # Optimization for the most common pattern: single dot-separated string
-        if len(keys) == 1 and type(keys[0]) is str and "." in keys[0]:
-            try:
-                for part in keys[0].split("."):
-                    data = data[part]
-                return data
-            except (KeyError, TypeError):
-                return default
-
-        for k in keys:
-            if type(k) is str and "." in k:
-                # Slow path fallback for mixed dot-separated string formats that bypass get_color splitting
-                flat_keys = []
-                for key in keys:
-                    if type(key) is str and "." in key:
-                        flat_keys.extend(key.split("."))
-                    else:
-                        flat_keys.append(key)
-
-                data = self.tokens
-                for flat_k in flat_keys:
-                    try:
-                        data = data[flat_k]
-                    except (KeyError, TypeError):
-                        return default
-                return data
-
-            # Normal fast traversal
-            try:
-                data = data[k]
-            except (KeyError, TypeError):
-                return default
-        return data
+        val = self._get_memoized(keys)
+        if val is None:
+            return default
+        return val
 
 TOKENS = DesignTokens()
