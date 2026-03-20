@@ -5,3 +5,7 @@
 ## 2024-05-20 - Game Mode Selector Tooltip
 **Learning:** Dropdowns without explicit labels or tooltips can leave users guessing their purpose. Adding a tooltip ensures clarity and accessibility.
 **Action:** Add tooltips to all interactive elements, including option menus, to provide context and improve usability.
+
+## 2024-05-22 - Tooltips for Destructive Icon-Only Buttons
+**Learning:** Icon-only buttons, especially those executing destructive actions like deleting an account, lack necessary context for screen readers and new users without descriptive text. The "✕" button in the account switcher is ambiguous on its own.
+**Action:** Always add `CTkTooltip` to icon-only buttons, specifically explaining the action (e.g., "Remove Account"), to improve both accessibility and general usability.
