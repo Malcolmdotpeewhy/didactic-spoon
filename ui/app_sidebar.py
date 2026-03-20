@@ -141,6 +141,7 @@ class SidebarWidget(ctk.CTkFrame):
             command=self._on_mode_change
         )
         self.opt_game_mode.pack(side="left", fill="x", expand=True)
+        CTkTooltip(self.opt_game_mode, "Select Game Mode")
 
         # Divider NOT here according to rules, instead replace with just action buttons
         # ── Action Buttons ──
