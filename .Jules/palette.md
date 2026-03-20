@@ -5,3 +5,7 @@
 ## 2024-05-20 - Game Mode Selector Tooltip
 **Learning:** Dropdowns without explicit labels or tooltips can leave users guessing their purpose. Adding a tooltip ensures clarity and accessibility.
 **Action:** Add tooltips to all interactive elements, including option menus, to provide context and improve usability.
+
+## 2024-05-24 - Tooltips for Icon-Only Buttons in Lists
+**Learning:** Icon-only buttons (like an "✕" for delete or dynamic names for launch) within dynamically rendered lists, such as the Account Switcher, are not inherently accessible. Without tooltips, screen readers and users may struggle to understand their function.
+**Action:** Ensure all icon-only buttons, especially those generated in loops or lists, have descriptive tooltips attached to clarify their specific action and context.

@@ -82,6 +82,7 @@ class AccountSwitcher(ctk.CTkFrame):
                 command=lambda a=acc: self._launch_account(a)
             )
             btn_launch.pack(side="left", fill="both", expand=True)
+            CTkTooltip(btn_launch, "Launch Client with this Account")
 
             btn_del = ctk.CTkButton(
                 row,
@@ -93,6 +94,7 @@ class AccountSwitcher(ctk.CTkFrame):
                 command=lambda i=idx: self._remove_account(i)
             )
             btn_del.pack(side="right", padx=(2, 0))
+            CTkTooltip(btn_del, "Remove Account")
 
     def _launch_account(self, account):
         # Trigger client launch
