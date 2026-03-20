@@ -267,13 +267,29 @@ class SidebarWidget(ctk.CTkFrame):
         # stats_frame is NOT packed yet — it appears only during ChampSelect
 
         ctk.CTkFrame(self.main_body, height=1, fg_color=get_color("colors.border.subtle")).pack(fill="x", padx=14)
+
+        action_row = ctk.CTkFrame(self.main_body, fg_color="transparent")
+        action_row.pack(fill="x", padx=14, pady=8)
+
         self.lbl_action = ctk.CTkLabel(
-            self.main_body, text="Waiting for client...",
+            action_row, text="Waiting for client...",
             font=get_font("caption"),
             text_color=get_color("colors.text.muted"),
-            wraplength=200, anchor="w"
+            wraplength=170, anchor="w"
         )
-        self.lbl_action.pack(fill="x", padx=14, pady=8)
+        self.lbl_action.pack(side="left", fill="x", expand=True)
+
+        self.btn_clear_log = ctk.CTkButton(
+            action_row, text="✕", width=18, height=18,
+            corner_radius=9, font=("Arial", 10),
+            fg_color="transparent",
+            text_color=get_color("colors.text.muted"),
+            hover_color=get_color("colors.state.hover", "#e81123"),
+            command=self._clear_action_log,
+            cursor="hand2"
+        )
+        self.btn_clear_log.pack(side="right", padx=(4, 0))
+        CTkTooltip(self.btn_clear_log, "Clear Log")
 
     # ── Callbacks ──
     def _load_icons_async(self):
@@ -473,6 +489,10 @@ class SidebarWidget(ctk.CTkFrame):
     def update_action_log(self, text):
         if self.winfo_exists():
             self.lbl_action.configure(text=text)
+
+    def _clear_action_log(self):
+        if self.winfo_exists():
+            self.lbl_action.configure(text="Idle.")
 
     def update_lobby_stats(self, team, bench):
         """Called from AutomationEngine during ChampSelect to show winrate stats."""

@@ -294,7 +294,8 @@ class AutomationEngine:
             owned_skins = [
                 s for s in skins
                 if s.get("ownership", {}).get("owned", False)
-                and s.get("id", 0) != champ_id  # default skin id == champ_id
+                and not s.get("isBase", False)
+                and s.get("id", 0) != (champ_id * 1000)
                 and not s.get("disabled", False)
             ]
 

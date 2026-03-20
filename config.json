@@ -34,7 +34,7 @@
     "ban_BOTTOM": "",
     "ban_UTILITY": "",
     "always_on_top": true,
-    "poro_snacks": 20,
+    "poro_snacks": 62,
     "aram_mode": "ARAM Mayhem",
     "priority_picker": {
         "enabled": true,
@@ -57,6 +57,7 @@
             "Malzahar",
             "Lux",
             "Lillia",
+            "Olaf",
             "Cassiopeia",
             "Nunu",
             "Lulu",
@@ -68,7 +69,8 @@
             "Ekko",
             "Jax",
             "Zac",
-            "Shyvana"
+            "Shyvana",
+            "Veigar"
         ]
     },
     "hotkey_launch_client": "ctrl+shift+l",
