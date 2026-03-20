@@ -159,6 +159,19 @@ class SidebarWidget(ctk.CTkFrame):
         self.btn_find_match.pack(fill="x", pady=0)
         CTkTooltip(self.btn_find_match, "Start or Cancel Matchmaking")
         
+        # Poro Snack Counter (Easter Egg)
+        self.lbl_poro_snacks = make_button(
+            btn_frame,
+            text=f"🍪 Poro Snacks: {self.config.get('poro_snacks', 0)}",
+            style="ghost",
+            font=("Arial", 11),
+            height=24,
+            text_color="#C8AA6E",
+            command=self._feed_poro
+        )
+        self.lbl_poro_snacks.pack(fill="x", pady=(SPACING_SM, 0))
+        CTkTooltip(self.lbl_poro_snacks, "Feed the Poro! (Earned from auto-accepting)")
+
         # Divider after button
         divider_btn = ctk.CTkFrame(self.main_body, height=1, fg_color="#1E2328")
         divider_btn.pack(fill="x", pady=SPACING_MD)
@@ -528,6 +541,18 @@ class SidebarWidget(ctk.CTkFrame):
 
             lbl_wr = ctk.CTkLabel(row, text=f"{wr:.1f}%", font=get_font("body", "bold"), text_color=color)
             lbl_wr.pack(side="right")
+
+    def _feed_poro(self):
+        """Manually click to feed poro!"""
+        snacks = self.config.get("poro_snacks", 0) + 1
+        self.config.set("poro_snacks", snacks)
+        if self.winfo_exists():
+            self.lbl_poro_snacks.configure(text=f"🍪 Poro Snacks: {snacks}", text_color="#ffffff")
+            self.after(200, lambda: self.lbl_poro_snacks.configure(text_color="#C8AA6E") if self.winfo_exists() else None)
+
+    def _poro_snack_earned(self):
+        """Called by Automation Engine when auto-accept fires."""
+        self._feed_poro()
 
     def _open_settings(self):
         if self.settings_window is None or not self.settings_window.winfo_exists():

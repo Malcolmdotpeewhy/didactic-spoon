@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import functools
 
 def _resolve_token_path():
     """Resolve design_tokens.json for both dev and PyInstaller frozen builds."""
@@ -23,17 +24,33 @@ class DesignTokens:
         except (FileNotFoundError, json.JSONDecodeError):
             self.tokens = DEFAULT_TOKENS
 
+    @functools.lru_cache(maxsize=1024)
+    def _get_memoized(self, keys):
+        """Memoized helper to avoid repeated dict traversal and string splitting overhead."""
+        data = self.tokens
+        try:
+            for k in keys:
+                if isinstance(k, str) and "." in k:
+                    # Single dot-separated string fast path
+                    for part in k.split("."):
+                        data = data[part]
+                else:
+                    data = data[k]
+            return data
+        except (KeyError, TypeError, IndexError):
+            return None
+
     def get(self, *keys, default=None):
         if not keys:
             return default
 
         # Handle cases where developers mistakenly pass the default as a positional argument
         last = keys[-1]
-        if type(last) is str:
+        if isinstance(last, str):
             if last and last[0] == "#" or last in ("transparent", "left", "right", "center", "bold", "normal", "medium"):
                 default = last
                 keys = keys[:-1]
-        elif type(last) in (int, float, bool):
+        elif isinstance(last, (int, float, bool)):
             default = last
             keys = keys[:-1]
 

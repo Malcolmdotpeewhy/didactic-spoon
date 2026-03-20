@@ -61,6 +61,7 @@ DEFAULT_CONFIG = {
     "ban_BOTTOM": "",
     "ban_UTILITY": "",
     "always_on_top": True,
+    "poro_snacks": 0,
 }
 
 
