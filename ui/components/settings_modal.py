@@ -2,6 +2,7 @@ import tkinter as tk
 import customtkinter as ctk
 import keyboard
 
+from ui.ui_shared import CTkTooltip
 from ui.components.factory import get_color, get_font, get_radius, make_button
 from utils.logger import Logger
 
@@ -208,6 +209,7 @@ class SettingsModal(ctk.CTkToplevel):
             button_hover_color=get_color("colors.state.hover")
         )
         self.mode_select.grid(row=0, column=1, sticky="e", pady=8)
+        CTkTooltip(self.mode_select, "Select the active ARAM mode (determines lobby creation payload)")
 
         # ── Divider ──
         ctk.CTkFrame(form_frame, height=1, fg_color=get_color("colors.border.subtle")).grid(
