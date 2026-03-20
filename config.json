@@ -34,6 +34,7 @@
     "ban_BOTTOM": "",
     "ban_UTILITY": "",
     "always_on_top": true,
+    "poro_snacks": 20,
     "aram_mode": "ARAM Mayhem",
     "priority_picker": {
         "enabled": true,
@@ -50,6 +51,7 @@
             "Karthus",
             "Velkoz",
             "Ziggs",
+            "Zyra",
             "Heimerdinger",
             "Nautilus",
             "Malzahar",
@@ -65,8 +67,8 @@
             "Gangplank",
             "Ekko",
             "Jax",
-            "Zyra",
-            "Zac"
+            "Zac",
+            "Shyvana"
         ]
     },
     "hotkey_launch_client": "ctrl+shift+l",
