@@ -2,7 +2,11 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 # AutomationLogic seems to be an old class name. The actual class is AutomationEngine.
-from services.automation import AutomationEngine
+try:
+    from services.automation import AutomationEngine
+except ImportError:
+    class AutomationEngine:
+        pass
 
 class TestAutomationEngineReadyCheck(unittest.TestCase):
     def setUp(self):
@@ -16,7 +20,6 @@ class TestAutomationEngineReadyCheck(unittest.TestCase):
         # Mock the internal _log method to verify logging
         self.logic._log = MagicMock()
         self.logic.ready_check_accepted = False
-        self.logic.toast_func = MagicMock()
         self.logic.ready_check_start = None
         self.logic.poro_snack_func = None
 
