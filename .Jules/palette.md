@@ -9,3 +9,7 @@
 ## 2024-05-24 - Tooltips for Icon-Only Buttons in Lists
 **Learning:** Icon-only buttons (like an "✕" for delete or dynamic names for launch) within dynamically rendered lists, such as the Account Switcher, are not inherently accessible. Without tooltips, screen readers and users may struggle to understand their function.
 **Action:** Ensure all icon-only buttons, especially those generated in loops or lists, have descriptive tooltips attached to clarify their specific action and context.
+
+## 2024-05-25 - Tooltips for Contextual Buttons
+**Learning:** Standard action buttons like "Requeue" and "Dodge" can have ambiguous outcomes or lack affordance, particularly when nested alongside unrelated functions. Furthermore, buttons using standard system styling may not inherently indicate their clickability.
+**Action:** Add descriptive tooltips to action buttons to clarify their specific intent ("Force quit the client to dodge the lobby"). Always ensure interactive elements explicitly set `cursor="hand2"` to provide native-feeling hover affordance.
