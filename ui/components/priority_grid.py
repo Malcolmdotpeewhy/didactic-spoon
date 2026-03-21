@@ -365,6 +365,11 @@ class PriorityIconGrid(ctk.CTkFrame):
 
         names = self._get_priority_list()
 
+        # ⚡ Bolt: Lift static color lookups outside the grid generation loop and event handlers
+        # to prevent repetitive string parsing overhead and optimize high-frequency hover events.
+        _hover_border = get_color("colors.accent.gold", "#C8AA6E")
+        _normal_border = get_color("colors.border.subtle")
+
         for i, name in enumerate(names):
             row = i // ICONS_PER_ROW
             col = i % ICONS_PER_ROW
@@ -401,15 +406,15 @@ class PriorityIconGrid(ctk.CTkFrame):
             self.after(10 * i, lambda n=name, l=lbl: self._load_icon_async(n, l))
 
             # Hover animations for grid
-            def _on_enter(e, n=name, idx=i, c=cell):
+            def _on_enter(e, n=name, idx=i, c=cell, hb=_hover_border):
                 self._show_tooltip(e, n, idx)
                 if not self._edit_mode and idx not in self._selected_indices and idx not in self._delete_marked:
-                    c.configure(border_color=get_color("colors.accent.gold", "#C8AA6E"))
+                    c.configure(border_color=hb)
 
-            def _on_leave(e, c=cell):
+            def _on_leave(e, c=cell, nb=_normal_border):
                 self._hide_tooltip()
                 if not self._edit_mode and c._border_color != SEL_BORDER and c._border_color != DEL_BORDER:
-                    c.configure(border_color=get_color("colors.border.subtle"))
+                    c.configure(border_color=nb)
 
             lbl.bind("<Enter>", _on_enter)
             lbl.bind("<Leave>", _on_leave)

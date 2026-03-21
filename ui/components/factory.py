@@ -172,17 +172,23 @@ def make_input(parent, placeholder="", width=None, **kw):
         **kw
     )
 
-    # Focus bindings
+    # ⚡ Bolt: Precompute static colors for focus handlers to avoid main thread latency
+    # during high-frequency focus events.
+    _focus_border = get_color("colors.accent.blue")
+    _focus_bg = get_color("colors.background.card")
+    _unfocus_border = border_c
+    _unfocus_bg = bg_color
+
     def _on_focus(e):
         entry.configure(
-            border_color=get_color("colors.accent.blue"), 
-            fg_color=get_color("colors.background.card")
+            border_color=_focus_border,
+            fg_color=_focus_bg
         )
 
     def _on_unfocus(e):
         entry.configure(
-            border_color=border_c, 
-            fg_color=bg_color
+            border_color=_unfocus_border,
+            fg_color=_unfocus_bg
         )
 
     entry.bind("<FocusIn>", _on_focus, add="+")
