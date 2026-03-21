@@ -332,6 +332,7 @@ class SettingsModal(ctk.CTkToplevel):
             text_color=get_color("colors.text.muted"),
             hover_color=get_color("colors.state.hover"),
             command=self._close,
+            cursor="hand2",
         )
         btn_cancel.pack(side="left", padx=(0, 8))
 
@@ -342,6 +343,7 @@ class SettingsModal(ctk.CTkToplevel):
             text_color="#0A1428",
             hover_color="#F0E6D2",
             command=self._save_settings,
+            cursor="hand2",
         )
         btn_save.pack(side="left")
 

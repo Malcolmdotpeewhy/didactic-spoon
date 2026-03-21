@@ -13,3 +13,7 @@
 ## 2024-05-25 - Tooltips for Contextual Buttons
 **Learning:** Standard action buttons like "Requeue" and "Dodge" can have ambiguous outcomes or lack affordance, particularly when nested alongside unrelated functions. Furthermore, buttons using standard system styling may not inherently indicate their clickability.
 **Action:** Add descriptive tooltips to action buttons to clarify their specific intent ("Force quit the client to dodge the lobby"). Always ensure interactive elements explicitly set `cursor="hand2"` to provide native-feeling hover affordance.
+
+## 2024-05-26 - Native Hover Cursors for Standard Buttons
+**Learning:** While `CTkButton` components often receive custom hover colors, they don't natively change the mouse cursor to a hand pointer when hovered. This breaks expected OS-level affordance patterns, especially for primary action buttons like "Save" and "Cancel" in modal dialogs.
+**Action:** Always explicitly pass `cursor="hand2"` when instantiating `CTkButton` or its subclasses, particularly for standard interaction buttons that users expect to behave like native web or system buttons.
