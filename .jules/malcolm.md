@@ -14,3 +14,9 @@
 **Learning:** When executing rapid commands from a transient overlay (like a Command Palette or Omnibar), users often lack confirmation that their action succeeded before the overlay disappears. Combining a subtle pre-execution micro-animation (like a color pulse on the selected row) with a global holographic success toast provides immediate, delightful closure to the interaction.
 
 **Action:** Whenever implementing execution logic in transient menus, inject a brief (<100ms) visual pulse on the active element and trigger a non-blocking toast notification before dismissing the menu, ensuring the user feels a tangible response to their input.
+
+## 2024-05-21 - Delightful Error Recovery via Reversible States
+
+**Learning:** When users manage complex visual configurations (like reordering or mass-deleting items in a priority grid), accidental destructive actions cause significant friction and break trust. While confirmation dialogs prevent errors, they interrupt flow. A lightweight "Undo" stack coupled with immediate visual and toast feedback allows users to act confidently, knowing they can instantly revert mistakes without disruption. Combining functional recovery with a positive, gamified success indicator (holographic toast with icon) transforms a potential frustration point into a delightful interaction.
+
+**Action:** Whenever implementing complex data mutation or destructive operations in an interactive UI component, prioritize an inline Undo stack over confirmation modals. Pair the Undo action with a subtle UI pulse and a non-blocking toast to celebrate the successful error recovery.
