@@ -13,3 +13,7 @@
 ## 2026-03-19 - Precompute Helper Lookups for Hover States
 **Learning:** Calling complex styling helper functions like `get_color` and `parse_border` directly inside high-frequency UI event handlers like `on_enter` and `on_leave` adds measurable performance overhead and main thread latency (~40% slower) due to unnecessary redundant calculations for a static token.
 **Action:** Precompute static color/border values outside the event handler definitions and reference the cached values within the closure to improve responsiveness of mouse interactions.
+
+## 2026-04-10 - Fast-Path Dictionary Lookups
+**Learning:** For tight-loop string-based dictionary lookups (e.g., parsing UI design tokens), checking for dots and unconditionally splitting (`.split('.')`) allocates lists unnecessarily.
+**Action:** Provide an EAFP (`try...except (KeyError, TypeError)`) fast-path for the most common input format that attempts direct lookup first, skipping intermediate list allocations and heavy string parsing to significantly reduce execution overhead.

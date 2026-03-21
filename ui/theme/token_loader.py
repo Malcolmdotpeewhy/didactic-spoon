@@ -33,11 +33,14 @@ class DesignTokens:
             # to avoid the overhead of falling through to the general loop
             # and repeated type/string-matching checks.
             if len(keys) == 1 and isinstance(keys[0], str):
-                if "." in keys[0]:
-                    for part in keys[0].split("."):
-                        data = data[part]
-                    return data
-                return data[keys[0]]
+                try:
+                    return data[keys[0]]
+                except (KeyError, TypeError):
+                    if "." in keys[0]:
+                        for part in keys[0].split("."):
+                            data = data[part]
+                        return data
+                    raise
 
             for k in keys:
                 if isinstance(k, str) and "." in k:
