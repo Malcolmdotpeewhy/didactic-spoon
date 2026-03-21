@@ -38,6 +38,7 @@ class PriorityIconGrid(ctk.CTkFrame):
         self._delete_marked = set()      # indices marked for deletion
         self._icon_cache = {}
         self._icon_widgets = []
+        self._undo_stack = []            # stack of previous priority lists for undo
 
         self._build_header()
         self._build_body()
@@ -74,10 +75,22 @@ class PriorityIconGrid(ctk.CTkFrame):
         raw = self.config.get("priority_picker", {}).get("list", [])
         return self._dedup(raw)
 
-    def _save_priority_list(self, lst):
+    def _save_priority_list(self, lst, record_history=True):
+        if record_history:
+            current = self._get_priority_list()
+            # Only push if it actually changed
+            if current != lst:
+                self._undo_stack.append(current)
+                # Cap the stack at, say, 10 items
+                if len(self._undo_stack) > 10:
+                    self._undo_stack.pop(0)
+
         cfg = self.config.get("priority_picker", {})
         cfg["list"] = self._dedup(lst)
         self.config.set("priority_picker", cfg)
+
+        if hasattr(self, "_sync_undo_btn"):
+            self._sync_undo_btn()
 
     def _load_icon(self, champ_name):
         if champ_name in self._icon_cache:
@@ -91,6 +104,14 @@ class PriorityIconGrid(ctk.CTkFrame):
             except Exception:
                 pass
         return None
+
+    def _sync_undo_btn(self):
+        if not hasattr(self, "btn_undo"):
+            return
+        if self._undo_stack:
+            self.btn_undo.configure(state="normal", text_color=get_color("colors.text.primary"))
+        else:
+            self.btn_undo.configure(state="disabled", text_color=get_color("colors.text.disabled"))
 
     # ───────────── header ─────────────
     def _build_header(self):
@@ -130,6 +151,20 @@ class PriorityIconGrid(ctk.CTkFrame):
         )
         self.btn_add.pack(side="right")
         CTkTooltip(self.btn_add, "Add Champion")
+
+        # Undo
+        self.btn_undo = ctk.CTkButton(
+            self.header, text="↶", width=20, height=20,
+            corner_radius=10, font=("Segoe UI", 14),
+            fg_color="transparent",
+            text_color=get_color("colors.text.disabled"),
+            hover_color=get_color("colors.state.hover"),
+            command=self._undo_action,
+            cursor="hand2",
+            state="disabled"
+        )
+        self.btn_undo.pack(side="right", padx=2)
+        CTkTooltip(self.btn_undo, "Undo Last Action")
 
         # Import
         self.btn_import = ctk.CTkButton(
@@ -654,6 +689,34 @@ class PriorityIconGrid(ctk.CTkFrame):
             border_color=get_color("colors.border.subtle")))
 
     # ───────────── export / import ─────────────
+    def _undo_action(self):
+        if not self._undo_stack:
+            return
+
+        previous_state = self._undo_stack.pop()
+        self._save_priority_list(previous_state, record_history=False)
+
+        # Clear editing states
+        self._selected_indices.clear()
+        if hasattr(self, "_move_entry") and self._move_entry.winfo_exists():
+            self._move_entry.delete(0, "end")
+
+        self._render_grid()
+        self._sync_undo_btn()
+
+        # Visual feedback
+        pulse_color = get_color("colors.accent.primary", "#C8AA6E")
+        orig_color = self.btn_undo.cget("text_color")
+        self.btn_undo.configure(text_color=pulse_color)
+        self.after(200, lambda: self.btn_undo.winfo_exists() and self.btn_undo.configure(text_color=orig_color))
+
+        from ui.components.toast import ToastManager
+        ToastManager.get_instance().show(
+            "Undid last action",
+            icon="↶",
+            theme="success"
+        )
+
     def _export_list(self):
         names = self._get_priority_list()
         if not names:
