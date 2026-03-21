@@ -260,9 +260,11 @@ class SidebarWidget(ctk.CTkFrame):
             fg_color="#0F1A24",
             hover_color="#1A2733",
             text_color="#AAB6C4",
-            command=self._force_requeue
+            command=self._force_requeue,
+            cursor="hand2"
         )
         self.requeue_button.grid(row=0, column=0, padx=(0, 6), pady=6, sticky="ew")
+        CTkTooltip(self.requeue_button, "Cancel and re-enter matchmaking queue")
 
         self.dodge_button = ctk.CTkButton(
             self.quick_actions_frame,
@@ -271,9 +273,11 @@ class SidebarWidget(ctk.CTkFrame):
             fg_color="#0F1A24",
             hover_color="#1A2733",
             text_color="#AAB6C4",
-            command=self._force_dodge
+            command=self._force_dodge,
+            cursor="hand2"
         )
         self.dodge_button.grid(row=0, column=1, padx=(6, 0), pady=6, sticky="ew")
+        CTkTooltip(self.dodge_button, "Force quit the client to dodge the lobby")
 
         # ── Launch Client ──
         self.btn_launch_client = make_button(
