@@ -444,6 +444,7 @@ class SidebarWidget(ctk.CTkFrame):
             self.lbl_title.pack(side="left")
             self.btn_close.pack(side="right", padx=(4, 2))
             self.btn_settings.pack(side="right", padx=(4, 1))
+            self.btn_minimize.pack(side="right", padx=(4, 1))
             self.btn_collapse.pack(side="right", padx=(4, 1))
             self.main_body.pack(fill="both", expand=True)
             self.btn_collapse.configure(text="◀")
@@ -454,6 +455,7 @@ class SidebarWidget(ctk.CTkFrame):
             self.main_body.pack_forget()
             self.btn_close.pack_forget()
             self.btn_settings.pack_forget()
+            self.btn_minimize.pack_forget()
             self.lbl_title.pack_forget()
             
             self.header.pack_configure(fill="both", expand=True, padx=0, pady=0)
