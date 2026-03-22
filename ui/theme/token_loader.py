@@ -29,10 +29,10 @@ class DesignTokens:
         """Memoized helper to avoid repeated dict traversal and string splitting overhead."""
         data = self.tokens
         try:
-            # Fast path execution for single string keys (e.g. "spacing")
+            # ⚡ Bolt: Fast path execution for single string keys (e.g. "spacing")
             # to avoid the overhead of falling through to the general loop
             # and repeated type/string-matching checks.
-            if len(keys) == 1 and isinstance(keys[0], str):
+            if len(keys) == 1 and type(keys[0]) is str:
                 try:
                     return data[keys[0]]
                 except (KeyError, TypeError):
@@ -42,8 +42,9 @@ class DesignTokens:
                         return data
                     raise
 
+            # ⚡ Bolt: Optimize general loop performance by replacing isinstance with direct type check.
             for k in keys:
-                if isinstance(k, str) and "." in k:
+                if type(k) is str and "." in k:
                     # Slow path fallback for mixed dot-separated string formats
                     for part in k.split("."):
                         data = data[part]
