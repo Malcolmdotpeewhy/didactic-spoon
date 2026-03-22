@@ -138,6 +138,7 @@ class PriorityIconGrid(ctk.CTkFrame):
             cursor="hand2"
         )
         self.btn_edit.pack(side="right", padx=2)
+        CTkTooltip(self.btn_edit, "Toggle Edit Mode")
 
         # +
         self.btn_add = ctk.CTkButton(
@@ -355,6 +356,7 @@ class PriorityIconGrid(ctk.CTkFrame):
             cursor="hand2"
         )
         self._move_go_btn.pack(side="left")
+        CTkTooltip(self._move_go_btn, "Move to Position")
         self._move_to_frame.pack(side="left", padx=(6, 0))
 
     # ───────────── grid rendering ─────────────
