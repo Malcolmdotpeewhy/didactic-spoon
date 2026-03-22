@@ -17,3 +17,7 @@
 ## 2024-05-26 - Native Hover Cursors for Standard Buttons
 **Learning:** While `CTkButton` components often receive custom hover colors, they don't natively change the mouse cursor to a hand pointer when hovered. This breaks expected OS-level affordance patterns, especially for primary action buttons like "Save" and "Cancel" in modal dialogs.
 **Action:** Always explicitly pass `cursor="hand2"` when instantiating `CTkButton` or its subclasses, particularly for standard interaction buttons that users expect to behave like native web or system buttons.
+
+## 2024-05-27 - Native Hover Cursors for Dropdown Menus
+**Learning:** Just like buttons, standard `CTkOptionMenu` widgets (dropdowns) do not natively change the mouse cursor to a hand pointer when hovered. This breaks expected OS-level affordance patterns for these primary interaction elements, as users expect visual feedback to indicate a click will reveal a menu.
+**Action:** Always explicitly pass `cursor="hand2"` when instantiating `CTkOptionMenu` widgets to ensure they behave consistently with other interactive elements like buttons and toggles.
