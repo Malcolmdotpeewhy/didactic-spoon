@@ -21,3 +21,7 @@
 ## 2024-05-27 - Native Hover Cursors for Dropdown Menus
 **Learning:** Just like buttons, standard `CTkOptionMenu` widgets (dropdowns) do not natively change the mouse cursor to a hand pointer when hovered. This breaks expected OS-level affordance patterns for these primary interaction elements, as users expect visual feedback to indicate a click will reveal a menu.
 **Action:** Always explicitly pass `cursor="hand2"` when instantiating `CTkOptionMenu` widgets to ensure they behave consistently with other interactive elements like buttons and toggles.
+
+## 2024-05-28 - Tooltips for Standard Modal Buttons
+**Learning:** Primary interaction buttons in modals, such as "Save" and "Cancel", perform significant actions (committing or discarding state changes). However, relying solely on text labels can sometimes lack accessibility depth for screen readers, and adding tooltips provides helpful reinforcement.
+**Action:** Always bind `CTkTooltip` to primary modal action buttons to provide explicit, accessible context for their function.

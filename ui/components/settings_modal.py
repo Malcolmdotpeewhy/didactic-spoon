@@ -336,6 +336,7 @@ class SettingsModal(ctk.CTkToplevel):
             cursor="hand2",
         )
         btn_cancel.pack(side="left", padx=(0, 8))
+        CTkTooltip(btn_cancel, "Discard changes and close")
 
         btn_save = ctk.CTkButton(
             inner, text="Save", width=100, height=32,
@@ -347,6 +348,7 @@ class SettingsModal(ctk.CTkToplevel):
             cursor="hand2",
         )
         btn_save.pack(side="left")
+        CTkTooltip(btn_save, "Save changes and close")
 
     # ──────────────────────────────────────────────
     #  Callbacks
