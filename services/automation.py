@@ -37,6 +37,7 @@ class AutomationEngine:
         self.thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
         self.executor = ThreadPoolExecutor(max_workers=5)
+        self._last_error_times: dict = {}
         self.setup_done: bool = False
         self.last_phase: str = "None"
         self.current_queue_id: Optional[int] = None
@@ -100,9 +101,8 @@ class AutomationEngine:
                 # Flood-suppress: only log identical errors once per 30s
                 err_key = str(e)
                 now = time.time()
-                last_time = getattr(self, "_last_error_times", {}).get(err_key, 0)
-                if not hasattr(self, "_last_error_times"):
-                    self._last_error_times = {}
+                # ⚡ Bolt: Fast-path dict lookup to avoid redundant default dict {} allocation
+                last_time = self._last_error_times.get(err_key, 0)
                 if now - last_time > 30:
                     tb = traceback.format_exc()
                     Logger.error("AutoLoop", f"Critical Error: {e}\n{tb}")
