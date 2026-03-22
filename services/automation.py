@@ -316,27 +316,42 @@ class AutomationEngine:
         my_champ_id = me.get("championId", 0) if me else 0
         my_champ_name = self.assets.get_champ_name(my_champ_id) if my_champ_id else ""
         
-        # Build an O(1) lookup map for the priority list to avoid O(N) `.index()` inside loops.
-        # This makes finding the priority index 4x faster on average during Champ Select updates.
-        priority_map = {name: i for i, name in enumerate(priority_list)}
-
-        my_priority_idx = priority_map.get(my_champ_name, 9999)
-
-        best_bench_champ = None
-        best_bench_idx = 9999
-        best_bench_id = 0
-
+        # ⚡ Bolt: Fast-path priority sniper early-return optimization.
+        # Instead of traversing the entire bench and evaluating every champion against a priority map,
+        # we index the bench for O(1) lookups, then walk down the sorted priority list.
+        # The first priority champion found on the bench is mathematically guaranteed to be the best,
+        # allowing an instant early-return break without further iteration.
+        bench_map = {}
         for champ in bench:
             cid = champ.get("championId")
             cname = self.assets.get_champ_name(cid)
+            if cname:
+                bench_map[cname] = cid
 
-            idx = priority_map.get(cname)
-            if idx is not None and idx < best_bench_idx:
-                best_bench_idx = idx
-                best_bench_champ = cname
-                best_bench_id = cid
+        my_priority_idx = 9999
+        try:
+            my_priority_idx = priority_list.index(my_champ_name)
+        except ValueError:
+            pass
 
-        if best_bench_idx < my_priority_idx:
+        best_bench_champ = None
+        best_bench_id = 0
+        best_bench_idx = 9999
+
+        for i, target_name in enumerate(priority_list):
+            if i >= my_priority_idx:
+                # We've reached or passed our current champion's priority.
+                # Any further matches would be downgrades.
+                break
+
+            if target_name in bench_map:
+                # Guaranteed best pick due to priority list ordering
+                best_bench_champ = target_name
+                best_bench_id = bench_map[target_name]
+                best_bench_idx = i
+                break
+
+        if best_bench_id != 0:
             now = time.time()
             if not hasattr(self, "_last_priority_swap"): self._last_priority_swap = 0
             if now - self._last_priority_swap < PRIORITY_SWAP_COOLDOWN: return

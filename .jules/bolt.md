@@ -21,3 +21,7 @@
 ## 2026-04-15 - Token Loader Inner Loop
 **Learning:** The core token loader resolution function `_get_memoized` previously fell back to iterating a `keys` tuple with `isinstance` checks, even when most keys were single strings like `"colors.background.app"`. Also, `isinstance` is slower than `type() is`.
 **Action:** Created an EAFP fast path for single-string key tuples `if len(keys) == 1 and type(keys[0]) is str:`, skipping the general loop and avoiding double dictionary lookups. This improves cold-path token lookups by nearly 2x (from 0.28s to 0.15s per 100k hits).
+
+## 2024-06-25 - O(1) early-return optimization in Champ Select sniper
+**Learning:** The `_perform_priority_sniper` function previously iterated over the bench champions and checked their index in the priority list. Building the priority list lookup map and evaluating every bench champion was slower than indexing the small bench and walking down the sorted priority list.
+**Action:** Reverse the lookup relationship: index the small bench (O(1) lookup), then iterate down the sorted priority list. The first priority champion found on the bench is mathematically guaranteed to be the best, allowing an instant early-return break without further iteration.
