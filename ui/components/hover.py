@@ -143,23 +143,32 @@ def apply_press_effect(widget, normal_color, press_color=None):
     widget.bind("<ButtonPress-1>", on_press, add="+")
     widget.bind("<ButtonRelease-1>", on_release, add="+")
 
-def apply_card_hover(widget):
-    from ui.ui_shared import get_color
-    from ui.components.factory import parse_border
+# Cache tokens globally to avoid re-importing and re-parsing on every widget creation
+_card_hover_border = None
+_card_normal_border = None
 
-    hover_border = get_color("colors.accent.primary", default="#0AC8B9")
-    _, normal_border = parse_border("subtle")
+def apply_card_hover(widget):
+    global _card_hover_border, _card_normal_border
+    if _card_hover_border is None:
+        from ui.ui_shared import get_color
+        from ui.components.factory import parse_border
+        _card_hover_border = get_color("colors.accent.primary", default="#0AC8B9")
+        _, _card_normal_border = parse_border("subtle")
+
+    # ⚡ Bolt: Fast path static bindings using closure variables
+    hb = _card_hover_border
+    nb = _card_normal_border
 
     def on_enter(_):
         try:
-            widget.configure(border_color=hover_border)
+            widget.configure(border_color=hb)
         except Exception as e:
             from utils.logger import Logger
             Logger.error("hover.py", f"Handled exception: {type(e).__name__}: {e}")
 
     def on_leave(_):
         try:
-            widget.configure(border_color=normal_border)
+            widget.configure(border_color=nb)
         except Exception as e:
             from utils.logger import Logger
             Logger.error("hover.py", f"Handled exception: {type(e).__name__}: {e}")
