@@ -266,6 +266,8 @@ class SettingsModal(ctk.CTkToplevel):
             button_hover_color="#FFFFFF",
             command=self._on_delay_slide,
         )
+        self.slider_delay.bind("<Enter>", lambda e: self.slider_delay.configure(cursor="hand2"))
+        self.slider_delay.bind("<Leave>", lambda e: self.slider_delay.configure(cursor=""))
         self.slider_delay.pack(side="right", padx=(8, 4))
         CTkTooltip(self.slider_delay, "Delay before auto-accepting a match (0 = instant)")
 
