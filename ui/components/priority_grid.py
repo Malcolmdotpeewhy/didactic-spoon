@@ -125,6 +125,7 @@ class PriorityIconGrid(ctk.CTkFrame):
             cursor="hand2",
         )
         self.lbl_section.pack(side="left", padx=2)
+        CTkTooltip(self.lbl_section, "Toggle Priority List")
         self.lbl_section.bind("<Button-1>", lambda e: self._toggle_collapse())
 
         # Edit / Done
@@ -235,6 +236,7 @@ class PriorityIconGrid(ctk.CTkFrame):
             border_width=1,
             border_color=get_color("colors.border.subtle"),
             text_color=get_color("colors.text.primary"),
+            cursor="xterm",
         )
         self.add_entry.pack(side="left", padx=(0, 4))
         self.add_entry.bind("<Return>", lambda e: self._commit_add())
@@ -343,6 +345,7 @@ class PriorityIconGrid(ctk.CTkFrame):
             text_color=get_color("colors.text.primary"),
             placeholder_text="pos",
             justify="center",
+            cursor="xterm",
         )
         self._move_entry.pack(side="left", padx=(0, 2))
         self._move_entry.bind("<Return>", lambda e: self._commit_move_to())

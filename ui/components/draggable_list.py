@@ -97,6 +97,7 @@ class DraggableList(ctk.CTkScrollableFrame):
             # Optional Drag Handle (Kept for flexibility but less buggy now)
             lbl_drag = ctk.CTkLabel(frame, text=" ↕ ", cursor="hand2")
             lbl_drag.pack(side="right", padx=5)
+            CTkTooltip(lbl_drag, "Drag to reorder")
             
             lbl_drag.bind("<Button-1>", lambda e, x=item, idx=i: self._on_drag_start(e, x, idx))
             lbl_drag.bind("<ButtonRelease-1>", self._on_drag_release)
