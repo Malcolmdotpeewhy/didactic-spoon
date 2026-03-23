@@ -4,6 +4,8 @@ import customtkinter as ctk
 class LolToggle(tk.Canvas):
     """Custom Riot-style animated sliding toggle switch using pure Canvas for maximum fidelity."""
     def __init__(self, master, width=32, height=16, variable=None, command=None, bg_color="#0A1428", **kwargs):
+        # Palette: Enable keyboard focus by default for accessibility
+        kwargs.setdefault("takefocus", 1)
         super().__init__(master, width=width, height=height, highlightthickness=0, bg=bg_color, **kwargs)
         self.variable = variable
         self.command = command
@@ -14,15 +16,31 @@ class LolToggle(tk.Canvas):
         self.color_inactive = "#1E2328"
         self.color_active = "#A88A4E" # C8AA6E dimmed
         self.color_knob = "#F0E6D2"
+        self.color_focus_ring = "#C8AA6E"
 
         self.pos_off = 2
         self.pos_on = 18 # 32 - 12 - 2
         self._current_x = self.pos_on if self._state else self.pos_off
+        self._focused = False
         
         self.bind("<Button-1>", self.toggle)
         self.bind("<Enter>", lambda e: self.configure(cursor="hand2"))
         self.bind("<Leave>", lambda e: self.configure(cursor=""))
         
+        # Palette: Keyboard accessibility bindings
+        self.bind("<KeyPress-space>", self.toggle)
+        self.bind("<Return>", self.toggle)
+        self.bind("<FocusIn>", self._on_focus_in)
+        self.bind("<FocusOut>", self._on_focus_out)
+
+        self._draw()
+
+    def _on_focus_in(self, event=None):
+        self._focused = True
+        self._draw()
+
+    def _on_focus_out(self, event=None):
+        self._focused = False
         self._draw()
 
     def _draw(self):
@@ -30,10 +48,18 @@ class LolToggle(tk.Canvas):
         bg_col = self.color_active if self._state else self.color_inactive
         
         # Track (Pill shape)
-        self.create_oval(0, 0, 16, 16, fill=bg_col, outline=bg_col, tags="track")
-        self.create_oval(16, 0, 32, 16, fill=bg_col, outline=bg_col, tags="track")
+        # Palette: Show focus ring when active
+        outline_col = self.color_focus_ring if self._focused else bg_col
+
+        self.create_oval(0, 0, 16, 16, fill=bg_col, outline=outline_col, tags="track")
+        self.create_oval(16, 0, 32, 16, fill=bg_col, outline=outline_col, tags="track")
+        # Keep center rectangle outline same as fill to avoid vertical lines
         self.create_rectangle(8, 0, 24, 16, fill=bg_col, outline=bg_col, tags="track")
         
+        if self._focused:
+            self.create_line(8, 0, 24, 0, fill=outline_col, tags="track")
+            self.create_line(8, 16, 24, 16, fill=outline_col, tags="track")
+
         # Knob
         k_y = 2
         k_s = 12
