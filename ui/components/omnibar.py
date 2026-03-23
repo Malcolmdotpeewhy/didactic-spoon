@@ -43,6 +43,14 @@ class Omnibar(ctk.CTkFrame):
         self._filtered_commands = []
         self._selected_index = 0
         self._result_widgets = []
+
+        # ⚡ Bolt: Precompute standard theme colors to avoid dynamic token resolution
+        # overhead during high-frequency list navigation (_on_up, _on_down).
+        self._color_bg_selected = get_color("colors.accent.primary")
+        self._color_text_selected = get_color("colors.background.app")
+        self._color_sub_selected = get_color("colors.background.card")
+        self._color_text_normal = get_color("colors.text.primary")
+        self._color_sub_normal = get_color("colors.text.muted")
         self._animation_id = None
         self._current_rely = 0.0
 
@@ -192,9 +200,9 @@ class Omnibar(ctk.CTkFrame):
         for i, cmd in enumerate(self._filtered_commands):
             is_selected = (i == self._selected_index)
 
-            bg_color = get_color("colors.accent.primary") if is_selected else "transparent"
-            text_color = get_color("colors.background.app") if is_selected else get_color("colors.text.primary")
-            sub_color = get_color("colors.background.card") if is_selected else get_color("colors.text.muted")
+            bg_color = self._color_bg_selected if is_selected else "transparent"
+            text_color = self._color_text_selected if is_selected else self._color_text_normal
+            sub_color = self._color_sub_selected if is_selected else self._color_sub_normal
 
             row = ctk.CTkFrame(
                 self.results_frame,
@@ -260,9 +268,9 @@ class Omnibar(ctk.CTkFrame):
 
             is_selected = (i == self._selected_index)
 
-            bg_color = get_color("colors.accent.primary") if is_selected else "transparent"
-            text_color = get_color("colors.background.app") if is_selected else get_color("colors.text.primary")
-            sub_color = get_color("colors.background.card") if is_selected else get_color("colors.text.muted")
+            bg_color = self._color_bg_selected if is_selected else "transparent"
+            text_color = self._color_text_selected if is_selected else self._color_text_normal
+            sub_color = self._color_sub_selected if is_selected else self._color_sub_normal
 
             # 1. Update row background
             row.configure(fg_color=bg_color)

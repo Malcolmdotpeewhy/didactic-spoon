@@ -25,3 +25,7 @@
 ## 2024-06-25 - O(1) early-return optimization in Champ Select sniper
 **Learning:** The `_perform_priority_sniper` function previously iterated over the bench champions and checked their index in the priority list. Building the priority list lookup map and evaluating every bench champion was slower than indexing the small bench and walking down the sorted priority list.
 **Action:** Reverse the lookup relationship: index the small bench (O(1) lookup), then iterate down the sorted priority list. The first priority champion found on the bench is mathematically guaranteed to be the best, allowing an instant early-return break without further iteration.
+
+## 2026-04-20 - Fast Path List Navigation Colors
+**Learning:** Dynamically resolving theme tokens (like `get_color("colors.accent.primary")`) in high-frequency list navigation callbacks (`_on_up`, `_on_down`) causes measurable latency and redundant main-thread overhead as users scroll through many items.
+**Action:** Precompute active and normal item colors in the component's `__init__` when rendering complex custom list components to ensure `O(1)` state updates and maintain crisp UI responsiveness.
