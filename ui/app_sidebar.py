@@ -176,6 +176,7 @@ class SidebarWidget(ctk.CTkFrame):
             cursor="hand2",
         )
         self.lbl_action_section.pack(fill="x", padx=SPACING_MD, pady=(SPACING_SM, SPACING_SM))
+        CTkTooltip(self.lbl_action_section, "Toggle Actions")
         self.lbl_action_section.bind("<Button-1>", self._toggle_action_collapse)
 
         self.btn_frame = ctk.CTkFrame(self.action_container, fg_color="transparent")
@@ -308,6 +309,7 @@ class SidebarWidget(ctk.CTkFrame):
             cursor="hand2",
         )
         self.lbl_auto_section.pack(fill="x", padx=SPACING_MD, pady=(SPACING_SM, SPACING_SM))
+        CTkTooltip(self.lbl_auto_section, "Toggle Automation")
         self.lbl_auto_section.bind("<Button-1>", self._toggle_auto_collapse)
         
         TOGGLE_ROW_HEIGHT = 28

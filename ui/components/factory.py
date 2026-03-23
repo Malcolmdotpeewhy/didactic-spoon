@@ -169,6 +169,7 @@ def make_input(parent, placeholder="", width=None, **kw):
         placeholder_text=placeholder,
         placeholder_text_color=get_color("colors.text.muted"),
         text_color=get_color("colors.text.primary"),
+        cursor="xterm",
         **kw
     )
 
