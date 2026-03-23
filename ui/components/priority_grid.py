@@ -318,12 +318,22 @@ class PriorityIconGrid(ctk.CTkFrame):
             cursor="hand2"
         )
 
+        self.btn_clear_all = ctk.CTkButton(
+            self.edit_bar, text="🗑️", width=30, height=24,
+            corner_radius=get_radius("sm"), font=("Segoe UI", 13),
+            fg_color="transparent", hover_color="#4d1111",
+            text_color="#ff4444", command=self._request_clear_all,
+            cursor="hand2"
+        )
+
         self.btn_top.pack(side="left", padx=1)
         CTkTooltip(self.btn_top, "Move to Top")
         self.btn_up.pack(side="left", padx=1)
         CTkTooltip(self.btn_up, "Move Up")
         self.btn_down.pack(side="left", padx=1)
         CTkTooltip(self.btn_down, "Move Down")
+        self.btn_clear_all.pack(side="right", padx=1)
+        CTkTooltip(self.btn_clear_all, "Clear All")
         self.btn_del.pack(side="right", padx=1)
         CTkTooltip(self.btn_del, "Remove")
 
@@ -544,6 +554,11 @@ class PriorityIconGrid(ctk.CTkFrame):
             self.btn_down.pack_forget()
             self._move_to_frame.pack_forget()
 
+        if self._get_priority_list():
+            self.btn_clear_all.pack(side="right", padx=1, before=self.btn_del)
+        else:
+            self.btn_clear_all.pack_forget()
+
     def _on_cell_click(self, idx):
         if not self._edit_mode:
             return
@@ -637,6 +652,43 @@ class PriorityIconGrid(ctk.CTkFrame):
         self._selected_indices.clear()
         self._move_entry.delete(0, "end")
         self._render_grid()
+
+    def _request_clear_all(self):
+        """Require double-click confirmation to clear the entire list."""
+        if not getattr(self, "_clear_confirm", False):
+            self._clear_confirm = True
+            orig_text = self.btn_clear_all.cget("text")
+            orig_color = self.btn_clear_all.cget("text_color")
+
+            self.btn_clear_all.configure(text="Sure?", text_color="#e81123")
+
+            def reset():
+                if self.winfo_exists() and getattr(self, "_clear_confirm", False):
+                    self._clear_confirm = False
+                    self.btn_clear_all.configure(text=orig_text, text_color=orig_color)
+
+            self.after(2000, reset)
+        else:
+            self._commit_clear_all()
+
+    def _commit_clear_all(self):
+        """Execute the clear operation."""
+        self._clear_confirm = False
+        self.btn_clear_all.configure(text="🗑️", text_color="#ff4444")
+
+        names = self._get_priority_list()
+        if names:
+            self._save_priority_list([])
+            self._selected_indices.clear()
+            self._render_grid()
+
+            from ui.components.toast import ToastManager
+            ToastManager.get_instance().show(
+                "Priority List Cleared",
+                icon="💥",
+                theme="error",
+                confetti=True
+            )
 
     # ───────────── move-to-position ─────────────
     def _commit_move_to(self):
