@@ -25,3 +25,7 @@
 ## 2024-05-28 - Tooltips for Standard Modal Buttons
 **Learning:** Primary interaction buttons in modals, such as "Save" and "Cancel", perform significant actions (committing or discarding state changes). However, relying solely on text labels can sometimes lack accessibility depth for screen readers, and adding tooltips provides helpful reinforcement.
 **Action:** Always bind `CTkTooltip` to primary modal action buttons to provide explicit, accessible context for their function.
+
+## 2024-05-29 - Native I-Beam Cursor for Text Inputs
+**Learning:** In CustomTkinter, `CTkEntry` text input fields do not display the standard I-beam cursor on hover by default. This missing visual cue breaks expected OS-level affordance patterns, making it less obvious that the field accepts text input.
+**Action:** Always explicitly assign `cursor="xterm"` when instantiating `CTkEntry` widgets to ensure they behave consistently with standard text inputs.
