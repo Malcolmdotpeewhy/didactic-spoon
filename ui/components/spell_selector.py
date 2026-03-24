@@ -82,6 +82,12 @@ class SpellSelector(ctk.CTkFrame):
 
         target_size = 64
 
+        # ⚡ Bolt: Lift static color lookups and string replacement out of the spell iteration loop
+        # to prevent repetitive string parsing overhead and optimize high-frequency rendering events.
+        _hover_color = get_color("colors.accent.primary").replace(")", ", 0.3)").replace("rgb", "rgba")
+        _text_color = get_color("colors.text.primary")
+        _font = get_font("caption")
+
         for s_name in spells:
             if "Placeholder" in s_name or "SnowURF" in s_name or "Poro" in s_name or "Cherry" in s_name:
                 continue
@@ -94,10 +100,10 @@ class SpellSelector(ctk.CTkFrame):
                 width=target_size,
                 height=target_size,
                 fg_color="transparent",
-                hover_color=get_color("colors.accent.primary").replace(")", ", 0.3)").replace("rgb", "rgba"),
+                hover_color=_hover_color,
                 corner_radius=8,
-                text_color=get_color("colors.text.primary"),
-                font=get_font("caption"),
+                text_color=_text_color,
+                font=_font,
                 command=lambda n=s_name: self.on_select(n),
                 cursor="hand2"
             )
