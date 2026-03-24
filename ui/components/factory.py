@@ -109,6 +109,18 @@ class RiotButton(ctk.CTkFrame):
             w.bind("<Leave>", lambda e: self._on_leave(inner_color))
             w.bind("<Button-1>", self._on_click)
             
+        # 🎨 Palette: Enable keyboard accessibility for custom canvas buttons
+        if hasattr(self, "_canvas"):
+            self._canvas.configure(takefocus=1)
+            self._canvas.bind("<FocusIn>", lambda e: self._on_enter(hover_color))
+            self._canvas.bind("<FocusOut>", lambda e: self._on_leave(inner_color))
+
+            # Bind to all relevant widget components to ensure events aren't swallowed
+            for w in (self, self.inner, self.lbl, self._canvas):
+                w.bind("<KeyPress-space>", lambda e: self._on_click(e))
+                w.bind("<space>", lambda e: self._on_click(e))
+                w.bind("<Return>", lambda e: self._on_click(e))
+
         self._inner_color = inner_color
         
     def _on_enter(self, h_color):
@@ -121,6 +133,8 @@ class RiotButton(ctk.CTkFrame):
         
     def _on_click(self, e):
         # Optional: Add small press scale if desired
+        if hasattr(self, "_canvas"):
+            self._canvas.focus_set()
         if self.command:
             self.command()
 
