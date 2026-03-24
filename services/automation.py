@@ -32,6 +32,7 @@ class AutomationEngine:
         self.stats_func: Optional[Callable] = kwargs.get("stats_func")
         self.window_func: Optional[Callable] = kwargs.get("window_func")
         self.toast_func: Optional[Callable] = kwargs.get("toast_func")
+        self.queue_func: Optional[Callable] = kwargs.get("queue_func")
         self.running: bool = False
         self.paused: bool = False
         self.thread: Optional[threading.Thread] = None
@@ -121,6 +122,16 @@ class AutomationEngine:
 
         phase_req = f_phase.result()
         phase = phase_req.json() if phase_req and phase_req.status_code == 200 else "None"
+
+        search_state = None
+        if phase == "Matchmaking":
+            search_req = self.lcu.request("GET", "/lol-lobby/v2/lobby/matchmaking/search-state")
+            if search_req and search_req.status_code == 200:
+                search_state = search_req.json()
+
+        qf = getattr(self, "queue_func", None)
+        if qf is not None:
+            qf(phase, search_state)
 
         if self.last_phase == "Matchmaking" and phase == "Lobby":
             if not self.config.get("auto_requeue"):

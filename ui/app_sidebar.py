@@ -30,6 +30,7 @@ class SidebarWidget(ctk.CTkFrame):
         self.settings_window = None
         self.img_on = None
         self.img_off = None
+        self._queue_timer_job = None
 
         self._setup_ui()
         self.after(100, self._load_icons_async)
@@ -222,6 +223,16 @@ class SidebarWidget(ctk.CTkFrame):
             fg_color="#1F2A36"
         )
         self.session_separator.place(relx=0, rely=1.0, relwidth=1.0, anchor="sw")
+
+        self.progress_bar = ctk.CTkProgressBar(
+            self.session_frame,
+            height=3,
+            corner_radius=0,
+            fg_color="transparent",
+            progress_color=get_color("colors.accent.gold", "#C8AA6E")
+        )
+        self.progress_bar.set(0)
+        self.progress_bar.place(relx=0, rely=0.98, relwidth=1.0, anchor="sw")
 
         # ── Find Match (primary action) ──
         self.btn_find_match = make_button(
@@ -695,6 +706,115 @@ class SidebarWidget(ctk.CTkFrame):
                 self.update_action_log("Client exiting (Dodging)...")
             except Exception as e:
                 self.update_action_log(f"Dodge error: {e}")
+
+
+    def _start_local_queue_timer(self, time_in_queue, estimated_time):
+        self._stop_local_queue_timer()
+        self._current_queue_time = time_in_queue
+        self._estimated_queue_time = estimated_time if estimated_time > 0 else 1
+        self._tick_local_timer()
+
+    def _tick_local_timer(self):
+        if not self.winfo_exists():
+            return
+
+        mins = int(self._current_queue_time // 60)
+        secs = int(self._current_queue_time % 60)
+        time_str = f"Queue: {mins}:{secs:02d}"
+
+        self.time_label.configure(text=time_str)
+
+        if self._estimated_queue_time > 0:
+            est_mins = int(self._estimated_queue_time // 60)
+            est_secs = int(self._estimated_queue_time % 60)
+            self.estimate_label.configure(text=f"Est: {est_mins}:{est_secs:02d}", text_color=get_color("colors.text.muted"))
+
+            progress = min(1.0, self._current_queue_time / self._estimated_queue_time)
+            self.progress_bar.set(progress)
+
+            if self._current_queue_time > self._estimated_queue_time:
+                # Overtime gamification
+                pulse = (self._current_queue_time % 2) == 0
+                color = "#ff4444" if pulse else get_color("colors.accent.gold", "#C8AA6E")
+                self.progress_bar.configure(progress_color=color)
+                self.time_label.configure(text_color=color)
+                self.estimate_label.configure(text="High Priority!")
+            else:
+                self.progress_bar.configure(progress_color=get_color("colors.accent.gold", "#C8AA6E"))
+                self.time_label.configure(text_color=get_color("colors.text.primary"))
+        else:
+            self.progress_bar.set(0)
+
+        self._current_queue_time += 1
+        self._queue_timer_job = self.after(1000, self._tick_local_timer)
+
+    def _stop_local_queue_timer(self):
+        if hasattr(self, "_queue_timer_job") and self._queue_timer_job is not None:
+            self.after_cancel(self._queue_timer_job)
+            self._queue_timer_job = None
+        if hasattr(self, "progress_bar"):
+            self.progress_bar.set(0)
+            self.progress_bar.configure(progress_color=get_color("colors.accent.gold", "#C8AA6E"))
+        if hasattr(self, "time_label"):
+            self.time_label.configure(text_color=get_color("colors.text.primary"))
+
+
+    def update_queue_state(self, phase, search_state):
+        if not self.winfo_exists():
+            return
+
+        if phase == "Matchmaking" and search_state and search_state.get("searchState") == "Searching":
+            # Matchmaking is active
+            time_in_queue = search_state.get("timeInQueue", 0)
+            estimated_time = search_state.get("estimatedQueueTime", 0)
+
+            # Only sync the timer if it's off by more than 2 seconds (to avoid stuttering)
+            if not hasattr(self, "_current_queue_time") or abs(self._current_queue_time - time_in_queue) > 2:
+                self._start_local_queue_timer(time_in_queue, estimated_time)
+
+        elif phase == "ReadyCheck":
+            # Ready Check Pop
+            self._stop_local_queue_timer()
+            self.time_label.configure(text="Match Found!", text_color=get_color("colors.state.success", "#00C853"))
+            self.estimate_label.configure(text="● Ready", text_color="#00C853")
+            self.progress_bar.set(1.0)
+            self.progress_bar.configure(progress_color="#00C853")
+
+            # Fire gamified toast once when entering ReadyCheck
+            if getattr(self, "_last_phase_toast", None) != "ReadyCheck":
+                self._last_phase_toast = "ReadyCheck"
+                try:
+                    from ui.components.toast import ToastManager
+                    ToastManager.get_instance().show("Match Found!", icon="⚔️", duration=4000, theme="success", confetti=True)
+                except Exception as e:
+                    Logger.error("UI", f"Failed to show match found toast: {e}")
+
+        elif phase == "ChampSelect":
+            self._stop_local_queue_timer()
+            self.time_label.configure(text="Champ Select", text_color=get_color("colors.accent.purple", "#A855F7"))
+            self.estimate_label.configure(text="● Drafting", text_color="#A855F7")
+            self.progress_bar.set(1.0)
+            self.progress_bar.configure(progress_color="#A855F7")
+            self._last_phase_toast = phase
+
+        elif phase in ["InProgress", "EndOfGame"]:
+            self._stop_local_queue_timer()
+            self.time_label.configure(text="In Game", text_color=get_color("colors.text.primary"))
+            self.estimate_label.configure(text="● Playing", text_color="#3B82F6")
+            self.progress_bar.set(0)
+            self._last_phase_toast = phase
+
+        else:
+            # Lobby / None
+            self._stop_local_queue_timer()
+            if getattr(self.master, "lcu", None) and self.master.lcu.is_connected:
+                self.time_label.configure(text="Queue: Idle", text_color=get_color("colors.text.primary"))
+                self.estimate_label.configure(text="● Connected", text_color="#00C853")
+            else:
+                self.time_label.configure(text="Disconnected", text_color="#ff4444")
+                self.estimate_label.configure(text="● Offline", text_color="#ff4444")
+            self.progress_bar.set(0)
+            self._last_phase_toast = phase
 
     def update_lobby_stats(self, team, bench):
         """Called from AutomationEngine during ChampSelect to show winrate stats."""

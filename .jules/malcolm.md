@@ -9,6 +9,7 @@
 **Learning:** When allowing users to import data (like a configuration list or priority queue), traditional file dialogs add unnecessary friction and break the flow of the application. Using direct clipboard interaction combined with an inline visual preview of the parsed data (e.g., as pills or icons) builds immediate trust and avoids layout disruptions. It confirms what will be added without blindly writing state.
 
 **Action:** Whenever implementing import/export functionality for simple text-based data (like arrays or lists), default to clipboard access with a confirmation preview overlay instead of file pickers. Supplement this flow with delightful, holographic success toasts (like confetti) to transform a mundane utility action into a rewarding interaction.
+
 ## 2024-05-20 - Contextual Feedback in Omnibars via Micro-Animations and Toasts
 
 **Learning:** When executing rapid commands from a transient overlay (like a Command Palette or Omnibar), users often lack confirmation that their action succeeded before the overlay disappears. Combining a subtle pre-execution micro-animation (like a color pulse on the selected row) with a global holographic success toast provides immediate, delightful closure to the interaction.
@@ -20,3 +21,9 @@
 **Learning:** When users manage complex visual configurations (like reordering or mass-deleting items in a priority grid), accidental destructive actions cause significant friction and break trust. While confirmation dialogs prevent errors, they interrupt flow. A lightweight "Undo" stack coupled with immediate visual and toast feedback allows users to act confidently, knowing they can instantly revert mistakes without disruption. Combining functional recovery with a positive, gamified success indicator (holographic toast with icon) transforms a potential frustration point into a delightful interaction.
 
 **Action:** Whenever implementing complex data mutation or destructive operations in an interactive UI component, prioritize an inline Undo stack over confirmation modals. Pair the Undo action with a subtle UI pulse and a non-blocking toast to celebrate the successful error recovery.
+
+## 2024-05-22 - Gamified Matchmaking States and Predictive Time UX
+
+**Learning:** Staring at a static timer while waiting in a matchmaking queue induces user fatigue and uncertainty. Relying purely on API polling for UI updates leads to stuttering time representations. By decoupling the UI presentation from the API network loop (using smooth local interpolation/timers) and mapping temporal thresholds to visual states (e.g., shifting progress bar colors to red and displaying motivational copy when entering "Overtime" beyond the estimated wait), a passive waiting experience transforms into a dynamic, gamified interaction that feels faster and more engaging.
+
+**Action:** Whenever visualizing indeterminate network operations or long-running tasks (like queues), implement a local UI timer to interpolate progress smoothly between network ticks. Introduce conditional "gamified" states (like visual color shifts or contextual hints) based on duration thresholds to maintain user engagement and reduce perceived wait times.
