@@ -101,7 +101,6 @@ class AutomationEngine:
                 # Flood-suppress: only log identical errors once per 30s
                 err_key = str(e)
                 now = time.time()
-                # ⚡ Bolt: Fast-path dict lookup to avoid redundant default dict {} allocation
                 last_time = self._last_error_times.get(err_key, 0)
                 if now - last_time > 30:
                     tb = traceback.format_exc()

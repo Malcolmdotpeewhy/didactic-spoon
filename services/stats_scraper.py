@@ -232,7 +232,9 @@ class StatsScraper:
 
     def get_winrate(self, champ_name):
         """Look up a champion's ARAM win rate. Returns baseline 50.0 if completely unknown."""
-        clean = champ_name.replace("'", "").replace(" ", "").replace(".", "").lower()
+        # ⚡ Bolt: Fast-path string manipulation.
+        # Calling .lower() before running .replace() chain is slightly faster.
+        clean = champ_name.lower().replace("'", "").replace(" ", "").replace(".", "")
         return self.win_rates.get(clean, 50.0)
 
     @property
