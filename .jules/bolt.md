@@ -38,3 +38,7 @@
 ## 2026-03-23 - CTkEntry Unsupported kwargs
 **Learning:** Certain `customtkinter` wrapper widgets do not support native Tkinter standard arguments like `cursor="xterm"`, which varies by version and raises a hard `ValueError` during UI instantiation.
 **Action:** Remove unsupported kwargs that explicitly crash on initialization, and verify locally via UI instantiation tests.
+
+## 2026-04-26 - Fast Path String Manipulation Order
+**Learning:** For repeated string cleanup chains like `champ_name.replace("'", "").replace(" ", "").replace(".", "").lower()`, moving `.lower()` to the front of the chain (i.e. `champ_name.lower().replace(...)`) yields a slight but measurable performance improvement in hot loops due to Python's internal string handling optimizations when subsequent replaces process already-lowercased characters.
+**Action:** Order string manipulation chains to apply `.lower()` first when performing multiple `.replace()` operations on dynamic input in hot paths.
