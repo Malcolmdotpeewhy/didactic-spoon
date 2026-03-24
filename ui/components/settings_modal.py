@@ -294,6 +294,7 @@ class SettingsModal(ctk.CTkToplevel):
             progress_color="#C8AA6E",
             button_color="#F0E6D2",
             button_hover_color="#FFFFFF",
+            cursor="hand2",
         )
         self.stealth_switch.pack(side="right")
         CTkTooltip(
