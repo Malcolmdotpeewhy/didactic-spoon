@@ -25,3 +25,7 @@
 ## 2024-05-28 - Tooltips for Standard Modal Buttons
 **Learning:** Primary interaction buttons in modals, such as "Save" and "Cancel", perform significant actions (committing or discarding state changes). However, relying solely on text labels can sometimes lack accessibility depth for screen readers, and adding tooltips provides helpful reinforcement.
 **Action:** Always bind `CTkTooltip` to primary modal action buttons to provide explicit, accessible context for their function.
+
+## 2024-05-29 - Native Hover Cursors for Switches
+**Learning:** In CustomTkinter, standard `CTkSwitch` widgets do not natively change the mouse cursor to a hand pointer when hovered. Just like buttons and dropdowns, explicitly assigning `cursor="hand2"` during instantiation provides expected visual feedback for clickable toggle elements.
+**Action:** Always verify if newly added switches or toggles have explicit cursor affordance added, and attach `cursor="hand2"` for a native interaction feel.
