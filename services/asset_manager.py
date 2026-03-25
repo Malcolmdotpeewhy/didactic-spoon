@@ -370,7 +370,12 @@ class AssetManager:
 
     def get_champ_name(self, champ_id: int) -> str:
         """Get champion name by ID."""
-        return self.id_to_key.get(champ_id, str(champ_id))
+        # ⚡ Bolt: Fast-path exact match.
+        # Avoid eager evaluation of str(champ_id) allocating strings on every hit.
+        try:
+            return self.id_to_key[champ_id]
+        except KeyError:
+            return str(champ_id)
 
 
 
