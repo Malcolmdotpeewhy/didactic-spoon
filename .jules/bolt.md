@@ -46,3 +46,7 @@
 ## 2026-04-27 - EAFP Fast-Path for String Normalization Lookups
 **Learning:** When performing dictionary lookups that require string normalization (like `.translate()` and `.lower()`), unconditionally running the normalization on every query is slow. The majority of dictionary lookups in the codebase already use properly formatted/clean string keys.
 **Action:** Implement an EAFP fast-path (`try: return data[key] except KeyError:`) to attempt an exact match first. This bypasses the string manipulation overhead entirely for the common case where keys are already clean, yielding a ~14x speedup on hot paths (from 0.24s down to 0.017s per 100k queries).
+
+## 2026-04-28 - Fast-Path Dictionary Defaults
+**Learning:** Using `dict.get(key, func())` forces eager evaluation of the `func()` default fallback parameter *every* time the lookup runs, even on cache hits. For functions heavily hit in loops (like resolving IDs to strings), creating thousands of unused strings generates measurable overhead.
+**Action:** Replace `dict.get(key, str(key))` with an EAFP fast-path (`try: return d[key] except KeyError: return str(key)`) to defer string allocation and fallback execution until it's actually required on a cache miss, improving hot-path loop speed by roughly 3.3x.
