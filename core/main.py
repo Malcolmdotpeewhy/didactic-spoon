@@ -19,6 +19,7 @@ from services.api_handler import LCUClient  # type: ignore
 from services.asset_manager import AssetManager, ConfigManager  # type: ignore
 from services.automation import AutomationEngine  # type: ignore
 from services.stats_scraper import StatsScraper  # type: ignore
+from services.session_tracker import SessionTracker  # type: ignore
 from utils.logger import Logger  # type: ignore
 from utils.path_utils import get_asset_path  # type: ignore
 from core.version import __version__  # type: ignore
@@ -77,6 +78,7 @@ class LeagueLoopApp(ctk.CTk):
         self.assets = AssetManager()
         self.lcu = LCUClient()
         self.scraper = StatsScraper(mode=self.config.get("aram_mode", "ARAM"))
+        self.session_tracker = SessionTracker()
         
         self.running = True
         self._stop_event = threading.Event()
@@ -91,6 +93,7 @@ class LeagueLoopApp(ctk.CTk):
             log_func=None, # Will be set after sidebar is created
             stop_func=lambda: self.after(0, lambda: self.sidebar._on_power_click()) if hasattr(self, "sidebar") else None,
             stats_func=lambda team, bench: self.after(0, lambda: self.sidebar.update_lobby_stats(team, bench)) if hasattr(self, "sidebar") else None,
+            session_func=lambda phase: self.after(0, lambda: self.sidebar.update_session_stats(self.session_tracker.update_phase(phase))) if hasattr(self, "sidebar") else None,
             window_func=lambda state: self.after(0, lambda: self._handle_window_state(state)),
             queue_func=lambda phase, state: self.after(0, lambda: self.sidebar.update_queue_state(phase, state)) if hasattr(self, "sidebar") else None
         )

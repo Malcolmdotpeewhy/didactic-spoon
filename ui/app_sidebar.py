@@ -377,13 +377,26 @@ class SidebarWidget(ctk.CTkFrame):
         divider_status = ctk.CTkFrame(self.main_body, height=1, fg_color="#1E2328")
         divider_status.pack(fill="x", pady=SPACING_MD)
 
-        # ── Mini Stats Panel ──
+        # ── Mini Stats Panel (Session Overview) ──
         self.mini_stats_frame = ctk.CTkFrame(self.main_body, fg_color="transparent")
         self.mini_stats_frame.pack(fill="x", padx=SPACING_MD, pady=(12, 8))
         
-        ctk.CTkLabel(self.mini_stats_frame, text="WIN RATE   55%", font=get_font("caption", "bold"), text_color=get_color("colors.text.primary")).pack(anchor="w")
-        ctk.CTkLabel(self.mini_stats_frame, text="GAMES      42", font=get_font("caption"), text_color=get_color("colors.text.muted")).pack(anchor="w")
-        ctk.CTkLabel(self.mini_stats_frame, text="TOP PICK   Lux", font=get_font("caption"), text_color=get_color("colors.text.muted")).pack(anchor="w")
+        self.lbl_session_title = ctk.CTkLabel(self.mini_stats_frame, text="SESSION TRACKER", font=get_font("caption", "bold"), text_color=get_color("colors.accent.primary"))
+        self.lbl_session_title.pack(anchor="w", pady=(0, 4))
+
+        self.lbl_games_played = ctk.CTkLabel(self.mini_stats_frame, text="GAMES      0", font=get_font("caption"), text_color=get_color("colors.text.primary"))
+        self.lbl_games_played.pack(anchor="w")
+        try:
+            CTkTooltip(self.lbl_games_played, "Total games played in this session")
+        except Exception:
+            pass
+
+        self.lbl_session_time = ctk.CTkLabel(self.mini_stats_frame, text="TIME       0m", font=get_font("caption"), text_color=get_color("colors.text.muted"))
+        self.lbl_session_time.pack(anchor="w")
+        try:
+            CTkTooltip(self.lbl_session_time, "Total time elapsed since your first game")
+        except Exception:
+            pass
 
         # ── Status Readout (Bottom Area) ──
         self.status_info_frame = ctk.CTkFrame(self.main_body, fg_color="transparent")
@@ -892,3 +905,46 @@ class SidebarWidget(ctk.CTkFrame):
         else:
             self.settings_window.focus_force()  # type: ignore
             self.settings_window.lift()  # type: ignore
+
+    def update_session_stats(self, tracker_data: dict):
+        if not self.winfo_exists(): return
+
+        games = tracker_data.get("games_played", 0)
+        time_sec = tracker_data.get("time_elapsed", 0)
+
+        # Format time to minutes (or hours:minutes)
+        if time_sec < 3600:
+            time_str = f"{int(time_sec // 60)}m"
+        else:
+            time_str = f"{int(time_sec // 3600)}h {int((time_sec % 3600) // 60)}m"
+
+        old_games = getattr(self, "_last_games_played", 0)
+
+        self.lbl_games_played.configure(text=f"GAMES      {games}")
+        self.lbl_session_time.configure(text=f"TIME       {time_str}")
+
+        # Malcolm's Infusion: Pulse and Gamify when a game completes!
+        if games > old_games:
+            self._last_games_played = games
+
+            # Briefly pulse the text color gold
+            pulse_color = get_color("colors.accent.gold", "#C8AA6E")
+            orig_color = get_color("colors.text.primary")
+            self.lbl_games_played.configure(text_color=pulse_color)
+
+            def reset_color():
+                if self.winfo_exists() and self.lbl_games_played.winfo_exists():
+                    self.lbl_games_played.configure(text_color=orig_color)
+            self.after(2000, reset_color)
+
+            # Show a delightful toast
+            try:
+                from ui.components.toast import ToastManager
+                ToastManager.get_instance().show(
+                    f"Game Completed! ({games} total)",
+                    icon="🎮",
+                    theme="success",
+                    confetti=True
+                )
+            except Exception as e:
+                pass

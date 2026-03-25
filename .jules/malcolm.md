@@ -27,3 +27,9 @@
 **Learning:** Staring at a static timer while waiting in a matchmaking queue induces user fatigue and uncertainty. Relying purely on API polling for UI updates leads to stuttering time representations. By decoupling the UI presentation from the API network loop (using smooth local interpolation/timers) and mapping temporal thresholds to visual states (e.g., shifting progress bar colors to red and displaying motivational copy when entering "Overtime" beyond the estimated wait), a passive waiting experience transforms into a dynamic, gamified interaction that feels faster and more engaging.
 
 **Action:** Whenever visualizing indeterminate network operations or long-running tasks (like queues), implement a local UI timer to interpolate progress smoothly between network ticks. Introduce conditional "gamified" states (like visual color shifts or contextual hints) based on duration thresholds to maintain user engagement and reduce perceived wait times.
+
+## 2024-05-23 - Gamified Session Statistics
+
+**Learning:** Replacing static mock data with dynamic, session-based metrics (games played, time elapsed) elevates a passive sidebar into an engaging dashboard. Triggering celebratory micro-animations (like a text color pulse or a confetti toast) precisely on state transitions (e.g., game completion) provides satisfying emotional feedback that encourages longer app usage without requiring complex backend analytics.
+
+**Action:** When adding tracking metrics, implement them as robust background components that decoupledly fire safe, main-thread UI callbacks. Wrap celebratory UI hooks in try/except to ensure progressive enhancement where delight doesn't introduce crash risks if components are absent.
