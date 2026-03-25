@@ -29,6 +29,8 @@ _CLEAN_TRANS = str.maketrans("", "", " '.")
 class PriorityIconGrid(ctk.CTkFrame):
     """Icon grid with collapse, add, edit (select → ▲▼⤒ reorder + multi-delete)."""
 
+    _class_known_champions_cache = None
+
     def __init__(self, master, config, assets, **kw):
         super().__init__(master, fg_color="#0F1A24", corner_radius=8, **kw)
         self.config = config
@@ -51,6 +53,9 @@ class PriorityIconGrid(ctk.CTkFrame):
     def _scan_known_champions(self):
         # ⚡ Bolt: Fast-path dictionary lookup to map normalized names to real asset names
         # avoiding os.listdir() overhead on every lookup in _resolve_champion_name.
+        if PriorityIconGrid._class_known_champions_cache is not None:
+            return PriorityIconGrid._class_known_champions_cache
+
         known = {}
         cache_dir = get_asset_path("assets")
         if os.path.isdir(cache_dir):
@@ -58,6 +63,8 @@ class PriorityIconGrid(ctk.CTkFrame):
                 if f.startswith("champion_") and f.endswith(".png"):
                     real = f[len("champion_"):-len(".png")]
                     known[real.lower()] = real
+
+        PriorityIconGrid._class_known_champions_cache = known
         return known
 
     def _resolve_champion_name(self, raw):
@@ -953,16 +960,12 @@ class PriorityIconGrid(ctk.CTkFrame):
         # 🔓 Secret: "all"
         if raw.lower() == "all":
             names = self._get_priority_list()
-            cache_dir = os.path.join("cache", "assets")
-            if not os.path.isdir(cache_dir):
-                cache_dir = get_asset_path(cache_dir)
-            if os.path.isdir(cache_dir):
-                for f in sorted(os.listdir(cache_dir)):
-                    if f.startswith("champion_") and f.endswith(".png"):
-                        champ = f[len("champion_"):-len(".png")]
-                        if champ not in names:
-                            names.append(champ)
-                self._save_priority_list(names)
+            existing = set(names)
+            for champ in sorted(self._known_champions.values()):
+                if champ not in existing:
+                    names.append(champ)
+                    existing.add(champ)
+            self._save_priority_list(names)
             self.add_entry.delete(0, "end")
             self.add_row.pack_forget()
             self._render_grid()
