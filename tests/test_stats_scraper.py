@@ -64,5 +64,20 @@ class TestStatsScraper(unittest.TestCase):
         self.assertIn("champ0", results)
         self.assertEqual(results["champ0"], 55.00)
 
+    def test_is_offline(self):
+        # Test all combinations of _fetched and _fetching
+        cases = [
+            (False, False, True),
+            (False, True, False),
+            (True, False, False),
+            (True, True, False)
+        ]
+
+        for fetched, fetching, expected in cases:
+            with self.subTest(fetched=fetched, fetching=fetching):
+                self.scraper._fetched = fetched
+                self.scraper._fetching = fetching
+                self.assertEqual(self.scraper.is_offline, expected)
+
 if __name__ == '__main__':
     unittest.main()
