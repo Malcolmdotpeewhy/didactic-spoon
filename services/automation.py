@@ -30,6 +30,7 @@ class AutomationEngine:
         self.log: Optional[Callable] = log_func
         self.stop_func: Optional[Callable] = stop_func
         self.stats_func: Optional[Callable] = kwargs.get("stats_func")
+        self.session_func: Optional[Callable] = kwargs.get("session_func")
         self.window_func: Optional[Callable] = kwargs.get("window_func")
         self.toast_func: Optional[Callable] = kwargs.get("toast_func")
         self.queue_func: Optional[Callable] = kwargs.get("queue_func")
@@ -132,6 +133,10 @@ class AutomationEngine:
         qf = getattr(self, "queue_func", None)
         if qf is not None:
             qf(phase, search_state)
+
+        sf = getattr(self, "session_func", None)
+        if sf is not None:
+            sf(phase)
 
         if self.last_phase == "Matchmaking" and phase == "Lobby":
             if not self.config.get("auto_requeue"):
