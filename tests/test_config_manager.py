@@ -59,5 +59,23 @@ class TestConfigManager(unittest.TestCase):
             self.assertEqual(config.get("auto_requeue"), True)
             mocked_file.assert_called_with(CONFIG_FILE, "w", encoding="utf-8")
 
+    def test_save_directly(self):
+        with patch('os.path.exists', return_value=False), \
+             patch('builtins.open', mock_open()) as mocked_file, \
+             patch('json.dump') as mock_json_dump:
+            config = ConfigManager()
+
+            # Set a config value to ensure we are saving the expected dictionary
+            config.cfg["test_key"] = "test_val"
+
+            # Call save directly
+            config.save()
+
+            # Verify file was opened correctly
+            mocked_file.assert_called_once_with(CONFIG_FILE, "w", encoding="utf-8")
+
+            # Verify json.dump was called with the correct arguments
+            mock_json_dump.assert_called_once_with(config.cfg, mocked_file(), indent=4)
+
 if __name__ == '__main__':
     unittest.main()
