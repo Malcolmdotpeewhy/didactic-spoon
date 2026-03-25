@@ -29,3 +29,6 @@
 ## 2024-05-29 - Native Hover Cursors for Switches
 **Learning:** In CustomTkinter, standard `CTkSwitch` widgets do not natively change the mouse cursor to a hand pointer when hovered. Just like buttons and dropdowns, explicitly assigning `cursor="hand2"` during instantiation provides expected visual feedback for clickable toggle elements.
 **Action:** Always verify if newly added switches or toggles have explicit cursor affordance added, and attach `cursor="hand2"` for a native interaction feel.
+## 2024-03-25 - Add tooltips to Dropdowns and Inputs
+**Learning:** Adding `CTkTooltip` to inputs like `CTkEntry` and dropdowns like `CTkOptionMenu` improves UI affordance.
+**Action:** When creating new `CTkOptionMenu` or `CTkEntry` interactive elements in custom UI systems like CustomTkinter, ensure that tooltips are explicitly set so users have immediate context on inputs expected, rather than just on buttons.
