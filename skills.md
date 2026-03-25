@@ -27,6 +27,7 @@
   - Microsecond latency reductions in hot-loops
 - Status:
   - Stable
+- Trend: ➡️ Stable
 - Notes:
   - Continuous diligence required against micro-optimizations that don't yield measurable benefits
 
@@ -54,6 +55,7 @@
   - Gamified queue timers
 - Status:
   - Evolving
+- Trend: 📈 Upward
 - Notes:
   - Focus on precomputing visual tokens to minimize main thread latency
 
@@ -81,6 +83,7 @@
   - Agent workflows
 - Status:
   - Stable
+- Trend: ➡️ Stable
 - Notes:
   - Keep enforcing strict boundaries between UI rendering loops and asynchronous event loops
 
@@ -107,5 +110,6 @@
   - Clientless/headless workflow automations
 - Status:
   - Stable
+- Trend: 📉 Declining
 - Notes:
   - Needs hardening around robust cross-platform keyboard event synthesis (e.g. headless xvfb-run environments)

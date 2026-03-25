@@ -7,6 +7,11 @@
 - Reason: Self-Audit detected opaque Level calculations violating the evidence-based constraint.
 - Impact: Fully transparent and reproducible capability scoring based on Evidence (E), Frequency (F), Complexity (C), and Recency (R).
 
+### Version: v1.1 → v1.2
+- Change: Added "Trend" field (e.g., 📈 Upward, ➡️ Stable, 📉 Declining) to all skill entries.
+- Reason: Improving drift detection and skill progression visibility. Self-Audit detected missing trajectory state.
+- Impact: Enhanced capability to track if a skill is growing or decaying over time, fulfilling the drift detection requirement.
+
 ## Delta Report (Initial Initialization)
 - **What changed:** Initialized `skills.md` Master Database with 4 inferred core competencies:
   - Python Performance Optimization
