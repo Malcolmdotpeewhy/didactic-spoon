@@ -7,6 +7,11 @@
 - Reason: Self-Audit detected opaque Level calculations violating the evidence-based constraint.
 - Impact: Fully transparent and reproducible capability scoring based on Evidence (E), Frequency (F), Complexity (C), and Recency (R).
 
+### Version: v1.1 → v1.2
+- Change: Upgraded agent profile to SkillForge-XΩ with recursive self-modification and dual-system synchronization (Target vs Self). Added `.jules/skillforge_profile.md` for tracking the Self System.
+- Reason: Self-Audit detected a lack of structural tracking for the agent's own rules, logic, and self-improvement mechanisms, preventing true meta-learning and drift detection.
+- Impact: Established a closed-loop adaptive system that can rewrite its own architecture, rules, and scoring models while maintaining evidence-based constraints and version control.
+
 ## Delta Report (Initial Initialization)
 - **What changed:** Initialized `skills.md` Master Database with 4 inferred core competencies:
   - Python Performance Optimization
