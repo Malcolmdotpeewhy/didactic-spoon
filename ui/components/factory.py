@@ -8,7 +8,15 @@ import customtkinter as ctk
 from ..theme.token_loader import TOKENS
 from .hover import apply_hover_brightness, apply_press_effect
 
-# ... (omitted)
+class UIFactory:
+    """
+    Factory for creating pre-styled UI components using the design system tokens.
+    """
+
+    @staticmethod
+    def create_card(parent, variant="default", **kwargs):
+        from ui.components.cards import Card
+        return Card(parent, variant=variant, **kwargs)
 
 # --- Token Parsing Helpers ---
 
