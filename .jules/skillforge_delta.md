@@ -1,5 +1,12 @@
 # SkillForge-X Delta & Priority Report
 
+## Agent Update Log
+
+### Version: v1.0 → v1.1
+- Change: Introduced "Scoring Breakdown" field to skill entries including explicit "Complexity" tracking.
+- Reason: Self-Audit detected opaque Level calculations violating the evidence-based constraint.
+- Impact: Fully transparent and reproducible capability scoring based on Evidence (E), Frequency (F), Complexity (C), and Recency (R).
+
 ## Delta Report (Initial Initialization)
 - **What changed:** Initialized `skills.md` Master Database with 4 inferred core competencies:
   - Python Performance Optimization

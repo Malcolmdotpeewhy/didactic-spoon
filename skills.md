@@ -5,12 +5,19 @@
 ### [Inference] Python Performance Optimization
 - Level: 4.5
 - Confidence: High
+- Scoring Breakdown:
+  - Evidence (E): 4.8
+  - Frequency (F): 4.5
+  - Complexity (C): 4.2
+  - Recency (R): 4.5
+  - Calculation: (4.8 * 0.4) + (4.5 * 0.2) + (4.2 * 0.25) + (4.5 * 0.15) = 1.92 + 0.9 + 1.05 + 0.675 = 4.545 -> 4.5
 - Evidence:
   - Loop Invariant Code Motion (LICM) for rendering optimizations
   - EAFP pattern adoption for dict lookups and nested paths
   - Fast-path cache bypasses in `functools.lru_cache`
   - Eliminating blocking filesystem I/O via precomputation
 - Usage Frequency: High
+- Complexity: High (micro-optimizations, caching, O(1) structures)
 - Last Used: Recent
 - Dependencies:
   - Python fundamentals
@@ -26,11 +33,18 @@
 ### [Inference] CustomTkinter UI Development
 - Level: 4.2
 - Confidence: High
+- Scoring Breakdown:
+  - Evidence (E): 4.2
+  - Frequency (F): 4.5
+  - Complexity (C): 4.0
+  - Recency (R): 4.5
+  - Calculation: (4.2 * 0.4) + (4.5 * 0.2) + (4.0 * 0.25) + (4.5 * 0.15) = 1.68 + 0.9 + 1.0 + 0.675 = 4.255 -> 4.3
 - Evidence:
   - Custom list components with hover effects and animations (`DraggableList`)
   - Tooltips, cursor adjustments, keyboard accessibility overlays
   - O(1) state updates, background automation integration using `self.after`
 - Usage Frequency: High
+- Complexity: Medium-High (custom widgets, animations, threading integration)
 - Last Used: Recent
 - Dependencies:
   - Python fundamentals
@@ -46,11 +60,18 @@
 ### [Inference] System Orchestration & Architecture
 - Level: 4.0
 - Confidence: High
+- Scoring Breakdown:
+  - Evidence (E): 4.0
+  - Frequency (F): 3.5
+  - Complexity (C): 4.5
+  - Recency (R): 4.5
+  - Calculation: (4.0 * 0.4) + (3.5 * 0.2) + (4.5 * 0.25) + (4.5 * 0.15) = 1.6 + 0.7 + 1.125 + 0.675 = 4.1
 - Evidence:
   - LeagueLoop background engine architecture
   - Cognitive Architect design patterns
   - Secure CLI parameter passing via lists over `shell=True`
 - Usage Frequency: Medium
+- Complexity: High (multi-threading, process orchestration)
 - Last Used: Recent
 - Dependencies:
   - Python Automation
@@ -66,11 +87,18 @@
 ### [Inference] Desktop UI Automation & Interaction
 - Level: 3.8
 - Confidence: Medium
+- Scoring Breakdown:
+  - Evidence (E): 3.5
+  - Frequency (F): 3.5
+  - Complexity (C): 4.0
+  - Recency (R): 4.5
+  - Calculation: (3.5 * 0.4) + (3.5 * 0.2) + (4.0 * 0.25) + (4.5 * 0.15) = 1.4 + 0.7 + 1.0 + 0.675 = 3.775 -> 3.8
 - Evidence:
   - Riot Client multi-account switching automation
   - Simulating keystrokes using the `keyboard` library
   - Background `AutomationEngine` interacting with UI threads
 - Usage Frequency: Medium
+- Complexity: Medium-High (OS hooks, threading, brittle envs)
 - Last Used: Recent
 - Dependencies:
   - OS interaction
