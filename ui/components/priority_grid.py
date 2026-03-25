@@ -237,6 +237,7 @@ class PriorityIconGrid(ctk.CTkFrame):
             cursor="xterm",
         )
         self.add_entry.pack(side="left", padx=(0, 4))
+        CTkTooltip(self.add_entry, "Champion name...")
         self.add_entry.bind("<Return>", lambda e: self._commit_add())
         self.add_entry.bind("<KeyRelease>", self._on_add_typing)
 
@@ -356,6 +357,7 @@ class PriorityIconGrid(ctk.CTkFrame):
             cursor="xterm",
         )
         self._move_entry.pack(side="left", padx=(0, 2))
+        CTkTooltip(self._move_entry, "Target position")
         self._move_entry.bind("<Return>", lambda e: self._commit_move_to())
         self._move_go_btn = ctk.CTkButton(
             self._move_to_frame, text="Go", width=28, height=22,
