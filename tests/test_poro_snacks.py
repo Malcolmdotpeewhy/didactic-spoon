@@ -27,8 +27,8 @@ class TestPoroSnacks(unittest.TestCase):
         pass
 
     def test_feed_poro_increments_config_and_updates_ui(self):
-        import ui.app_sidebar as sidebar_module
-        with patch.dict(sys.modules, {'customtkinter': MagicMock(), 'tkinter': MagicMock()}):
+        with patch.dict(sys.modules, {'customtkinter': MagicMock(), 'tkinter': MagicMock(), 'tkinterdnd2': MagicMock(), 'tkinterdnd2.TkinterDnD': MagicMock()}):
+            import ui.app_sidebar as sidebar_module
             # Read the file and exec the function defs so we have them without class constraints
             code = ""
             with open("ui/app_sidebar.py", "r") as f:
