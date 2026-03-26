@@ -8,7 +8,7 @@ ctk_path = os.path.dirname(customtkinter.__file__)
 
 a = Analysis(
     ['run.py'],
-    pathex=[],
+    pathex=['src'],
     binaries=[],
     datas=[
         (ctk_path, 'customtkinter'),

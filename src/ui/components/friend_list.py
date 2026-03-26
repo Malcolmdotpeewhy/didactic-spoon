@@ -1,3 +1,4 @@
+import threading
 import tkinter as tk
 import customtkinter as ctk
 
@@ -7,6 +8,145 @@ from ui.components.lol_toggle import LolToggle
 from core.constants import SPACING_SM, SPACING_MD
 from tkinterdnd2 import TkinterDnD, DND_TEXT
 
+class SearchableDropdown(ctk.CTkFrame):
+    def __init__(self, master, variable, command=None, **kwargs):
+        super().__init__(master, fg_color="transparent", height=28, **kwargs)
+        self.pack_propagate(False)
+        self.variable = variable
+        self.command = command
+        self._values = []
+        self._filtered_values = []
+        self._dropdown_frame = None
+        
+        self.entry = ctk.CTkEntry(
+            self, textvariable=self.variable,
+            font=get_font("body"),
+            fg_color=get_color("colors.background.card"),
+            border_color=get_color("colors.border.subtle")
+        )
+        self.entry.pack(side="left", fill="both", expand=True)
+        
+        self.btn = ctk.CTkButton(
+            self, text="▼", width=24,
+            fg_color=get_color("colors.background.card"),
+            hover_color=get_color("colors.state.hover"),
+            command=self._toggle_dropdown
+        )
+        self.btn.pack(side="right", fill="y", padx=(2, 0))
+        
+        self.entry.bind("<KeyRelease>", self._on_key)
+        self.entry.bind("<FocusIn>", self._on_focus)
+        
+    def configure(self, values=None, **kwargs):
+        if values is not None:
+            self._values = values
+            self._filtered_values = values
+        super().configure(**kwargs)
+        
+    def _on_focus(self, event):
+        if "name..." in self.variable.get():
+            self.variable.set("")
+            
+    def _on_key(self, event):
+        if event.keysym == "Return" and self.command:
+            self._close_dropdown()
+            self.command()
+            return
+            
+        val = self.variable.get().lower()
+        self._filtered_values = [v for v in self._values if val in v.lower()]
+        if self._dropdown_frame:
+            self._populate_dropdown()
+        else:
+            self._open_dropdown()
+            
+    def _toggle_dropdown(self):
+        if self._dropdown_frame:
+            self._close_dropdown()
+        else:
+            self._filtered_values = self._values
+            self._open_dropdown()
+            
+    def _close_dropdown(self, event=None):
+        if self._dropdown_frame:
+            self._dropdown_frame.destroy()
+            self._dropdown_frame = None
+            
+    def _open_dropdown(self):
+        if self._dropdown_frame: return
+        
+        root = self.winfo_toplevel()
+        # 20% max size calculation
+        root_h = root.winfo_height()
+        h = max(100, int(root_h * 0.2))
+        
+        w = self.winfo_width()
+        x = self.winfo_rootx() - root.winfo_rootx()
+        y = self.winfo_rooty() - root.winfo_rooty() + self.winfo_height() + 2
+        
+        self._dropdown_frame = ctk.CTkScrollableFrame(
+            root, width=w - 20, height=h,
+            fg_color=get_color("colors.background.app"),
+            border_width=1, border_color=get_color("colors.border.subtle"),
+            corner_radius=4
+        )
+        # Place it floating
+        self._dropdown_frame.place(x=x, y=y)
+        self._dropdown_frame.lift()
+        
+        self._populate_dropdown()
+        
+        # Register global click to close, stored so we can unbind it
+        self._click_id = root.bind("<Button-1>", self._check_click_outside, add="+")
+        
+    def _check_click_outside(self, event):
+        if not self._dropdown_frame: return
+        try:
+            x, y = event.x_root, event.y_root
+            fx, fy = self._dropdown_frame.winfo_rootx(), self._dropdown_frame.winfo_rooty()
+            fw, fh = self._dropdown_frame.winfo_width(), self._dropdown_frame.winfo_height()
+            
+            ex, ey = self.winfo_rootx(), self.winfo_rooty()
+            ew, eh = self.winfo_width(), self.winfo_height()
+            
+            in_dropdown = (fx <= x <= fx+fw) and (fy <= y <= fy+fh)
+            in_entry = (ex <= x <= ex+ew) and (ey <= y <= ey+eh)
+            
+            if not in_dropdown and not in_entry:
+                self._close_dropdown()
+                
+                # Unbind the exact callback
+                root = self.winfo_toplevel()
+                root.unbind("<Button-1>", self._click_id)
+        except Exception:
+            self._close_dropdown()
+        
+    def _populate_dropdown(self):
+        for w in self._dropdown_frame.winfo_children():
+            w.destroy()
+            
+        if not self._filtered_values:
+            lbl = ctk.CTkLabel(self._dropdown_frame, text="No matches", font=get_font("caption"), text_color="gray")
+            lbl.pack(pady=4)
+            return
+            
+        for val in self._filtered_values:
+            btn = ctk.CTkButton(
+                self._dropdown_frame, text=val,
+                fg_color="transparent", anchor="w",
+                hover_color=get_color("colors.state.hover"),
+                height=28,
+                command=lambda v=val: self._select_val(v)
+            )
+            btn.pack(fill="x", pady=1)
+            
+    def _select_val(self, val):
+        self.variable.set(val)
+        self._close_dropdown()
+        if self.command:
+            self.after(10, self.command)
+
+
 class FriendPriorityList(ctk.CTkFrame, TkinterDnD.DnDWrapper):
     def __init__(self, master, config, lcu=None, **kw):
         super().__init__(master, fg_color="#0F1A24", corner_radius=8, **kw)
@@ -15,10 +155,15 @@ class FriendPriorityList(ctk.CTkFrame, TkinterDnD.DnDWrapper):
 
         self._expanded = True
         self._friends_data = self._get_priority_list()
+        self._lcu_friends_cache = []
         
         self._build_header()
         self._build_body()
         self._render_list()
+
+        # Fetch friends once to populate the combobox
+        if self.lcu:
+            self.after(200, self._fetch_lcu_friends_async)
 
     def _get_priority_list(self):
         return self.config.get("auto_join_list", [])
@@ -46,30 +191,6 @@ class FriendPriorityList(ctk.CTkFrame, TkinterDnD.DnDWrapper):
         self.sw_master = LolToggle(self.header, variable=self.var_master_enabled, command=_on_master_toggle)
         self.sw_master.pack(side="left", padx=(10, 0))
         CTkTooltip(self.sw_master, "Enable or disable global Friend Auto-Join")
-
-        # Clear All
-        self.btn_clear_all = ctk.CTkButton(
-            self.header, text="🗑️", width=20, height=20,
-            corner_radius=10, font=("Segoe UI", 12),
-            fg_color="transparent",
-            text_color="#ff4444",
-            hover_color="#4d1111",
-            command=self._request_clear_all
-        )
-        self.btn_clear_all.pack(side="right", padx=2)
-        CTkTooltip(self.btn_clear_all, "Clear priority list")
-
-        # Refresh LCU friends
-        self.btn_refresh = ctk.CTkButton(
-            self.header, text="↻", width=20, height=20,
-            corner_radius=10, font=("Arial", 14),
-            fg_color="transparent",
-            text_color=get_color("colors.accent.primary"),
-            hover_color=get_color("colors.state.hover"),
-            command=self._refresh_lcu_friends
-        )
-        self.btn_refresh.pack(side="right", padx=(2, 4))
-        CTkTooltip(self.btn_refresh, "Load friends from Client")
 
         # Global Down Area
         self.btn_dn_global = ctk.CTkButton(
@@ -99,6 +220,30 @@ class FriendPriorityList(ctk.CTkFrame, TkinterDnD.DnDWrapper):
         self.body = ctk.CTkFrame(self, fg_color="transparent")
         self.body.pack(fill="x", pady=(SPACING_SM, SPACING_MD), padx=SPACING_MD)
 
+        # Add Input Row
+        self.add_row = ctk.CTkFrame(self.body, fg_color="transparent")
+        self.add_row.pack(fill="x", pady=(0, SPACING_SM))
+
+        self.var_new_friend = ctk.StringVar()
+        self.combo_add = SearchableDropdown(
+            self.add_row,
+            variable=self.var_new_friend,
+            command=self._on_add_friend,
+            width=200
+        )
+        self.combo_add.pack(side="left", fill="x", expand=True, padx=(0, SPACING_SM))
+        # Default placeholder setup is handled inside logic
+
+        self.btn_add = ctk.CTkButton(
+            self.add_row, text="Add", width=40, height=28,
+            font=get_font("body", "bold"),
+            fg_color=get_color("colors.accent.primary"),
+            hover_color="#005B99",
+            text_color="#FFFFFF",
+            command=self._on_add_friend
+        )
+        self.btn_add.pack(side="right")
+
         # Scrollable list
         self.scroll = ctk.CTkScrollableFrame(
             self.body, fg_color="transparent", height=150,
@@ -119,8 +264,36 @@ class FriendPriorityList(ctk.CTkFrame, TkinterDnD.DnDWrapper):
         self.drop_target_register(DND_TEXT)
         self.dnd_bind('<<Drop>>', self._on_dnd_drop)
 
-        # Initial fetch attempt
-        self._refresh_lcu_friends()
+    def _fetch_lcu_friends_async(self):
+        def task():
+            try:
+                res = self.lcu.request("GET", "/lol-chat/v1/friends")
+                if res and res.status_code == 200:
+                    friends = res.json()
+                    names = []
+                    for f in friends:
+                        gn = f.get("gameName", "")
+                        if gn:
+                            names.append(gn)
+                    names.sort(key=str.lower)
+                    self._lcu_friends_cache = names
+                    self.after(0, lambda: self.combo_add.configure(values=self._lcu_friends_cache))
+            except Exception:
+                pass
+        threading.Thread(target=task, daemon=True).start()
+
+    def _on_add_friend(self):
+        name = self.var_new_friend.get().strip()
+        if not name or "name..." in name: return
+        
+        # Check if already exists
+        existing_names = [item.get("name", "").lower() for item in self._friends_data]
+        if name.lower() not in existing_names:
+            self._friends_data.append({"name": name, "enabled": True})
+            self._save_priority_list(self._friends_data)
+            self._render_list()
+        
+        self.var_new_friend.set("")
 
     def _on_dnd_drop(self, event):
         text = event.data
@@ -128,19 +301,16 @@ class FriendPriorityList(ctk.CTkFrame, TkinterDnD.DnDWrapper):
         names = [n.strip() for n in text.replace('\r', '\n').split('\n') if n.strip()]
         if not names: return
         
-        hidden = self.config.get("hidden_friends", [])
-        existing_names = [item.get("name") for item in self._friends_data]
-        
+        existing_names = [item.get("name", "").lower() for item in self._friends_data]
         added_any = False
+        
         for name in names:
-            if name in hidden:
-                hidden.remove(name)
-            if name not in existing_names:
+            if name.lower() not in existing_names:
                 self._friends_data.append({"name": name, "enabled": True})
+                existing_names.append(name.lower())
                 added_any = True
                 
         if added_any:
-            self.config.set("hidden_friends", hidden)
             self._save_priority_list(self._friends_data)
             self._render_list()
 
@@ -153,76 +323,6 @@ class FriendPriorityList(ctk.CTkFrame, TkinterDnD.DnDWrapper):
             self.body.pack_forget()
             self.lbl_section.configure(text="▶  FRIEND AUTO-JOIN")
 
-    def _request_clear_all(self):
-        if not getattr(self, "_clear_confirm", False):
-            self._clear_confirm = True
-            orig_text = self.btn_clear_all.cget("text")
-            orig_color = self.btn_clear_all.cget("text_color")
-
-            self.btn_clear_all.configure(text="Sure?", text_color="#e81123")
-
-            def reset():
-                if self.winfo_exists() and getattr(self, "_clear_confirm", False):
-                    self._clear_confirm = False
-                    self.btn_clear_all.configure(text=orig_text, text_color=orig_color)
-
-            self.after(2000, reset)
-        else:
-            self._commit_clear_all()
-
-    def _commit_clear_all(self):
-        self._clear_confirm = False
-        self.btn_clear_all.configure(text="🗑️", text_color="#ff4444")
-        
-        hidden = self.config.get("hidden_friends", [])
-        for f in self._friends_data:
-            name = f.get("name")
-            if name and name not in hidden:
-                hidden.append(name)
-        self.config.set("hidden_friends", hidden)
-
-        self._friends_data = []
-        self._save_priority_list(self._friends_data)
-        self._render_list()
-
-    def _refresh_lcu_friends(self):
-        if hasattr(self, "btn_refresh"):
-            self.btn_refresh.configure(text="...")
-        if not self.lcu:
-            return
-        self.after(50, self._do_fetch_friends)
-
-    def _do_fetch_friends(self):
-        try:
-            res = self.lcu.request("GET", "/lol-chat/v1/friends")
-            if res and res.status_code == 200:
-                friends = res.json()
-                fetched_names = []
-                for f in friends:
-                    gn = f.get("gameName", "")
-                    gt = f.get("gameTag", "")
-                    if gn:
-                        fetched_names.append(gn)
-                
-                hidden = self.config.get("hidden_friends", [])
-                existing_names = [item.get("name") for item in self._friends_data]
-                
-                added_any = False
-                for name in sorted(fetched_names, key=lambda x: x.lower()):
-                    if name not in existing_names and name not in hidden:
-                        self._friends_data.append({"name": name, "enabled": False})
-                        added_any = True
-                
-                if added_any:
-                    self._save_priority_list(self._friends_data)
-                    self._render_list()
-
-        except Exception:
-            pass
-        finally:
-            if hasattr(self, "btn_refresh"):
-                self.btn_refresh.configure(text="↻")
-
     def _render_list(self):
         for w in self.list_parent.winfo_children():
             w.destroy()
@@ -230,7 +330,7 @@ class FriendPriorityList(ctk.CTkFrame, TkinterDnD.DnDWrapper):
         lst = self._friends_data
         
         if not lst:
-            lbl = ctk.CTkLabel(self.list_parent, text="No friends configured.\nLoad friends or Drag and Drop them here.", font=get_font("caption"), text_color=get_color("colors.text.muted"))
+            lbl = ctk.CTkLabel(self.list_parent, text="No friends configured.\nType a name and click Add.", font=get_font("caption"), text_color=get_color("colors.text.muted"))
             lbl.pack(pady=20)
             return
 
@@ -278,7 +378,7 @@ class FriendPriorityList(ctk.CTkFrame, TkinterDnD.DnDWrapper):
                 command=lambda idx=i: self._remove_item(idx)
             )
             btn_del.pack(side="right", padx=(4, 6))
-            CTkTooltip(btn_del, "Hide from layout")
+            CTkTooltip(btn_del, "Remove friend")
 
             # Bind clicks
             def _select(event, idx=i):
@@ -318,13 +418,7 @@ class FriendPriorityList(ctk.CTkFrame, TkinterDnD.DnDWrapper):
         self._render_list()
 
     def _remove_item(self, idx):
-        friend = self._friends_data.pop(idx)
-        name = friend.get("name")
-        if name:
-            hidden = self.config.get("hidden_friends", [])
-            if name not in hidden:
-                hidden.append(name)
-                self.config.set("hidden_friends", hidden)
+        self._friends_data.pop(idx)
 
         sel = getattr(self, "_selected_index", -1)
         if sel == idx:

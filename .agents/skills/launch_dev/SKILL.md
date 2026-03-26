@@ -9,7 +9,7 @@ description: Launch the LeagueLoop application in development mode with proper P
 
 1. Set PYTHONPATH and run via module mode:
 ```powershell
-$env:PYTHONPATH = "C:\Users\Administrator\Desktop\LeagueLoop"
+$env:PYTHONPATH = "C:\Users\Administrator\Desktop\LeagueLoop\src"
 & "C:\Users\Administrator\Desktop\LeagueLoop\.venv\Scripts\python.exe" -m core.main
 ```
 

@@ -63,7 +63,10 @@
             "MasterYi",
             "Lux",
             "Cassiopeia",
-            "Mordekaiser"
+            "Mordekaiser",
+            "Braum",
+            "Nunu",
+            "Ryze"
         ]
     },
     "hotkey_launch_client": "ctrl+shift+l",
@@ -75,11 +78,11 @@
     "auto_join_friend": "Palafu",
     "auto_join_list": [
         {
-            "name": "I Am StON3D#NA1",
-            "enabled": false
+            "name": "Palafu",
+            "enabled": true
         },
         {
-            "name": "Palafu",
+            "name": "I Am StON3D",
             "enabled": true
         }
     ],

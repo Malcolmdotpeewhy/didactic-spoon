@@ -12,13 +12,13 @@ Tests are in: `tests/`
 
 1. Run all tests:
 ```powershell
-$env:PYTHONPATH = "C:\Users\Administrator\Desktop\LeagueLoop"
+$env:PYTHONPATH = "C:\Users\Administrator\Desktop\LeagueLoop\src"
 & ".venv\Scripts\python.exe" -m pytest tests/ -v
 ```
 
 2. Run a specific test file:
 ```powershell
-$env:PYTHONPATH = "C:\Users\Administrator\Desktop\LeagueLoop"
+$env:PYTHONPATH = "C:\Users\Administrator\Desktop\LeagueLoop\src"
 & ".venv\Scripts\python.exe" -m pytest tests/test_ui_kwargs.py -v
 ```
 
@@ -40,7 +40,7 @@ def test_my_feature():
 2. For tests that import project modules:
 ```python
 import sys
-sys.path.insert(0, "C:\\Users\\Administrator\\Desktop\\LeagueLoop")
+sys.path.insert(0, "C:\\Users\\Administrator\\Desktop\\LeagueLoop\\src")
 from services.automation import AutomationEngine
 ```
 
