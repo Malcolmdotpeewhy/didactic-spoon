@@ -4,6 +4,7 @@ import keyboard  # type: ignore
 
 from ui.ui_shared import CTkTooltip  # type: ignore
 from ui.components.factory import get_color, get_font, get_radius, make_button  # type: ignore
+from ui.components.lol_toggle import LolToggle  # type: ignore
 from utils.logger import Logger  # type: ignore
 
 
@@ -285,16 +286,9 @@ class SettingsModal(ctk.CTkToplevel):
         ).pack(side="left")
 
         self.stealth_var = ctk.BooleanVar(value=bool(self.config.get("stealth_mode", False)))
-        self.stealth_switch = ctk.CTkSwitch(
+        self.stealth_switch = LolToggle(
             row_stealth,
-            text="",
             variable=self.stealth_var,
-            width=40,
-            fg_color=get_color("colors.background.card"),
-            progress_color="#C8AA6E",
-            button_color="#F0E6D2",
-            button_hover_color="#FFFFFF",
-            cursor="hand2",
         )
         self.stealth_switch.pack(side="right")
         CTkTooltip(
