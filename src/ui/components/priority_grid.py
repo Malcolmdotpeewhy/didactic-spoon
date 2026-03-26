@@ -61,6 +61,13 @@ class PriorityIconGrid(ctk.CTkFrame):
         return known
 
     def _resolve_champion_name(self, raw):
+        # ⚡ Bolt: Fast-path string manipulation optimization.
+        # Attempt an exact match first using .get() to avoid string allocation overhead
+        # from .translate() and .lower() when the input is already clean.
+        res = self._known_champions.get(raw)
+        if res:
+            return res
+
         normalized = raw.translate(_CLEAN_TRANS).lower()
         return self._known_champions.get(normalized)
 
