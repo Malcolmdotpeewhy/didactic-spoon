@@ -403,41 +403,47 @@ class AutomationEngine:
             return
         friends = res.json()
 
+        # ⚡ Bolt: Fast-path priority sniper early-return optimization.
+        # Instead of an O(N*M) nested loop evaluating every friend against the priority list,
+        # we index the active online friends into an O(1) dictionary mapping their lowercased names.
+        friend_map = {}
+        for f in friends:
+            game_name = f.get("gameName", "")
+            game_tag = f.get("gameTag", "")
+            combo_name = f"{game_name}#{game_tag}" if game_tag else game_name
+            
+            friend_map[game_name.lower()] = f
+            if combo_name:
+                friend_map[combo_name.lower()] = f
+
         for target_dict in active_friends:
-            target_friend = target_dict.get("name", "").strip()
-            found_open_party = False
+            target_friend = target_dict.get("name", "").strip().lower()
             
-            for f in friends:
-                game_name = f.get("gameName", "")
-                game_tag = f.get("gameTag", "")
-                combo_name = f"{game_name}#{game_tag}" if game_tag else game_name
-                
-                target_lower = target_friend.lower()
-                if target_lower == game_name.lower() or target_lower == combo_name.lower():
-                    lol = f.get("lol", {})
-                    if lol.get("ptyType") == "open":
-                        pty_str = lol.get("pty", "")
-                        if pty_str:
-                            import json
-                            try:
-                                pty_data = json.loads(pty_str)
-                                party_id = pty_data.get("partyId")
-                                if party_id:
-                                    # Check if we are already in this specific party
-                                    my_res = self.lcu.request("GET", "/lol-lobby/v2/lobby")
-                                    if my_res and my_res.status_code == 200:
-                                        my_lobby = my_res.json()
-                                        if my_lobby.get("partyId") == party_id:
-                                            return  # Already in their party
-                                            
-                                    # Join party
-                                    join_res = self.lcu.request("POST", f"/lol-lobby/v2/party/{party_id}/join")
-                                    if join_res and join_res.status_code in [200, 204]:
-                                        self._log(f"Auto-joined {game_name}'s Party!")
-                                        found_open_party = True
-                            except Exception as e:
-                                Logger.debug("Auto", f"Failed parsing friend party: {e}")
-                    break # Found the friend, stop searching
-            
-            if found_open_party:
-                break # Joined a friend, stop iterating the priority list
+            f = friend_map.get(target_friend)
+            if not f:
+                continue
+
+            game_name = f.get("gameName", "")
+            lol = f.get("lol", {})
+            if lol.get("ptyType") == "open":
+                pty_str = lol.get("pty", "")
+                if pty_str:
+                    import json
+                    try:
+                        pty_data = json.loads(pty_str)
+                        party_id = pty_data.get("partyId")
+                        if party_id:
+                            # Check if we are already in this specific party
+                            my_res = self.lcu.request("GET", "/lol-lobby/v2/lobby")
+                            if my_res and my_res.status_code == 200:
+                                my_lobby = my_res.json()
+                                if my_lobby.get("partyId") == party_id:
+                                    return  # Already in their party
+
+                            # Join party
+                            join_res = self.lcu.request("POST", f"/lol-lobby/v2/party/{party_id}/join")
+                            if join_res and join_res.status_code in [200, 204]:
+                                self._log(f"Auto-joined {game_name}'s Party!")
+                                break # Joined a friend, stop iterating the priority list
+                    except Exception as e:
+                        Logger.debug("Auto", f"Failed parsing friend party: {e}")
