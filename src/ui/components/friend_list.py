@@ -22,7 +22,8 @@ class SearchableDropdown(ctk.CTkFrame):
             self, textvariable=self.variable,
             font=get_font("body"),
             fg_color=get_color("colors.background.card"),
-            border_color=get_color("colors.border.subtle")
+            border_color=get_color("colors.border.subtle"),
+            cursor="xterm"
         )
         self.entry.pack(side="left", fill="both", expand=True)
         
@@ -30,12 +31,14 @@ class SearchableDropdown(ctk.CTkFrame):
             self, text="▼", width=24,
             fg_color=get_color("colors.background.card"),
             hover_color=get_color("colors.state.hover"),
-            command=self._toggle_dropdown
+            command=self._toggle_dropdown,
+            cursor="hand2"
         )
         self.btn.pack(side="right", fill="y", padx=(2, 0))
         
         self.entry.bind("<KeyRelease>", self._on_key)
         self.entry.bind("<FocusIn>", self._on_focus)
+        self.entry.bind("<Escape>", self._close_dropdown)
         
     def configure(self, values=None, **kwargs):
         if values is not None:
@@ -136,7 +139,8 @@ class SearchableDropdown(ctk.CTkFrame):
                 fg_color="transparent", anchor="w",
                 hover_color=get_color("colors.state.hover"),
                 height=28,
-                command=lambda v=val: self._select_val(v)
+                command=lambda v=val: self._select_val(v),
+                cursor="hand2"
             )
             btn.pack(fill="x", pady=1)
             
@@ -200,9 +204,11 @@ class FriendPriorityList(ctk.CTkFrame, TkinterDnD.DnDWrapper):
             hover_color=get_color("colors.state.hover"),
             text_color="#0F1A24",
             command=self._move_down_global,
-            state="disabled"
+            state="disabled",
+            cursor="hand2"
         )
         self.btn_dn_global.pack(side="right", padx=0)
+        CTkTooltip(self.btn_dn_global, "Move Down")
 
         # Global Up Area
         self.btn_up_global = ctk.CTkButton(
@@ -212,9 +218,11 @@ class FriendPriorityList(ctk.CTkFrame, TkinterDnD.DnDWrapper):
             hover_color=get_color("colors.state.hover"),
             text_color="#0F1A24",
             command=self._move_up_global,
-            state="disabled"
+            state="disabled",
+            cursor="hand2"
         )
         self.btn_up_global.pack(side="right", padx=0)
+        CTkTooltip(self.btn_up_global, "Move Up")
 
     def _build_body(self):
         self.body = ctk.CTkFrame(self, fg_color="transparent")
@@ -240,7 +248,8 @@ class FriendPriorityList(ctk.CTkFrame, TkinterDnD.DnDWrapper):
             fg_color=get_color("colors.accent.primary"),
             hover_color="#005B99",
             text_color="#FFFFFF",
-            command=self._on_add_friend
+            command=self._on_add_friend,
+            cursor="hand2"
         )
         self.btn_add.pack(side="right")
 
@@ -375,7 +384,8 @@ class FriendPriorityList(ctk.CTkFrame, TkinterDnD.DnDWrapper):
                 corner_radius=4,
                 font=("Arial", 12), fg_color="transparent",
                 hover_color="#e81123", text_color=get_color("colors.text.muted") if not is_selected else get_color("colors.background.app"),
-                command=lambda idx=i: self._remove_item(idx)
+                command=lambda idx=i: self._remove_item(idx),
+                cursor="hand2"
             )
             btn_del.pack(side="right", padx=(4, 6))
             CTkTooltip(btn_del, "Remove friend")
