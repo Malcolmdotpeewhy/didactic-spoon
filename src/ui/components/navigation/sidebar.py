@@ -38,6 +38,7 @@ class SidebarItem(ctk.CTkButton):
             corner_radius=TOKENS.get("radius.sm", 4),
             height=40,
             anchor="w",
+            cursor="hand2",
             **kwargs
         )
 

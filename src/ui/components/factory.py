@@ -88,12 +88,12 @@ class RiotButton(ctk.CTkFrame):
             hover_color = "#1E2328"
             base_text_color = text_color or "#C8AA6E"
 
-        super().__init__(master, width=width, height=height, fg_color=outer_color, corner_radius=2, **kwargs)
+        super().__init__(master, width=width, height=height, fg_color=outer_color, corner_radius=2, cursor="hand2", **kwargs)
         self.pack_propagate(False)
         self.command = command
         
         padding = 1 if style not in ("ghost",) else 0
-        self.inner = ctk.CTkFrame(self, fg_color=inner_color, corner_radius=1)
+        self.inner = ctk.CTkFrame(self, fg_color=inner_color, corner_radius=1, cursor="hand2")
         self.inner.pack(fill="both", expand=True, padx=padding, pady=padding)
         
         if style == "primary":
@@ -101,7 +101,7 @@ class RiotButton(ctk.CTkFrame):
             self.highlight.pack(fill="x", side="top")
             
         btn_font = font or get_font("body", "bold")
-        self.lbl = ctk.CTkLabel(self.inner, text=text, font=btn_font, text_color=base_text_color)
+        self.lbl = ctk.CTkLabel(self.inner, text=text, font=btn_font, text_color=base_text_color, cursor="hand2")
         self.lbl.pack(expand=True)
         
         for w in (self, self.inner, self.lbl):
@@ -185,6 +185,7 @@ def make_input(parent, placeholder="", width=None, **kw):
         placeholder_text=placeholder,
         placeholder_text_color=get_color("colors.text.muted"),
         text_color=get_color("colors.text.primary"),
+        cursor="xterm",
         **kw
     )
 
