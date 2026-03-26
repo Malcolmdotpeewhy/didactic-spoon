@@ -32,7 +32,7 @@ class HotkeyRecorder(ctk.CTkButton):
             border_color=get_color("colors.border.subtle"),  # type: ignore
             hover_color=get_color("colors.state.hover"),  # type: ignore
             command=self._toggle_recording,  # type: ignore
-              # type: ignore
+            cursor="hand2",  # type: ignore
             **kwargs,
         )
 
@@ -230,6 +230,7 @@ class SettingsModal(ctk.CTkToplevel):
             dropdown_fg_color=get_color("colors.background.app"),
             dropdown_hover_color=get_color("colors.state.hover"),
             dropdown_font=get_font("caption"),
+            cursor="hand2",
         )
         self.mode_select.pack(side="right")
         CTkTooltip(self.mode_select, "Select the game mode for lobby creation")
@@ -265,8 +266,8 @@ class SettingsModal(ctk.CTkToplevel):
             button_hover_color="#FFFFFF",
             command=self._on_delay_slide,
         )
-        self.slider_delay.bind("<Enter>", lambda e: self.slider_delay.configure())
-        self.slider_delay.bind("<Leave>", lambda e: self.slider_delay.configure())
+        self.slider_delay.bind("<Enter>", lambda e: self.slider_delay.configure(cursor="hand2"))
+        self.slider_delay.bind("<Leave>", lambda e: self.slider_delay.configure(cursor=""))
         self.slider_delay.pack(side="right", padx=(8, 4))
         CTkTooltip(self.slider_delay, "Delay before auto-accepting a match (0 = instant)")
 
@@ -293,6 +294,7 @@ class SettingsModal(ctk.CTkToplevel):
             progress_color="#C8AA6E",
             button_color="#F0E6D2",
             button_hover_color="#FFFFFF",
+            cursor="hand2",
         )
         self.stealth_switch.pack(side="right")
         CTkTooltip(
@@ -365,6 +367,7 @@ class SettingsModal(ctk.CTkToplevel):
             text_color=get_color("colors.text.muted"),
             hover_color=get_color("colors.state.hover"),
             command=self._close,
+            cursor="hand2",
         )
         btn_cancel.pack(side="left", padx=(0, 8))
         CTkTooltip(btn_cancel, "Discard changes and close")
@@ -376,6 +379,7 @@ class SettingsModal(ctk.CTkToplevel):
             text_color="#0A1428",
             hover_color="#F0E6D2",
             command=self._save_settings,
+            cursor="hand2",
         )
         btn_save.pack(side="left")
         CTkTooltip(btn_save, "Save changes and close")
