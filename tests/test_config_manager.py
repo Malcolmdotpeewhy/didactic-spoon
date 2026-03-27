@@ -2,7 +2,7 @@ import unittest
 import os
 import json
 from unittest.mock import patch, mock_open
-from services.asset_manager import ConfigManager, DEFAULT_CONFIG, CONFIG_FILE
+from services.asset_manager import ConfigManager, DEFAULT_CONFIG, USER_CONFIG_FILE as CONFIG_FILE
 
 class TestConfigManager(unittest.TestCase):
     def test_load_default_config(self):
