@@ -151,9 +151,15 @@ class SearchableDropdown(ctk.CTkFrame):
             self.after(10, self.command)
 
 
-class FriendPriorityList(ctk.CTkFrame, TkinterDnD.DnDWrapper):
+class FriendPriorityList(ctk.CTkFrame):
     def __init__(self, master, config, lcu=None, **kw):
         super().__init__(master, fg_color="#0F1A24", corner_radius=8, **kw)
+
+        # Add DnDWrapper capabilities safely without metaclass conflict
+        if hasattr(TkinterDnD, 'DnDWrapper'):
+            for name, func in TkinterDnD.DnDWrapper.__dict__.items():
+                if callable(func) and not name.startswith("__") and not hasattr(self, name):
+                    setattr(self, name, func.__get__(self, self.__class__))
         self.config = config
         self.lcu = lcu
 
@@ -270,8 +276,9 @@ class FriendPriorityList(ctk.CTkFrame, TkinterDnD.DnDWrapper):
         self.list_parent.pack(fill="x")
 
         # DND
-        self.drop_target_register(DND_TEXT)
-        self.dnd_bind('<<Drop>>', self._on_dnd_drop)
+        if hasattr(self, 'drop_target_register'):
+            self.drop_target_register(DND_TEXT)
+            self.dnd_bind('<<Drop>>', self._on_dnd_drop)
 
     def _fetch_lcu_friends_async(self):
         def task():

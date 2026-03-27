@@ -31,7 +31,9 @@ class TestPoroSnacks(unittest.TestCase):
             import ui.app_sidebar as sidebar_module
             # Read the file and exec the function defs so we have them without class constraints
             code = ""
-            with open("ui/app_sidebar.py", "r") as f:
+            import os
+            filepath = os.path.join(os.path.dirname(__file__), "..", "src", "ui", "app_sidebar.py")
+            with open(filepath, "r") as f:
                 code = f.read()
 
             # A bit hacky but it works to extract the function logic
