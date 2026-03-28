@@ -465,6 +465,8 @@ class PriorityIconGrid(ctk.CTkFrame):
         # to prevent repetitive string parsing overhead and optimize high-frequency hover events.
         _hover_border = get_color("colors.accent.gold", "#C8AA6E")
         _normal_border = get_color("colors.border.subtle")
+        _bg_card = get_color("colors.background.card")
+        _text_primary = get_color("colors.text.primary")
 
         for i, name in enumerate(names):
             row = i // ICONS_PER_ROW
@@ -476,7 +478,7 @@ class PriorityIconGrid(ctk.CTkFrame):
                 self.grid_parent, width=cell_size, height=cell_size,
                 fg_color="transparent", corner_radius=4,
                 border_width=1,
-                border_color=get_color("colors.border.subtle")
+                border_color=_normal_border
             )
             # Use grid with the requested GRID_GAP
             cell.grid(
@@ -491,9 +493,9 @@ class PriorityIconGrid(ctk.CTkFrame):
             lbl = ctk.CTkLabel(
                 cell, text=name[:2], width=ICON_SIZE, height=ICON_SIZE,
                 font=("Arial", 10, "bold"),
-                fg_color=get_color("colors.background.card"),
+                fg_color=_bg_card,
                 corner_radius=4,
-                text_color=get_color("colors.text.primary"),
+                text_color=_text_primary,
             )
             # Start with centered place for easy animation
             lbl.place(relx=0.5, rely=0.5, anchor="center")

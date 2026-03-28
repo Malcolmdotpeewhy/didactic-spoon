@@ -150,11 +150,14 @@ class SearchableDropdown(ctk.CTkFrame):
             lbl.pack(pady=4)
             return
             
+        # ⚡ Bolt: Apply LICM for faster dropdown population
+        hover_color = get_color("colors.state.hover")
+
         for val in self._filtered_values:
             btn = ctk.CTkButton(
                 self._dropdown_frame, text=val,
                 fg_color="transparent", anchor="w",
-                hover_color=get_color("colors.state.hover"),
+                hover_color=hover_color,
                 height=28,
                 command=lambda v=val: self._select_val(v), cursor="hand2",
             )
@@ -366,6 +369,15 @@ class FriendPriorityList(ctk.CTkFrame):
             lbl.pack(pady=20)
             return
 
+        # ⚡ Bolt: Apply LICM for faster list rendering
+        font_body_bold = get_font("body", "bold")
+        color_text_primary = get_color("colors.text.primary")
+        color_text_disabled = get_color("colors.text.disabled")
+        color_state_success = get_color("colors.state.success")
+        color_border_subtle = get_color("colors.border.subtle")
+        color_text_muted = get_color("colors.text.muted")
+        color_bg_app = get_color("colors.background.app")
+
         for i, item in enumerate(lst):
             row = ctk.CTkFrame(self.list_parent, height=44, fg_color="transparent")
             row.pack(fill="x", pady=2)
@@ -404,15 +416,15 @@ class FriendPriorityList(ctk.CTkFrame):
 
             lbl_name = ctk.CTkLabel(
                 text_frame, text=item.get("name", ""),
-                font=get_font("body", "bold"),
-                text_color=get_color("colors.text.primary") if enabled else get_color("colors.text.disabled"),
+                font=font_body_bold,
+                text_color=color_text_primary if enabled else color_text_disabled,
             )
             lbl_name.pack(anchor="w")
 
             lbl_sub = ctk.CTkLabel(
                 text_frame,
                 text="Active" if enabled else "Ignored",
-                text_color="#A0A7B0" if enabled else get_color("colors.text.disabled"),
+                text_color="#A0A7B0" if enabled else color_text_disabled,
                 font=("Segoe UI", 10)
             )
             lbl_sub.pack(anchor="w")
@@ -422,14 +434,14 @@ class FriendPriorityList(ctk.CTkFrame):
             action_frame.pack(side="right", fill="y")
             
             # Status Indicator
-            status_color = get_color("colors.state.success") if enabled else get_color("colors.border.subtle")
+            status_color = color_state_success if enabled else color_border_subtle
             status = ctk.CTkLabel(action_frame, text="●", text_color=status_color)
             status.pack(side="left", padx=(0, 6))
 
             btn_del = ctk.CTkButton(
                 action_frame, text="✕", width=20, height=20,
                 corner_radius=4, font=("Arial", 10), fg_color="transparent",
-                hover_color="#e81123", text_color=get_color("colors.text.muted") if not is_selected else get_color("colors.background.app"),
+                hover_color="#e81123", text_color=color_text_muted if not is_selected else color_bg_app,
                 command=lambda idx=i: self._remove_item(idx), cursor="hand2",
             )
             btn_del.pack(side="left", padx=(0, 4))
