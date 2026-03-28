@@ -24,7 +24,7 @@ class LolToggle(tk.Canvas):
         self._focused = False
         
         self.bind("<Button-1>", self.toggle)
-        self.bind("<Enter>", lambda e: self.configure())
+        self.bind("<Enter>", lambda e: self.configure(cursor="hand2"))
         self.bind("<Leave>", lambda e: self.configure(cursor=""))
         
         # Palette: Keyboard accessibility bindings
