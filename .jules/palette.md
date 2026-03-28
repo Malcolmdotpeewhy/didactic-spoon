@@ -4,3 +4,6 @@
 ## 2024-05-15 - Add Hand Cursor Affordance to Custom Components
 **Learning:** Custom interactive elements built on `tk.Canvas` or heavily styled `CTkFrame`/`CTkLabel` do not inherit standard OS cursor changes on hover, which removes critical affordance that an element is clickable/draggable.
 **Action:** When creating custom interactive UI elements, explicitly bind `<Enter>` and `<Leave>` events to configure `cursor="hand2"` and `cursor=""` to restore this visual feedback.
+## 2024-05-24 - Missing Hover Affordances in CustomTkinter Icon Buttons
+**Learning:** CustomTkinter `CTkButton` components, particularly those used for icon-only actions (like close, settings, move up/down, or delete), do not automatically provide the standard native mouse hover interaction feel (the 'hand2' cursor). This leads to poor discoverability of interactive elements.
+**Action:** Always explicitly pass `cursor="hand2"` when instantiating `CTkButton` or similar interactive UI widgets (like `CTkSwitch` or `CTkLabel` acting as drag handles) to ensure a consistent, accessible desktop application experience.
