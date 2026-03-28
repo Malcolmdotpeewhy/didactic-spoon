@@ -315,9 +315,10 @@ class FriendPriorityList(ctk.CTkFrame):
         name = self.var_new_friend.get().strip()
         if not name or "name..." in name: return
         
-        # Check if already exists
-        existing_names = [item.get("name", "").lower() for item in self._friends_data]
-        if name.lower() not in existing_names:
+        # Check if already exists using an early-return generator expression
+        name_lower = name.lower()
+        exists = any(item.get("name", "").lower() == name_lower for item in self._friends_data)
+        if not exists:
             self._friends_data.append({"name": name, "enabled": True})
             self._save_priority_list(self._friends_data)
             self._render_list()
@@ -330,13 +331,15 @@ class FriendPriorityList(ctk.CTkFrame):
         names = [n.strip() for n in text.replace('\r', '\n').split('\n') if n.strip()]
         if not names: return
         
-        existing_names = [item.get("name", "").lower() for item in self._friends_data]
+        # Use an O(1) set for lookups instead of checking a list in an O(N) loop
+        existing_names = {item.get("name", "").lower() for item in self._friends_data}
         added_any = False
         
         for name in names:
-            if name.lower() not in existing_names:
+            name_lower = name.lower()
+            if name_lower not in existing_names:
                 self._friends_data.append({"name": name, "enabled": True})
-                existing_names.append(name.lower())
+                existing_names.add(name_lower)
                 added_any = True
                 
         if added_any:
