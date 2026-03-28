@@ -197,7 +197,8 @@ class SettingsModal(ctk.CTkToplevel):
             fg_color="transparent",
             text_color=get_color("colors.text.primary"),
             hover_color=get_color("colors.state.hover"),
-            command=self._open_info_page
+            command=self._open_info_page,
+            cursor="hand2",
         )
         btn_info.pack(side="right", padx=(8, 0), pady=12)
 
@@ -372,9 +373,8 @@ class SettingsModal(ctk.CTkToplevel):
             fg_color="transparent",
             text_color=get_color("colors.text.muted"),
             hover_color=get_color("colors.state.hover"),
-            command=self._on_reset_clicked,
-            
-        )
+            command=self._on_reset_clicked, cursor="hand2",
+            )
         self.btn_reset.pack(side="left")
         self.tooltip_reset = CTkTooltip(self.btn_reset, "Restore all settings to default")
 
@@ -384,9 +384,8 @@ class SettingsModal(ctk.CTkToplevel):
             fg_color="#C8AA6E",
             text_color="#0A1428",
             hover_color="#F0E6D2",
-            command=self._save_settings,
-            
-        )
+            command=self._save_settings, cursor="hand2",
+            )
         btn_save.pack(side="right")
         CTkTooltip(btn_save, "Save changes and close")
 
@@ -398,9 +397,8 @@ class SettingsModal(ctk.CTkToplevel):
             border_color=get_color("colors.border.subtle"),
             text_color=get_color("colors.text.muted"),
             hover_color=get_color("colors.state.hover"),
-            command=lambda: self.after(50, self._close),
-            
-        )
+            command=lambda: self.after(50, self._close), cursor="hand2",
+            )
         btn_cancel.pack(side="right", padx=(0, 8))
         CTkTooltip(btn_cancel, "Discard changes and close")
 
