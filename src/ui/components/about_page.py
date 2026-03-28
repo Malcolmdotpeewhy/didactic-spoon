@@ -8,6 +8,7 @@ class AboutPage(ctk.CTkToplevel):
         
         self.title("About LeagueLoop")
         self.geometry("460x380")
+        self._egg_clicks = 0
         self.resizable(False, False)
         self.attributes("-topmost", True)
         self.configure(fg_color=get_color("colors.background.app"))
@@ -83,14 +84,44 @@ class AboutPage(ctk.CTkToplevel):
         footer = ctk.CTkFrame(body, fg_color="transparent")
         footer.pack(fill="x", side="bottom")
 
-        ctk.CTkLabel(
+        self.lbl_author = ctk.CTkLabel(
             footer, text="Made by Malcolm Hopper",
             font=get_font("body", "bold"),
             text_color="#C8AA6E",
-        ).pack(side="left")
+            cursor="hand2",
+        )
+        self.lbl_author.pack(side="left")
+
+        # Malcolm's Easter Egg bindings
+        self.lbl_author.bind("<Button-1>", self._on_author_click)
+        self.lbl_author.bind("<Enter>", lambda e: self.lbl_author.configure(text_color="#F0E6D2"))
+        self.lbl_author.bind("<Leave>", lambda e: self.lbl_author.configure(text_color="#C8AA6E" if self._egg_clicks < 5 else "#A855F7"))
 
         ctk.CTkLabel(
             footer, text="Banned.Malcolm@gmail.com",
             font=get_font("body", "bold"),
             text_color="#4B5E73",
         ).pack(side="right")
+
+    def _on_author_click(self, event=None):
+        if self._egg_clicks >= 5:
+            return
+
+        self._egg_clicks += 1
+
+        if self._egg_clicks == 5:
+            self.lbl_author.configure(text_color="#A855F7")
+            try:
+                from ui.components.toast import ToastManager
+                # Try to get the main app root
+                root = self.master.master if hasattr(self.master, "master") else self.master
+                ToastManager.get_instance(root).show(
+                    message="You found a Poro Snack! 🍪",
+                    icon="✨",
+                    duration=4000,
+                    theme="success",
+                    confetti=True
+                )
+            except Exception as e:
+                from utils.logger import Logger
+                Logger.error("AboutPage", f"Easter egg error: {e}")
