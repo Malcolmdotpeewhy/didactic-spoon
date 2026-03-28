@@ -138,7 +138,7 @@ class SidebarWidget(ctk.CTkFrame):
             width=110,
             height=28,
             command=self._on_mode_change,
-            
+            cursor="hand2",
         )
         self.opt_game_mode.pack(side="left", fill="x", expand=True)
         CTkTooltip(self.opt_game_mode, "Select Game Mode")
