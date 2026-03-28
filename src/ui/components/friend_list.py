@@ -61,7 +61,9 @@ class SearchableDropdown(ctk.CTkFrame):
         if hasattr(self, "_values_lower") and len(self._values_lower) == len(self._values):
             self._filtered_values = [v for v, v_lower in zip(self._values, self._values_lower) if val in v_lower]
         else:
-            self._filtered_values = [v for v in self._values if val in v.lower()]
+            # ⚡ Bolt: Precompute values_lower if missing to prevent .lower() allocations on every keypress
+            self._values_lower = [v.lower() for v in self._values]
+            self._filtered_values = [v for v, v_lower in zip(self._values, self._values_lower) if val in v_lower]
 
         if self._dropdown_frame:
             self._populate_dropdown()
