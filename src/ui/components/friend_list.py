@@ -2,7 +2,7 @@ import threading
 import tkinter as tk
 import customtkinter as ctk
 
-from ui.components.factory import get_color, get_font, get_radius
+from ui.components.factory import get_color, get_font, get_radius, make_input
 from ui.ui_shared import CTkTooltip
 from ui.components.lol_toggle import LolToggle
 from core.constants import SPACING_SM, SPACING_MD
@@ -18,13 +18,10 @@ class SearchableDropdown(ctk.CTkFrame):
         self._filtered_values = []
         self._dropdown_frame = None
         
-        self.entry = ctk.CTkEntry(
-            self, textvariable=self.variable,
-            height=28,
-            font=get_font("body"),
-            fg_color=get_color("colors.background.card"),
-            border_color=get_color("colors.border.subtle"),
-            
+        self.entry = make_input(
+            self,
+            textvariable=self.variable,
+            height=28
         )
         self.entry.pack(side="left", fill="both", expand=True)
         
