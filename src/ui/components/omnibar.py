@@ -104,7 +104,12 @@ class Omnibar(ctk.CTkFrame):
         self._visible = True
 
         # Refresh commands on open
-        self._all_commands = tuple(self.command_provider())
+        commands = tuple(self.command_provider())
+        for cmd in commands:
+            title = cmd.get("title", "")
+            cmd["_title_lower"] = title.lower()
+            cmd["_search_target"] = f"{title} {cmd.get('subtitle', '')}".lower()
+        self._all_commands = commands
         self.search_input.delete(0, "end")
         self._filter_results("")
 
@@ -166,13 +171,6 @@ class Omnibar(ctk.CTkFrame):
             other_matches = []
 
             for cmd in self._all_commands:
-                # ⚡ Bolt: Fast-path by caching normalized title and subtitle per command to avoid
-                # redundant .lower() calls and string concatenations on every keystroke loop.
-                if "_search_target" not in cmd:
-                    title = cmd.get("title", "")
-                    cmd["_title_lower"] = title.lower()
-                    cmd["_search_target"] = f"{title} {cmd.get('subtitle', '')}".lower()
-
                 if query in cmd["_search_target"]:
                     if cmd["_title_lower"].startswith(query):
                         exact_matches.append(cmd)
