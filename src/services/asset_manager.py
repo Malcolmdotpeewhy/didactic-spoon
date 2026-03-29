@@ -443,18 +443,26 @@ class AssetManager:
             callback(img)
             return
 
-        def _wait():
-            for _ in range(50):  # Wait up to 5 seconds
-                if widget and not widget.winfo_exists():
+        if widget is not None:
+            def _poll(attempts=50):
+                if not widget.winfo_exists():
                     return
                 poll_img = self.get_icon(type_, key, size=size)
                 if poll_img:
-                    if widget and widget.winfo_exists():
-                        widget.after(0, lambda: callback(poll_img))
+                    callback(poll_img)
                     return
-                time.sleep(0.1)
-
-        threading.Thread(target=_wait, daemon=True).start()
+                if attempts > 0:
+                    widget.after(100, lambda: _poll(attempts - 1))
+            widget.after(0, _poll)
+        else:
+            def _wait():
+                for _ in range(50):  # Wait up to 5 seconds
+                    poll_img = self.get_icon(type_, key, size=size)
+                    if poll_img:
+                        callback(poll_img)
+                        return
+                    time.sleep(0.1)
+            threading.Thread(target=_wait, daemon=True).start()
 
     def get_splash_art(
         self, skin_id: int, width=1280, opacity=1.0
