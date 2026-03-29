@@ -260,15 +260,18 @@ class Omnibar(ctk.CTkFrame):
 
             self._result_widgets.append(row)
 
-    def _update_selection_visuals(self):
+    def _update_selection_visuals(self, old_index=None):
         """Update the visual state of the existing result widgets and ensure visibility."""
         if not self._result_widgets or not self._filtered_commands:
             return
 
-        for i, row in enumerate(self._result_widgets):
+        def _update_row(i):
+            if i < 0 or i >= len(self._result_widgets):
+                return
+            row = self._result_widgets[i]
             # Skip the "No commands found" label if that's what's rendering
             if isinstance(row, ctk.CTkLabel):
-                continue
+                return
 
             is_selected = (i == self._selected_index)
 
@@ -293,10 +296,21 @@ class Omnibar(ctk.CTkFrame):
                 if len(text_children) >= 2:
                     text_children[1].configure(text_color=sub_color)  # Subtitle
 
+        # ⚡ Bolt: Fast-path O(1) visual updates during keyboard navigation
+        if old_index is not None:
+            _update_row(old_index)
+            _update_row(self._selected_index)
+        else:
+            for i in range(len(self._result_widgets)):
+                _update_row(i)
+
         # Ensure the selected item is visible by manipulating the canvas yview
         if hasattr(self.results_frame, "_parent_canvas"):
             canvas = self.results_frame._parent_canvas
-            canvas.update_idletasks()
+            # ⚡ Bolt: Prevent synchronous layout calculation overhead during high-frequency
+            # scrolling. Only force an update if rendering from scratch.
+            if old_index is None:
+                canvas.update_idletasks()
 
             # A row is height=48 + pady=2 (top+bottom) = ~52px total per row
             # Results frame height is 300px
@@ -319,14 +333,16 @@ class Omnibar(ctk.CTkFrame):
 
     def _on_down(self, event):
         if self._filtered_commands:
+            old_index = self._selected_index
             self._selected_index = (self._selected_index + 1) % len(self._filtered_commands)
-            self._update_selection_visuals()
+            self._update_selection_visuals(old_index)
         return "break"
 
     def _on_up(self, event):
         if self._filtered_commands:
+            old_index = self._selected_index
             self._selected_index = (self._selected_index - 1) % len(self._filtered_commands)
-            self._update_selection_visuals()
+            self._update_selection_visuals(old_index)
         return "break"
 
     def _on_enter(self, event):

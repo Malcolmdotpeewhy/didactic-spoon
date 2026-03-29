@@ -9,3 +9,6 @@
 ## 2024-06-15 - Loop Invariant Code Motion (LICM) for CustomTkinter Render Loops
 **Learning:** In CustomTkinter applications, repetitive static token lookups like `get_color` or `get_font` inside UI render loops (e.g., populating a dropdown or rendering a list) cause unnecessary string parsing overhead and micro-allocations on the main thread, leading to potential stuttering.
 **Action:** Apply Loop Invariant Code Motion (LICM) to hoist static function calls and repetitive string manipulations outside of iteration loops to avoid redundant recalculations for every rendered element.
+## 2026-03-29 - O(1) Tkinter Widget Updates
+**Learning:** Iterating over O(N) widgets to call `.configure()` or forcing synchronous layout recalculations with `update_idletasks()` during high-frequency keyboard navigation causes severe UI thread blocking in Tkinter/CustomTkinter.
+**Action:** Pass an `old_index` to update only the specific delta (O(1)) and defer `update_idletasks()` away from hot-paths.
