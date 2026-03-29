@@ -19,3 +19,9 @@
 - Change: Removed redundant qualitative text fields (Evidence, Frequency, Complexity, Recency line-items) from skills.md entries.
 - Reason: Self-audit detected drift where skills.md still contained these redundant fields despite the safety constraint added in v1.1 forbidding them. The variables are already explicitly captured in the Scoring Breakdown equation.
 - Impact: Realigned Target System (skills.md) with Self System rules, eliminating file bloat and improving structural efficiency.
+
+## Version: v1.3 → v1.4
+- Change: Introduced inline variable labels (E:, F:, C:, R:) within the Scoring Breakdown equation in skills.md.
+- Change: Mandated that skills within each category in skills.md must be sorted in descending order of their total score.
+- Reason: Self-audit detected readability issues with raw numbers in the equation and observed that listing high-proficiency skills first improves the usability of the capability model.
+- Impact: Enhanced at-a-glance comprehension of scoring variables and improved structural efficiency of skills.md.

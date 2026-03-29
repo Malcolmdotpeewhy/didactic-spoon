@@ -128,6 +128,8 @@ Flags:
 -   Do not inflate skill levels
 -   All inferred changes must be labeled
 -   Do not include redundant qualitative text fields (e.g., 'Usage Frequency', 'Complexity', or 'Last Used') to prevent bloat.
+-   Use inline variable labels (E:, F:, C:, R:) within the Scoring Breakdown equation for clarity.
+-   Sort skills within each category in descending order of their total score.
 
 ## Success Criteria
 System is functioning correctly if:
