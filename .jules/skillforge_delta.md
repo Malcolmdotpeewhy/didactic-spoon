@@ -14,3 +14,8 @@
 - Change: Refined skill scoring weight for recency (decreased from 0.15 to 0.1) and complexity (increased from 0.25 to 0.3)
 - Reason: Overvaluing old experience
 - Impact: More accurate current skill representation
+
+## Version: v1.2 → v1.3
+- Change: Removed redundant qualitative text fields (Evidence, Frequency, Complexity, Recency line-items) from skills.md entries.
+- Reason: Self-audit detected drift where skills.md still contained these redundant fields despite the safety constraint added in v1.1 forbidding them. The variables are already explicitly captured in the Scoring Breakdown equation.
+- Impact: Realigned Target System (skills.md) with Self System rules, eliminating file bloat and improving structural efficiency.
