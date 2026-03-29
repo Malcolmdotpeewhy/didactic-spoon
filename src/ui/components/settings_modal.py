@@ -33,6 +33,7 @@ class HotkeyRecorder(ctk.CTkButton):
             border_color=get_color("colors.border.subtle"),  # type: ignore
             hover_color=get_color("colors.state.hover"),  # type: ignore
             command=self._toggle_recording,  # type: ignore
+            cursor="hand2",  # type: ignore
             # type: ignore
             **kwargs,
         )
@@ -278,7 +279,7 @@ class SettingsModal(ctk.CTkToplevel):
             button_hover_color="#FFFFFF",
             command=self._on_delay_slide,
         )
-        self.slider_delay.bind("<Enter>", lambda e: self.slider_delay.configure())
+        self.slider_delay.bind("<Enter>", lambda e: self.slider_delay.configure(cursor="hand2"))
         self.slider_delay.bind("<Leave>", lambda e: self.slider_delay.configure(cursor=""))
         self.slider_delay.pack(side="right", padx=(8, 4))
         CTkTooltip(self.slider_delay, "Delay before auto-accepting a match (0 = instant)")
