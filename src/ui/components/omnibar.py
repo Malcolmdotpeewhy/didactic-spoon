@@ -199,6 +199,14 @@ class Omnibar(ctk.CTkFrame):
             self._result_widgets.append(lbl)
             return
 
+        # ⚡ Bolt: Apply LICM for faster Omnibar rendering
+        _radius_sm = get_radius("sm")
+        _font_body = get_font("body")
+        _font_body_bold = get_font("body", "bold")
+        _font_caption = get_font("caption")
+        _pad_sm = TOKENS.get("spacing.sm", 8)
+        _pad_xs = TOKENS.get("spacing.xs", 4)
+
         for i, cmd in enumerate(self._filtered_commands):
             is_selected = (i == self._selected_index)
 
@@ -209,20 +217,20 @@ class Omnibar(ctk.CTkFrame):
             row = ctk.CTkFrame(
                 self.results_frame,
                 fg_color=bg_color,
-                corner_radius=get_radius("sm"),
+                corner_radius=_radius_sm,
                 height=48
             )
-            row.pack(fill="x", padx=TOKENS.get("spacing.sm", 8), pady=2)
+            row.pack(fill="x", padx=_pad_sm, pady=2)
             row.pack_propagate(False)
 
             # Icon
             ctk.CTkLabel(
                 row,
                 text=cmd.get("icon", "⚡"),
-                font=get_font("body"),
+                font=_font_body,
                 text_color=text_color,
                 width=30
-            ).pack(side="left", padx=(TOKENS.get("spacing.sm", 8), TOKENS.get("spacing.xs", 4)))
+            ).pack(side="left", padx=(_pad_sm, _pad_xs))
 
             # Text Container
             text_cont = ctk.CTkFrame(row, fg_color="transparent")
@@ -231,7 +239,7 @@ class Omnibar(ctk.CTkFrame):
             ctk.CTkLabel(
                 text_cont,
                 text=cmd.get("title", ""),
-                font=get_font("body", "bold"),
+                font=_font_body_bold,
                 text_color=text_color,
                 anchor="w"
             ).pack(fill="x", side="top", pady=(4, 0))
@@ -240,7 +248,7 @@ class Omnibar(ctk.CTkFrame):
                 ctk.CTkLabel(
                     text_cont,
                     text=cmd.get("subtitle", ""),
-                    font=get_font("caption"),
+                    font=_font_caption,
                     text_color=sub_color,
                     anchor="w"
                 ).pack(fill="x", side="top")
