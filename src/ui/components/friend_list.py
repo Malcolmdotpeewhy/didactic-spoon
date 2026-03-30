@@ -54,6 +54,13 @@ class SearchableDropdown(ctk.CTkFrame):
             self.command()
             return
             
+        # ⚡ Bolt: Throttle search filtering and UI dropdown population on rapid keystrokes
+        if hasattr(self, "_debounce_timer") and self._debounce_timer is not None:
+            self.after_cancel(self._debounce_timer)
+
+        self._debounce_timer = self.after(150, self._perform_search)
+
+    def _perform_search(self):
         val = self.variable.get().lower()
         if hasattr(self, "_values_lower") and len(self._values_lower) == len(self._values):
             self._filtered_values = [v for v, v_lower in zip(self._values, self._values_lower) if val in v_lower]

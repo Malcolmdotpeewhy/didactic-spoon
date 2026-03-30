@@ -15,3 +15,7 @@
 ## 2024-06-25 - Eager Initialization vs Lazy Caching in Event Loops
 **Learning:** Lazy initialization of string caches (like `if "_search_target" not in cmd:`) inside UI event loops still incurs dictionary check and mutation overhead on the hot path, causing micro-stutters during rapid typing.
 **Action:** Move cache normalization entirely upstream to the data-fetch or UI initialization phase to achieve pure O(1) lookups in the hot path.
+
+## 2024-10-24 - Debouncing UI Event Handlers
+**Learning:** High-frequency event handlers like search input on keystrokes cause severe UI thread latency if they trigger O(N) widget destruction and recreation on every keystroke.
+**Action:** Add a debounce timer (e.g. 150ms) to throttle UI updates during rapid typing.
