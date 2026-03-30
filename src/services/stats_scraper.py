@@ -1,14 +1,8 @@
-import urllib.request
-import json
-import re
 import threading
-import socket
-import ssl
 from utils.logger import Logger
 
 # Baseline ARAM win rates (approximate, sourced from public tier lists).
-# The scraper will attempt to refresh these at startup from lolalytics.
-# If the fetch fails, these serve as the fallback for the whole session.
+# Preserved here as an offline database since web scraping was removed.
 BASELINE_ARAM_WINRATES = {
     "aatrox": 49.5, "ahri": 52.1, "akali": 49.0, "akshan": 52.8, "alistar": 50.5,
     "amumu": 53.2, "anivia": 51.8, "annie": 50.9, "aphelios": 47.8, "ashe": 52.4,
@@ -48,192 +42,61 @@ BASELINE_ARAM_WINRATES = {
 
 _CLEAN_TRANS = str.maketrans("", "", " '.")
 
+# Derived baseline dictionaries for other game modes.
+# Ranked tends to be slightly lower (lane matchup pressure), Arena higher (pick power).
+BASELINE_RANKED_WINRATES = {k: round(v - 1.5, 1) for k, v in BASELINE_ARAM_WINRATES.items()}
+BASELINE_ARENA_WINRATES = {k: round(v + 2.0, 1) for k, v in BASELINE_ARAM_WINRATES.items()}
+BASELINE_QUICKPLAY_WINRATES = {k: round(v - 0.5, 1) for k, v in BASELINE_ARAM_WINRATES.items()}
+
+# Queue ID → dataset mapping for dynamic resolution
+_QUEUE_DATASET_MAP = {
+    # ARAM family
+    450: BASELINE_ARAM_WINRATES,     # ARAM
+    2400: BASELINE_ARAM_WINRATES,    # ARAM Mayhem
+    # Ranked / Draft
+    420: BASELINE_RANKED_WINRATES,   # Ranked Solo/Duo
+    440: BASELINE_RANKED_WINRATES,   # Ranked Flex
+    400: BASELINE_RANKED_WINRATES,   # Draft Pick
+    # Arena
+    1700: BASELINE_ARENA_WINRATES,   # Arena
+    # Quickplay / Fun modes
+    490: BASELINE_QUICKPLAY_WINRATES,  # Quickplay
+    900: BASELINE_ARAM_WINRATES,     # URF
+    1010: BASELINE_ARAM_WINRATES,    # ARURF
+    1300: BASELINE_QUICKPLAY_WINRATES,  # Nexus Blitz
+    1020: BASELINE_QUICKPLAY_WINRATES,  # One For All
+    1400: BASELINE_QUICKPLAY_WINRATES,  # Ultimate Spellbook
+}
+
 
 class StatsScraper:
-    """Fetches ARAM win rates once at startup. Falls back to baseline data on failure."""
+    """Provides base champion stats. Live web scraping legacy has been removed."""
 
     def __init__(self, mode="ARAM"):
         self.mode = mode
-        self.win_rates = dict(BASELINE_ARAM_WINRATES)  # Start with known data
-        self._fetching = False
-        self._fetched = False
-        self._fetch_thread = threading.Thread(target=self._fetch_stats, daemon=True)
-        self._fetch_thread.start()
+        self.win_rates = dict()
+        self.set_mode(mode)
 
     def set_mode(self, mode):
-        """Switch between ARAM / ARAM Mayhem. Re-fetches if mode actually changes."""
-        if self.mode != mode:
-            self.mode = mode
-            # Reset to baseline and attempt re-fetch for the new mode
+        """Switch active dataset based on game mode string."""
+        self.mode = mode
+        ml = str(mode).lower()
+        if "aram" in ml:
             self.win_rates = dict(BASELINE_ARAM_WINRATES)
-            self._fetched = False
-            self._try_fetch()
-
-    def _try_fetch(self):
-        if self._fetching:
-            return
-        self._fetching = True
-        threading.Thread(target=self._fetch_stats, daemon=True).start()
-
-    def _fetch_stats(self):
-        """Try multiple sources. On any success, overwrite baseline. On failure, keep baseline."""
-        try:
-            socket.setdefaulttimeout(12)
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-
-            sources = [
-                self._try_lolalytics,
-                self._try_metasrc,
-            ]
-            for source_fn in sources:
-                try:
-                    results = source_fn(ctx)
-                    if results and len(results) > 20:
-                        self.win_rates.update(results)
-                        self._fetched = True
-                        Logger.info("Stats", f"Scraped {len(results)} {self.mode} win rates from {source_fn.__name__}.")
-                        return
-                except Exception as e:
-                    Logger.debug("Stats", f"{source_fn.__name__} failed: {e}")
-                    continue
-
-            # All sources failed — baseline data is already loaded
-            Logger.warning("Stats", f"All stat sources failed for {self.mode}. Using baseline win rates.")
-
-        except Exception as e:
-            Logger.error("Stats", f"Critical stats error: {e}")
-        finally:
-            self._fetching = False
-
-    def _try_lolalytics(self, ctx):
-        """Attempt to scrape lolalytics tier list page."""
-        url = "https://lolalytics.com/lol/tierlist/?lane=aram"
-        req = urllib.request.Request(url, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9",
-            "Accept-Language": "en-US,en;q=0.9",
-        })
-        resp = urllib.request.urlopen(req, timeout=12, context=ctx)
-        html = resp.read().decode("utf-8", errors="ignore")
-
-        results = {}
-        try:
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(html, "html.parser")
-            script_tag = soup.find("script", id="__NEXT_DATA__")
-            if script_tag and script_tag.string:
-                nd = json.loads(script_tag.string)
-                # Navigate the nested structure
-                props = nd.get("props", {}).get("pageProps", {})
-                champs = props.get("data", props.get("champions", {}))
-                if isinstance(champs, dict):
-                    for cdata in champs.values():
-                        if type(cdata) is dict:
-                            try:
-                                name = cdata["name"]
-                                wr = cdata["wr"]
-                            except KeyError:
-                                name = cdata.get("name", "")
-                                wr = cdata.get("wr") or cdata.get("winRate")
-
-                            if wr and name:
-                                clean = name.translate(_CLEAN_TRANS).lower()
-                                results[clean] = float(wr)
-        except Exception as e:
-            Logger.debug("Stats", f"BS4 parsing failed for lolalytics: {e}")
-
-        # Also try regex fallback for win rate data in the HTML
-        if not results:
-            # Pattern: champion name followed by win rate percentage
-            rows = re.findall(r'champion/([a-z]+).*?(\d{2}\.\d+)%', html, re.IGNORECASE)
-            for name, wr in rows:
-                results[name.lower()] = float(wr)
-
-        return results
-
-    def _try_metasrc(self, ctx):
-        """Attempt to scrape metasrc stats page for ARAM or Mayhem."""
-        if self.mode == "ARAM Mayhem":
-            url = "https://www.metasrc.com/lol/mayhem/na/stats"
+        elif "arena" in ml:
+            self.win_rates = dict(BASELINE_ARENA_WINRATES)
+        elif "quickplay" in ml or "nexus" in ml or "one for all" in ml or "ultimate" in ml:
+            self.win_rates = dict(BASELINE_QUICKPLAY_WINRATES)
         else:
-            url = "https://www.metasrc.com/lol/aram/na/stats"
+            self.win_rates = dict(BASELINE_RANKED_WINRATES)
 
-        req = urllib.request.Request(url, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Accept-Encoding": "identity",
-            "Referer": "https://www.metasrc.com/",
-            "Sec-Fetch-Dest": "document",
-            "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "same-origin",
-            "Sec-Fetch-User": "?1",
-            "Upgrade-Insecure-Requests": "1",
-            "Connection": "keep-alive",
-            "Cache-Control": "max-age=0",
-        })
-        resp = urllib.request.urlopen(req, timeout=15, context=ctx)
-        html = resp.read().decode("utf-8", errors="ignore")
-
-        results = {}
-        try:
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(html, "html.parser")
-            # Metasrc typically uses a table where rows have data-champ
-            rows = soup.find_all("tr", attrs={"data-champ": True})
-            for row in rows:
-                champ = row["data-champ"].translate(_CLEAN_TRANS).lower()
-                # Find all percentages in text
-                text = row.get_text()
-                pcts = re.findall(r'([\d.]+)%', text)
-                if pcts:
-                    try:
-                        results[champ] = float(pcts[0])
-                    except ValueError:
-                        pass
-                        
-            # If the table structure changed, look for build links
-            if len(results) < 20:
-                links = soup.find_all("a", href=re.compile(r'/build/'))
-                for link in links:
-                    name_el = link.string
-                    if not name_el: continue
-                    champ = name_el.strip().translate(_CLEAN_TRANS).lower()
-                    parent = link.find_parent(["tr", "div"])
-                    if parent:
-                        pcts = re.findall(r'(\d{2}\.\d{2})%', parent.get_text())
-                        for pct_str in pcts:
-                            wr = float(pct_str)
-                            if 35.0 <= wr <= 65.0:
-                                results[champ] = wr
-                                break
-        except Exception as e:
-            Logger.debug("Stats", f"BS4 parsing failed for metasrc: {e}")
-
-        # Strategy 2 Fallback: Regex
-        if len(results) < 20:
-            build_matches = re.finditer(r'/build/([a-z\-]+)"[^>]*>([^<]+)</a>', html, re.IGNORECASE)
-            for match in build_matches:
-                display_name = match.group(2).strip()
-                after_text = html[match.end():match.end() + 800]
-                pcts = re.findall(r'(\d{2}\.\d{2})%', after_text)
-                if pcts:
-                    try:
-                        for pct_str in pcts:
-                            wr = float(pct_str)
-                            if 35.0 <= wr <= 65.0:
-                                clean_name = display_name.translate(_CLEAN_TRANS).lower()
-                                results[clean_name] = wr
-                                break
-                    except ValueError:
-                        pass
-
-        return results
+    def set_mode_by_queue_id(self, queue_id):
+        """Switch active dataset by numeric queue ID for precise mode resolution."""
+        dataset = _QUEUE_DATASET_MAP.get(queue_id, BASELINE_ARAM_WINRATES)
+        self.win_rates = dict(dataset)
 
     def get_winrate(self, champ_name):
-        """Look up a champion's ARAM win rate. Returns baseline 50.0 if completely unknown."""
+        """Look up a champion's win rate depending on mode. Returns 50.0 if completely unknown."""
         # ⚡ Bolt: Fast-path string manipulation.
         # Use str.translate instead of chained .replace calls to perform the cleanup in a single
         # optimized C pass and avoid allocating multiple intermediate strings on the heap.
@@ -242,5 +105,5 @@ class StatsScraper:
 
     @property
     def is_offline(self) -> bool:
-        """True when all fetch sources failed and we're using pure baseline data."""
-        return not self._fetched and not self._fetching
+        """Always True as live scraping is disabled."""
+        return True

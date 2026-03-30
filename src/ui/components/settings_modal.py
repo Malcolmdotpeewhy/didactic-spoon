@@ -155,12 +155,43 @@ class SettingsModal(ctk.CTkToplevel):
         self.attributes("-topmost", True)
         self.configure(fg_color=get_color("colors.background.app"))
 
-        # Center relative to master
+        # Position relative to master, rigidly clamped to physical screen boundaries.
+        # This prevents the settings modal from rendering off-screen no matter where
+        # the main window has been dragged (edge, corner, partially off-screen).
         self.update_idletasks()
-        x = master.winfo_rootx() - self.winfo_width() - 20
-        y = master.winfo_rooty() + (master.winfo_height() // 2) - (self.winfo_height() // 2)
-        if x < 10:
-            x = 10
+        win_w = self.winfo_width() or 380
+        win_h = self.winfo_height() or 560
+        screen_w = self.winfo_screenwidth()
+        screen_h = self.winfo_screenheight()
+
+        # Safe margins — never closer than this to any screen edge
+        MARGIN = 10
+        TASKBAR_RESERVE = 48  # reserve space for Windows taskbar
+
+        # Get master's actual position (handles overrideredirect windows correctly)
+        master_x = master.winfo_rootx()
+        master_y = master.winfo_rooty()
+        master_w = master.winfo_width()
+        master_h = master.winfo_height()
+
+        # Strategy 1: Place to the LEFT of master
+        x = master_x - win_w - 20
+        y = master_y + (master_h // 2) - (win_h // 2)
+
+        # If left placement goes off-screen, try RIGHT of master
+        if x < MARGIN:
+            x = master_x + master_w + 20
+
+        # If right placement also goes off-screen, center on screen
+        if x + win_w > screen_w - MARGIN:
+            x = (screen_w - win_w) // 2
+
+        # Rigid clamp: force X within viewable horizontal bounds
+        x = max(MARGIN, min(x, screen_w - win_w - MARGIN))
+
+        # Rigid clamp: force Y within viewable vertical bounds (accounting for taskbar)
+        y = max(MARGIN, min(y, screen_h - win_h - TASKBAR_RESERVE))
+
         self.geometry(f"+{int(x)}+{int(y)}")
 
         self.protocol("WM_DELETE_WINDOW", self._close)
@@ -306,6 +337,84 @@ class SettingsModal(ctk.CTkToplevel):
             "Keep LeagueLoop in the background during automations.\n"
             "It will only pop up when a game starts or ends."
         )
+
+        _divider(body)
+
+        # ━━━━━━━━ AUTOMATION ━━━━━━━━
+        _section_header(body, "AUTOMATION")
+
+        # Honor Strategy
+        row_honor = ctk.CTkFrame(body, fg_color="transparent")
+        row_honor.pack(fill="x", pady=4)
+        ctk.CTkLabel(
+            row_honor, text="Honor Strategy",
+            font=get_font("body"),
+            text_color=get_color("colors.text.primary"),
+        ).pack(side="left")
+
+        self.honor_var = ctk.StringVar(value=self.config.get("honor_strategy", "random"))
+        self.honor_select = ctk.CTkOptionMenu(
+            row_honor,
+            values=["random", "best_kda", "mvp"],
+            variable=self.honor_var,
+            width=120,
+            font=get_font("body", "bold"),
+            fg_color=get_color("colors.background.card"),
+            button_color="#1A2733",
+            button_hover_color=get_color("colors.state.hover"),
+            dropdown_fg_color=get_color("colors.background.app"),
+            dropdown_hover_color=get_color("colors.state.hover"),
+            dropdown_font=get_font("caption"),
+        )
+        self.honor_select.pack(side="right")
+        CTkTooltip(self.honor_select, "Strategy used by Auto Honor\nrandom = random teammate\nbest_kda = highest KDA\nmvp = most kills+assists")
+
+        _divider(body)
+
+        # ━━━━━━━━ SOCIAL ━━━━━━━━
+        _section_header(body, "SOCIAL")
+
+        # VIP Invite List
+        ctk.CTkLabel(
+            body, text="VIP Invite List (comma-separated)",
+            font=get_font("caption"),
+            text_color=get_color("colors.text.muted"),
+        ).pack(anchor="w", pady=(0, 2))
+
+        self.vip_var = ctk.StringVar(value=self.config.get("vip_invite_list", ""))
+        self.entry_vip = ctk.CTkEntry(
+            body,
+            textvariable=self.vip_var,
+            placeholder_text="Friend1, Friend2, ...",
+            font=get_font("body"),
+            fg_color=get_color("colors.background.card"),
+            text_color=get_color("colors.text.primary"),
+            border_color=get_color("colors.border.subtle"),
+            height=30,
+        )
+        self.entry_vip.pack(fill="x", pady=(0, 6))
+        CTkTooltip(self.entry_vip, "Leave blank to invite ALL online friends")
+
+        # Startup Status
+        ctk.CTkLabel(
+            body, text="Startup Status",
+            font=get_font("caption"),
+            text_color=get_color("colors.text.muted"),
+        ).pack(anchor="w", pady=(0, 2))
+
+        self.startup_status_var = ctk.StringVar(value=self.config.get("startup_status", ""))
+        self.entry_startup_status = ctk.CTkEntry(
+            body,
+            textvariable=self.startup_status_var,
+            placeholder_text="Auto-applied on connect...",
+            font=get_font("body"),
+            fg_color=get_color("colors.background.card"),
+            text_color=get_color("colors.text.primary"),
+            border_color=get_color("colors.border.subtle"),
+            height=30,
+        )
+        self.entry_startup_status.pack(fill="x", pady=(0, 4))
+        CTkTooltip(self.entry_startup_status, "Custom status message applied when LeagueLoop connects")
 
         _divider(body)
 
@@ -494,6 +603,13 @@ class SettingsModal(ctk.CTkToplevel):
 
         # Save stealth mode
         self.config.set("stealth_mode", bool(self.stealth_var.get()))
+
+        # Save honor strategy
+        self.config.set("honor_strategy", self.honor_var.get())
+
+        # Save social
+        self.config.set("vip_invite_list", self.vip_var.get().strip())
+        self.config.set("startup_status", self.startup_status_var.get().strip())
 
         if self.on_save_callback:
             try:

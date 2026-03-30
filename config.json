@@ -37,37 +37,40 @@
     "stealth_mode": true,
     "auto_spells": true,
     "priority_picker": {
-        "enabled": true,
+        "enabled": false,
         "list": [
             "Fizz",
             "Singed",
-            "Brand",
+            "Amumu",
             "TwistedFate",
+            "Brand",
             "Shaco",
-            "Lillia",
             "Fiddlesticks",
             "Sion",
             "AurelionSol",
-            "Velkoz",
-            "Amumu",
             "Karthus",
+            "Velkoz",
+            "Zyra",
             "Tryndamere",
             "Malzahar",
-            "Heimerdinger",
             "Ziggs",
-            "Hwei",
             "Yorick",
+            "Lillia",
             "Leona",
             "Swain",
             "Nautilus",
+            "Xerath",
+            "Draven",
             "MasterYi",
+            "Heimerdinger",
             "Lux",
             "Cassiopeia",
+            "Hwei",
             "Mordekaiser",
             "Braum",
             "Nunu",
             "Ryze",
-            "Draven"
+            "Ashe"
         ]
     },
     "hotkey_launch_client": "ctrl+shift+l",
@@ -79,12 +82,16 @@
     "auto_join_friend": "Palafu",
     "auto_join_list": [
         {
-            "name": "Palafu#NA1",
+            "name": "bo\u0438bo\u0438s",
             "enabled": true
         },
         {
-            "name": "Palafu",
-            "enabled": true
+            "name": "cheekycolossus",
+            "enabled": false
+        },
+        {
+            "name": "i am ston3d",
+            "enabled": false
         }
     ],
     "hidden_friends": [
@@ -195,5 +202,6 @@
         "Palafu#NA1",
         "NicholasLobo\u2069 #\u2066NA1\u2069"
     ],
-    "auto_join_enabled": true
+    "auto_join_enabled": true,
+    "auto_honor_enabled": true
 }

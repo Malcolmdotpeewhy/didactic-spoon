@@ -128,12 +128,12 @@ class PriorityIconGrid(ctk.CTkFrame):
         self.header.pack(fill="x", padx=SPACING_MD, pady=(SPACING_MD, 0))
 
         self.lbl_section = ctk.CTkLabel(
-            self.header, text="▼  PRIORITY LIST",
+            self.header, text="▼  ARAM LIST",
             font=get_font("caption", "bold"),
             text_color=get_color("colors.text.muted"), anchor="w",
         )
         self.lbl_section.pack(side="left", padx=2)
-        CTkTooltip(self.lbl_section, "Toggle Priority List")
+        CTkTooltip(self.lbl_section, "Toggle ARAM List")
         self.lbl_section.bind("<Button-1>", lambda e: self._toggle_collapse())
 
         # Edit / Done
@@ -187,7 +187,7 @@ class PriorityIconGrid(ctk.CTkFrame):
             
         )
         self.btn_import.pack(side="right", padx=2)
-        CTkTooltip(self.btn_import, "Import Priority List from Clipboard")
+        CTkTooltip(self.btn_import, "Import ARAM List from Clipboard")
 
         # Export
         self.btn_export = ctk.CTkButton(
@@ -200,7 +200,7 @@ class PriorityIconGrid(ctk.CTkFrame):
             
         )
         self.btn_export.pack(side="right")
-        CTkTooltip(self.btn_export, "Export Priority List to Clipboard")
+        CTkTooltip(self.btn_export, "Export ARAM List to Clipboard")
 
     # ───────────── body ─────────────
     def _build_body(self):
@@ -584,10 +584,10 @@ class PriorityIconGrid(ctk.CTkFrame):
         self._expanded = not self._expanded
         if self._expanded:
             self.body.pack(fill="x", pady=(4, 0))
-            self.lbl_section.configure(text="▼  PRIORITY LIST")
+            self.lbl_section.configure(text="▼  ARAM LIST")
         else:
             self.body.pack_forget()
-            self.lbl_section.configure(text="▶  PRIORITY LIST")
+            self.lbl_section.configure(text="▶  ARAM LIST")
 
     # ───────────── edit mode ─────────────
     def _toggle_edit_mode(self):
@@ -771,7 +771,7 @@ class PriorityIconGrid(ctk.CTkFrame):
 
             from ui.components.toast import ToastManager
             ToastManager.get_instance().show(
-                "Priority List Cleared",
+                "ARAM List Cleared",
                 icon="💥",
                 theme="error",
                 confetti=True
@@ -870,7 +870,7 @@ class PriorityIconGrid(ctk.CTkFrame):
         names = self._get_priority_list()
         if not names:
             from ui.components.toast import ToastManager
-            ToastManager.get_instance().show("Priority List is empty!", icon="⚠️", theme="error")
+            ToastManager.get_instance().show("ARAM List is empty!", icon="⚠️", theme="error")
             return
 
         export_str = ", ".join(names)
@@ -880,7 +880,7 @@ class PriorityIconGrid(ctk.CTkFrame):
 
         from ui.components.toast import ToastManager
         ToastManager.get_instance().show(
-            "Priority List Copied!",
+            "ARAM List Copied!",
             icon="📋",
             theme="success",
             confetti=True

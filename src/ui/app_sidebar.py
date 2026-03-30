@@ -236,7 +236,7 @@ class SidebarWidget(ctk.CTkFrame):
             height=1,
             fg_color="#1F2A36"
         )
-        self.actions_divider.pack(fill="x", pady=(6, 4))
+        # Starts hidden — shown alongside quick action buttons
 
         # ── STEP 2: Quick Actions Row (2-column grid, fixed height) ──
         self.quick_actions_frame = ctk.CTkFrame(
@@ -244,7 +244,7 @@ class SidebarWidget(ctk.CTkFrame):
             height=44,
             fg_color="transparent"
         )
-        self.quick_actions_frame.pack(fill="x", pady=(4, 8))
+        # Starts hidden — revealed dynamically during Matchmaking/ChampSelect
         self.quick_actions_frame.pack_propagate(False)
         self.quick_actions_frame.grid_columnconfigure((0, 1), weight=1)
 
@@ -258,7 +258,7 @@ class SidebarWidget(ctk.CTkFrame):
             command=self._force_requeue,
             
         )
-        self.requeue_button.grid(row=0, column=0, padx=(0, 6), pady=6, sticky="ew")
+        # NOT gridded here — dynamically revealed in _show_quick_actions()
         CTkTooltip(self.requeue_button, "Cancel and re-enter matchmaking queue")
 
         self.dodge_button = ctk.CTkButton(
@@ -271,7 +271,7 @@ class SidebarWidget(ctk.CTkFrame):
             command=self._force_dodge,
             
         )
-        self.dodge_button.grid(row=0, column=1, padx=(6, 0), pady=6, sticky="ew")
+        # NOT gridded here — dynamically revealed in _show_quick_actions()
         CTkTooltip(self.dodge_button, "Force quit the client to dodge the lobby")
 
         # ── Launch Client ──
@@ -285,7 +285,7 @@ class SidebarWidget(ctk.CTkFrame):
         )
         self.btn_launch_client.pack(fill="x", pady=(SPACING_SM, 0))
         CTkTooltip(self.btn_launch_client, "Open the Riot Client and start League")
-        
+
         # Divider after button
         self.divider_btn = ctk.CTkFrame(self.main_body, height=1, fg_color="#1E2328")
         self.divider_btn.pack(fill="x", pady=SPACING_MD)
@@ -294,9 +294,9 @@ class SidebarWidget(ctk.CTkFrame):
         self.auto_container = ctk.CTkFrame(self.main_body, fg_color="#0F1A24", corner_radius=get_radius("md"))
         self.auto_container.pack(fill="x", pady=(0, SPACING_LG))
 
-        self.auto_expanded = True
+        self.auto_expanded = False
         self.lbl_auto_section = ctk.CTkLabel(
-            self.auto_container, text="▼  AUTOMATION",
+            self.auto_container, text="▶  AUTOMATION",
             font=get_font("caption", "bold"),
             text_color=get_color("colors.text.muted"), anchor="w",
         )
@@ -305,8 +305,7 @@ class SidebarWidget(ctk.CTkFrame):
         self.lbl_auto_section.bind("<Button-1>", self._toggle_auto_collapse)
         
         TOGGLE_ROW_HEIGHT = 28
-        self.automation_frame = ctk.CTkFrame(self.auto_container, height=120, fg_color="transparent")
-        self.automation_frame.pack(fill="x")
+        self.automation_frame = ctk.CTkFrame(self.auto_container, height=155, fg_color="transparent")
         self.automation_frame.pack_propagate(False)
 
         # Auto Accept
@@ -314,36 +313,49 @@ class SidebarWidget(ctk.CTkFrame):
         row1 = ctk.CTkFrame(self.automation_frame, fg_color="transparent", height=TOGGLE_ROW_HEIGHT)
         row1.pack(fill="x", padx=SPACING_MD, pady=(0, SPACING_SM))
         row1.pack_propagate(False)
-        lbl_accept = ctk.CTkLabel(row1, text="Auto Accept", font=get_font("body"), width=120, anchor="w", text_color="#F0E6D2")
+        lbl_accept = ctk.CTkLabel(row1, text="✅ Auto Accept", font=get_font("body"), width=120, anchor="w", text_color="#F0E6D2")
         lbl_accept.pack(side="left")
         CTkTooltip(lbl_accept, "Automatically accepts match queue pops")
         self.sw_accept = LolToggle(row1, variable=self.var_accept, command=self._on_toggle_accept)
         self.sw_accept.pack(side="right")
         CTkTooltip(self.sw_accept, "Automatically accepts match queue pops")
 
-        # Auto Re-Queue
-        self.var_requeue = ctk.BooleanVar(value=self.config.get("auto_requeue", False))
-        row2 = ctk.CTkFrame(self.automation_frame, fg_color="transparent", height=TOGGLE_ROW_HEIGHT)
-        row2.pack(fill="x", padx=SPACING_MD, pady=(0, SPACING_SM))
-        row2.pack_propagate(False)
-        lbl_requeue = ctk.CTkLabel(row2, text="Auto Re-Queue", font=get_font("body"), width=120, anchor="w", text_color="#F0E6D2")
-        lbl_requeue.pack(side="left")
-        CTkTooltip(lbl_requeue, "Automatically re-enters matchmaking after a game ends")
-        self.sw_requeue = LolToggle(row2, variable=self.var_requeue, command=self._on_toggle_requeue)
-        self.sw_requeue.pack(side="right")
-        CTkTooltip(self.sw_requeue, "Automatically re-enters matchmaking after a game ends")
-
-        # Pick Sniper
+        # ARAM Picker
         self.var_priority = ctk.BooleanVar(value=self.config.get("priority_picker", {}).get("enabled", False))
         row3 = ctk.CTkFrame(self.automation_frame, fg_color="transparent", height=TOGGLE_ROW_HEIGHT)
         row3.pack(fill="x", padx=SPACING_MD, pady=(0, SPACING_SM))
         row3.pack_propagate(False)
-        lbl_priority = ctk.CTkLabel(row3, text="Pick Sniper", font=get_font("body"), width=120, anchor="w", text_color="#F0E6D2")
+        lbl_priority = ctk.CTkLabel(row3, text="🎯 ARAM Picker", font=get_font("body"), width=120, anchor="w", text_color="#F0E6D2")
         lbl_priority.pack(side="left")
-        CTkTooltip(lbl_priority, "Attempts to pick highest available champion from Priority List")
+        CTkTooltip(lbl_priority, "Attempts to pick highest available champion from ARAM List")
         self.sw_priority = LolToggle(row3, variable=self.var_priority, command=self._on_toggle_priority)
         self.sw_priority.pack(side="right")
-        CTkTooltip(self.sw_priority, "Attempts to pick highest available champion from Priority List")
+        CTkTooltip(self.sw_priority, "Attempts to pick highest available champion from ARAM List")
+        
+        # Friend Auto-Join
+        self.var_auto_join = ctk.BooleanVar(value=self.config.get("auto_join_enabled", True))
+        row4 = ctk.CTkFrame(self.automation_frame, fg_color="transparent", height=TOGGLE_ROW_HEIGHT)
+        row4.pack(fill="x", padx=SPACING_MD, pady=(0, SPACING_SM))
+        row4.pack_propagate(False)
+        lbl_auto_join = ctk.CTkLabel(row4, text="🤝 Friend Auto-Join", font=get_font("body"), width=120, anchor="w", text_color="#F0E6D2")
+        lbl_auto_join.pack(side="left")
+        CTkTooltip(lbl_auto_join, "Automatically joins available friend lobbies")
+        self.sw_auto_join = LolToggle(row4, variable=self.var_auto_join, command=self._on_toggle_auto_join)
+        self.sw_auto_join.pack(side="right")
+        CTkTooltip(self.sw_auto_join, "Automatically joins available friend lobbies")
+
+        # Auto Honor
+        self.var_auto_honor = ctk.BooleanVar(value=self.config.get("auto_honor_enabled", False))
+        row5 = ctk.CTkFrame(self.automation_frame, fg_color="transparent", height=TOGGLE_ROW_HEIGHT)
+        row5.pack(fill="x", padx=SPACING_MD, pady=(0, SPACING_SM))
+        row5.pack_propagate(False)
+        lbl_honor = ctk.CTkLabel(row5, text="🏅 Auto Honor", font=get_font("body"), width=120, anchor="w", text_color="#F0E6D2")
+        lbl_honor.pack(side="left")
+        CTkTooltip(lbl_honor, "Automatically honors a teammate after each game")
+        self.sw_auto_honor = LolToggle(row5, variable=self.var_auto_honor, command=self._on_toggle_auto_honor)
+        self.sw_auto_honor.pack(side="right")
+        CTkTooltip(self.sw_auto_honor, "Automatically honors a teammate after each game")
+        self._update_auto_header()
         
         # Divider after automation
         divider_auto = ctk.CTkFrame(self.main_body, height=1, fg_color="#1E2328")
@@ -359,6 +371,38 @@ class SidebarWidget(ctk.CTkFrame):
         self.friend_list.pack(fill="x", pady=(0, SPACING_MD), padx=0)
 
         # UI status and dummy stats stripped for cleaner layout
+
+        # ── Profile Section ──
+        self.profile_container = ctk.CTkFrame(self.main_body, fg_color="#0F1A24", corner_radius=get_radius("md"))
+        self.profile_container.pack(fill="x", pady=(0, SPACING_MD))
+
+        self.profile_expanded = False
+        self.lbl_profile_section = ctk.CTkLabel(
+            self.profile_container, text="▶  PROFILE",
+            font=get_font("caption", "bold"),
+            text_color=get_color("colors.text.muted"), anchor="w",
+        )
+        self.lbl_profile_section.pack(fill="x", padx=SPACING_MD, pady=(SPACING_SM, SPACING_SM))
+        self.lbl_profile_section.bind("<Button-1>", self._toggle_profile_collapse)
+
+        self.profile_frame = ctk.CTkFrame(self.profile_container, fg_color="transparent")
+        # starts collapsed
+
+        lbl_status = ctk.CTkLabel(self.profile_frame, text="Custom Status", font=get_font("caption"), text_color=get_color("colors.text.muted"), anchor="w")
+        lbl_status.pack(fill="x", padx=SPACING_MD, pady=(0, 2))
+
+        self.entry_status = ctk.CTkEntry(
+            self.profile_frame,
+            placeholder_text="Set your status...",
+            font=get_font("body"),
+            fg_color=get_color("colors.background.card"),
+            text_color=get_color("colors.text.primary"),
+            border_color=get_color("colors.border.subtle"),
+            height=30,
+        )
+        self.entry_status.pack(fill="x", padx=SPACING_MD, pady=(0, SPACING_SM))
+        self.entry_status.bind("<Return>", self._on_status_submit)
+        CTkTooltip(self.entry_status, "Press Enter to update your League Client status")
 
         # ── Action Log (Bottom) ──
         self.spacer = ctk.CTkFrame(self.main_body, fg_color="transparent")
@@ -468,11 +512,10 @@ class SidebarWidget(ctk.CTkFrame):
     def _toggle_auto_collapse(self, event=None):
         self.auto_expanded = not getattr(self, "auto_expanded", True)
         if self.auto_expanded:
-            self.lbl_auto_section.configure(text="▼  AUTOMATION")
             self.automation_frame.pack(fill="x")
         else:
-            self.lbl_auto_section.configure(text="▶  AUTOMATION")
             self.automation_frame.pack_forget()
+        self._update_auto_header()
 
     def _on_mode_change(self, new_mode):
         self.config.set("aram_mode", new_mode)
@@ -489,6 +532,13 @@ class SidebarWidget(ctk.CTkFrame):
                 self.btn_launch_client.pack_forget()
                 if hasattr(self, "divider_btn"):
                     self.divider_btn.pack_forget()
+            # Apply startup status if configured
+            startup_status = self.config.get("startup_status", "")
+            if startup_status.strip():
+                engine = getattr(self.master, "automation", None)
+                if engine:
+                    import threading
+                    threading.Thread(target=lambda: engine.set_custom_status(startup_status.strip()), daemon=True).start()
         else:
             if hasattr(self, "btn_launch_client") and not self.btn_launch_client.winfo_viewable():
                 self.btn_launch_client.pack(fill="x", pady=(SPACING_SM, 0))
@@ -652,20 +702,62 @@ class SidebarWidget(ctk.CTkFrame):
 
     def _on_toggle_accept(self):
         self.config.set("auto_accept", self.var_accept.get())
-
-    def _on_toggle_requeue(self):
-        self.config.set("auto_requeue", self.var_requeue.get())
+        self._update_auto_header()
 
     def _on_toggle_priority(self):
         cfg = self.config.get("priority_picker", {})
         cfg["enabled"] = self.var_priority.get()
         self.config.set("priority_picker", cfg)
+        self._update_auto_header()
 
     def _on_toggle_auto_join(self):
-        self.config.set("auto_join_friend_enabled", self.var_auto_join.get())
+        self.config.set("auto_join_enabled", self.var_auto_join.get())
+        self._update_auto_header()
 
-    def _on_friend_typing(self, event):
-        self.config.set("auto_join_friend", self.entry_friend.get())
+    def _on_toggle_auto_honor(self):
+        self.config.set("auto_honor_enabled", self.var_auto_honor.get())
+        self._update_auto_header()
+
+    def _on_mass_invite(self):
+        engine = getattr(self.master, "automation", None)
+        if engine:
+            import threading
+            def _invite():
+                engine.mass_invite_friends()
+            threading.Thread(target=_invite, daemon=True).start()
+        else:
+            self.update_action_log("Automation engine not available.")
+
+    def _toggle_profile_collapse(self, event=None):
+        self.profile_expanded = not getattr(self, "profile_expanded", False)
+        if self.profile_expanded:
+            self.lbl_profile_section.configure(text="▼  PROFILE")
+            self.profile_frame.pack(fill="x")
+        else:
+            self.lbl_profile_section.configure(text="▶  PROFILE")
+            self.profile_frame.pack_forget()
+
+    def _on_status_submit(self, event=None):
+        text = self.entry_status.get().strip()
+        engine = getattr(self.master, "automation", None)
+        if engine and text:
+            import threading
+            threading.Thread(target=lambda: engine.set_custom_status(text), daemon=True).start()
+
+    def _update_auto_header(self):
+        emojis = []
+        if getattr(self, "var_accept", None) and self.var_accept.get(): emojis.append("✅")
+        if getattr(self, "var_priority", None) and self.var_priority.get(): emojis.append("🎯")
+        if getattr(self, "var_auto_join", None) and self.var_auto_join.get(): emojis.append("🤝")
+        if getattr(self, "var_auto_honor", None) and self.var_auto_honor.get(): emojis.append("🏅")
+        
+        arrow = "▼" if getattr(self, "auto_expanded", True) else "▶"
+        base_text = f"{arrow}  AUTOMATION"
+        
+        if emojis:
+            self.lbl_auto_section.configure(text=f"{base_text}    {' '.join(emojis)}")
+        else:
+            self.lbl_auto_section.configure(text=base_text)
 
     def update_action_log(self, text):
         if self.winfo_exists():
@@ -697,10 +789,34 @@ class SidebarWidget(ctk.CTkFrame):
                 self.update_action_log(f"Dodge error: {e}")
 
 
+    def _show_quick_actions(self):
+        """Reveal the Requeue & Dodge buttons during active matchmaking phases."""
+        if hasattr(self, "quick_actions_frame") and not self.quick_actions_frame.winfo_viewable():
+            self.requeue_button.grid(row=0, column=0, padx=(0, 6), pady=6, sticky="ew")
+            self.dodge_button.grid(row=0, column=1, padx=(6, 0), pady=6, sticky="ew")
+            self.actions_divider.pack(fill="x", pady=(6, 4))
+            self.quick_actions_frame.pack(fill="x", pady=(4, 8))
+
+    def _hide_quick_actions(self):
+        """Hide the Requeue & Dodge buttons when idle or in-game."""
+        if hasattr(self, "quick_actions_frame") and self.quick_actions_frame.winfo_viewable():
+            self.requeue_button.grid_remove()
+            self.dodge_button.grid_remove()
+            self.quick_actions_frame.pack_forget()
+            self.actions_divider.pack_forget()
+
     def _start_local_queue_timer(self, time_in_queue, estimated_time):
+        """Start or re-sync the local queue timer. Idempotent — won't restart if already running."""
+        self._estimated_queue_time = estimated_time if estimated_time > 0 else 120
+
+        # If the timer is already ticking, only re-sync if drift is extreme (>5s)
+        if hasattr(self, "_queue_timer_job") and self._queue_timer_job is not None:
+            drift = abs(getattr(self, "_current_queue_time", 0) - time_in_queue)
+            if drift <= 5:
+                return  # Timer is running fine, don't touch it
+        
         self._stop_local_queue_timer()
         self._current_queue_time = time_in_queue
-        self._estimated_queue_time = estimated_time if estimated_time > 0 else 1
         self._tick_local_timer()
 
     def _tick_local_timer(self):
@@ -713,21 +829,20 @@ class SidebarWidget(ctk.CTkFrame):
 
         self.time_label.configure(text=time_str)
 
-        if self._estimated_queue_time > 0:
-            est_mins = int(self._estimated_queue_time // 60)
-            est_secs = int(self._estimated_queue_time % 60)
+        est = getattr(self, "_estimated_queue_time", 120)
+        if est > 0:
+            est_mins = int(est // 60)
+            est_secs = int(est % 60)
             self.estimate_label.configure(text=f"Est: {est_mins}:{est_secs:02d}", text_color=get_color("colors.text.muted"))
 
-            progress = min(1.0, self._current_queue_time / self._estimated_queue_time)
+            progress = min(1.0, self._current_queue_time / est)
             self.progress_bar.set(progress)
 
-            if self._current_queue_time > self._estimated_queue_time:
-                # Overtime gamification
-                pulse = (self._current_queue_time % 2) == 0
-                color = "#ff4444" if pulse else get_color("colors.accent.gold", "#C8AA6E")
-                self.progress_bar.configure(progress_color=color)
-                self.time_label.configure(text_color=color)
-                self.estimate_label.configure(text="High Priority!")
+            if self._current_queue_time > est:
+                # Overtime: solid warning color, no pulsing
+                self.progress_bar.configure(progress_color="#ff4444")
+                self.time_label.configure(text_color="#ff4444")
+                self.estimate_label.configure(text="Overtime!", text_color="#ff4444")
             else:
                 self.progress_bar.configure(progress_color=get_color("colors.accent.gold", "#C8AA6E"))
                 self.time_label.configure(text_color=get_color("colors.text.primary"))
@@ -752,58 +867,64 @@ class SidebarWidget(ctk.CTkFrame):
         if not self.winfo_exists():
             return
 
+        # Track the last phase we processed to avoid redundant resets
+        prev_ui_phase = getattr(self, "_last_ui_phase", None)
+
         if phase == "Matchmaking" and search_state and search_state.get("searchState") == "Searching":
-            # Matchmaking is active
             time_in_queue = search_state.get("timeInQueue", 0)
             estimated_time = search_state.get("estimatedQueueTime", 0)
-
-            # Only sync the timer if it's off by more than 2 seconds (to avoid stuttering)
-            if not hasattr(self, "_current_queue_time") or abs(self._current_queue_time - time_in_queue) > 2:
-                self._start_local_queue_timer(time_in_queue, estimated_time)
+            self._start_local_queue_timer(time_in_queue, estimated_time)
+            self._show_quick_actions()
+            self._last_ui_phase = "Matchmaking"
 
         elif phase == "ReadyCheck":
-            # Ready Check Pop
-            self._stop_local_queue_timer()
-            self.time_label.configure(text="Match Found!", text_color=get_color("colors.state.success", "#00C853"))
-            self.estimate_label.configure(text="● Ready", text_color="#00C853")
-            self.progress_bar.set(1.0)
-            self.progress_bar.configure(progress_color="#00C853")
+            if prev_ui_phase != "ReadyCheck":
+                self._stop_local_queue_timer()
+                self.time_label.configure(text="Match Found!", text_color=get_color("colors.state.success", "#00C853"))
+                self.estimate_label.configure(text="● Ready", text_color="#00C853")
+                self.progress_bar.set(1.0)
+                self.progress_bar.configure(progress_color="#00C853")
+                self._show_quick_actions()
 
-            # Fire gamified toast once when entering ReadyCheck
-            if getattr(self, "_last_phase_toast", None) != "ReadyCheck":
-                self._last_phase_toast = "ReadyCheck"
                 try:
                     from ui.components.toast import ToastManager
                     ToastManager.get_instance().show("Match Found!", icon="⚔️", duration=4000, theme="success", confetti=True)
                 except Exception as e:
                     Logger.error("UI", f"Failed to show match found toast: {e}")
+            self._last_ui_phase = "ReadyCheck"
 
         elif phase == "ChampSelect":
-            self._stop_local_queue_timer()
-            self.time_label.configure(text="Champ Select", text_color=get_color("colors.accent.purple", "#A855F7"))
-            self.estimate_label.configure(text="● Drafting", text_color="#A855F7")
-            self.progress_bar.set(1.0)
-            self.progress_bar.configure(progress_color="#A855F7")
-            self._last_phase_toast = phase
+            if prev_ui_phase != "ChampSelect":
+                self._stop_local_queue_timer()
+                self.time_label.configure(text="Champ Select", text_color=get_color("colors.accent.purple", "#A855F7"))
+                self.estimate_label.configure(text="● Drafting", text_color="#A855F7")
+                self.progress_bar.set(1.0)
+                self.progress_bar.configure(progress_color="#A855F7")
+                self._show_quick_actions()
+            self._last_ui_phase = "ChampSelect"
 
         elif phase in ["InProgress", "EndOfGame"]:
-            self._stop_local_queue_timer()
-            self.time_label.configure(text="In Game", text_color=get_color("colors.text.primary"))
-            self.estimate_label.configure(text="● Playing", text_color="#3B82F6")
-            self.progress_bar.set(0)
-            self._last_phase_toast = phase
+            if prev_ui_phase not in ["InProgress", "EndOfGame"]:
+                self._stop_local_queue_timer()
+                self.time_label.configure(text="In Game", text_color=get_color("colors.text.primary"))
+                self.estimate_label.configure(text="● Playing", text_color="#3B82F6")
+                self.progress_bar.set(0)
+                self._hide_quick_actions()
+            self._last_ui_phase = phase
 
         else:
-            # Lobby / None
-            self._stop_local_queue_timer()
-            if getattr(self.master, "lcu", None) and self.master.lcu.is_connected:
-                self.time_label.configure(text="Queue: Idle", text_color=get_color("colors.text.primary"))
-                self.estimate_label.configure(text="● Connected", text_color="#00C853")
-            else:
-                self.time_label.configure(text="Disconnected", text_color="#ff4444")
-                self.estimate_label.configure(text="● Offline", text_color="#ff4444")
-            self.progress_bar.set(0)
-            self._last_phase_toast = phase
+            # Lobby / None — only update if we actually changed phases
+            if prev_ui_phase not in ["Lobby", "None", None] or prev_ui_phase is None:
+                self._stop_local_queue_timer()
+                if getattr(self.master, "lcu", None) and self.master.lcu.is_connected:
+                    self.time_label.configure(text="Queue: Idle", text_color=get_color("colors.text.primary"))
+                    self.estimate_label.configure(text="● Connected", text_color="#00C853")
+                else:
+                    self.time_label.configure(text="Disconnected", text_color="#ff4444")
+                    self.estimate_label.configure(text="● Offline", text_color="#ff4444")
+                self.progress_bar.set(0)
+                self._hide_quick_actions()
+            self._last_ui_phase = phase
 
     def update_lobby_stats(self, team, bench, me=None):
         """Called from AutomationEngine during ChampSelect to show winrate stats."""
@@ -820,6 +941,23 @@ class SidebarWidget(ctk.CTkFrame):
             return
 
         mode = self.config.get("aram_mode", "ARAM")
+
+        # Resolve active queue_id from LCU lobby for precise win rate dataset
+        queue_id = None
+        if self.lcu:
+            try:
+                lobby_req = self.lcu.request("GET", "/lol-lobby/v2/lobby")
+                if lobby_req and lobby_req.status_code == 200:
+                    queue_id = lobby_req.json().get("gameConfig", {}).get("queueId")
+            except Exception:
+                pass
+
+        # Sync scraper dataset — prefer queue_id for precision, fall back to mode string
+        if self.scraper:
+            if queue_id and hasattr(self.scraper, "set_mode_by_queue_id"):
+                self.scraper.set_mode_by_queue_id(queue_id)
+            else:
+                self.scraper.set_mode(mode)
 
         # Collect available champion IDs
         available = []

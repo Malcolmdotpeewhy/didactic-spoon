@@ -53,6 +53,7 @@ class AutomationEngine:
         self._skin_equipped: bool = False
         self._last_priority_swap: float = 0.0
         self._last_search_state_time: float = 0.0
+        self._honor_handled: bool = False
         self._cached_search_state: Optional[dict] = None
 
     def start(self, start_paused: bool = False) -> None:
@@ -133,15 +134,6 @@ class AutomationEngine:
         if qf is not None:
             qf(phase, search_state)
 
-        if self.last_phase == "Matchmaking" and phase == "Lobby":
-            if not self.config.get("auto_requeue"):
-                self._log("Queue Cancelled. Disabling System...")
-                stop = self.stop_func
-                if stop is not None:
-                    stop()
-                self.pause()
-                return
-
         # Auto-minimize/restore based on InProgress state
         wf = self.window_func
         if wf is not None and phase != self.last_phase:
@@ -176,7 +168,8 @@ class AutomationEngine:
 
         self._handle_ready_check(phase)
         self._handle_champ_select(phase, session_data)
-        self._handle_auto_queue(phase)
+        self._handle_dodge_requeue(phase)
+        self._handle_auto_honor(phase)
         self._check_friend_lobby(phase)
 
         sleep_time = TICK_SLEEP_DEFAULT
@@ -216,16 +209,10 @@ class AutomationEngine:
             self.ready_check_accepted = True
             self._log("Ready Check Accepted!")
 
-    def _handle_auto_queue(self, phase):
-        if not self.config.get("auto_requeue"): return
-
-        if phase != "EndOfGame": self._requeue_handled = False
-        if phase == "EndOfGame" and not self._requeue_handled:
-            self.lcu.request("POST", "/lol-end-of-game/v1/state/dismiss-stats")
-            self.lcu.request("POST", "/lol-lobby/v2/play-again")
-            self._log("Auto Re-Queued (Play Again)")
-            self._requeue_handled = True
-        elif phase == "Lobby":
+    def _handle_dodge_requeue(self, phase):
+        # Auto requeue is stripped out, but we still ensure we re-enter matchmaking
+        # if another player dodges and drops us back to the Lobby phase unexpectedly.
+        if phase == "Lobby" and self.last_phase in ("ChampSelect", "ReadyCheck"):
             now = time.time()
             if hasattr(self, "_cached_search_state") and hasattr(self, "_last_search_state_time") and (now - self._last_search_state_time < 3.0):
                 state = self._cached_search_state
@@ -237,8 +224,7 @@ class AutomationEngine:
             
             if not state or state.get("searchState") != "Searching":
                 self.lcu.request("POST", "/lol-lobby/v2/lobby/matchmaking/search")
-                self._log("Starting Matchmaking...")
-                # Invalidate cache so we don't immediately try again before the state updates
+                self._log("Dodge detected. Restarting Matchmaking...")
                 self._last_search_state_time = 0
 
     def _handle_champ_select(self, phase, session):
@@ -379,8 +365,8 @@ class AutomationEngine:
             self._skin_equipped = False
 
     def _check_friend_lobby(self, phase):
-        # We only try to join when not in game/champ select
-        if phase in ("InProgress", "ChampSelect", "Matchmaking", "ReadyCheck"):
+        # We only try to join when not in game/champ select/readycheck
+        if phase in ("InProgress", "ChampSelect", "ReadyCheck"):
             return
 
         if not self.config.get("auto_join_enabled", True):
@@ -440,6 +426,11 @@ class AutomationEngine:
                                 if my_lobby.get("partyId") == party_id:
                                     return  # Already in their party
 
+                            # If we are currently searching for a match, cancel it first
+                            if phase == "Matchmaking":
+                                self.lcu.request("DELETE", "/lol-lobby/v2/lobby/matchmaking/search")
+                                time.sleep(0.5)
+
                             # Join party
                             join_res = self.lcu.request("POST", f"/lol-lobby/v2/party/{party_id}/join")
                             if join_res and join_res.status_code in [200, 204]:
@@ -447,3 +438,128 @@ class AutomationEngine:
                                 break # Joined a friend, stop iterating the priority list
                     except Exception as e:
                         Logger.debug("Auto", f"Failed parsing friend party: {e}")
+
+    # ── Auto-Honor ──
+    def _handle_auto_honor(self, phase):
+        if phase != "EndOfGame":
+            self._honor_handled = False
+            return
+
+        if not self.config.get("auto_honor_enabled", False):
+            return
+        if self._honor_handled:
+            return
+
+        self._honor_handled = True
+        try:
+            eog = self.lcu.request("GET", "/lol-end-of-game/v1/eog-stats-block")
+            if not eog or eog.status_code != 200:
+                return
+            data = eog.json()
+            game_id = data.get("gameId")
+            my_puuid = None
+            me_req = self.lcu.request("GET", "/lol-chat/v1/me")
+            if me_req and me_req.status_code == 200:
+                my_puuid = me_req.json().get("puuid")
+
+            teams = data.get("teams", [])
+            teammates = []
+            for team in teams:
+                for player in team.get("players", []):
+                    puuid = player.get("puuid", "")
+                    if puuid and puuid != my_puuid:
+                        teammates.append(player)
+
+            if not teammates:
+                return
+
+            strategy = self.config.get("honor_strategy", "random")
+            if strategy == "best_kda":
+                def kda(p):
+                    k = p.get("stats", {}).get("CHAMPIONS_KILLED", 0)
+                    a = p.get("stats", {}).get("ASSISTS", 0)
+                    d = max(p.get("stats", {}).get("NUM_DEATHS", 1), 1)
+                    return (k + a) / d
+                target = max(teammates, key=kda)
+            elif strategy == "mvp":
+                def score(p):
+                    s = p.get("stats", {})
+                    return s.get("CHAMPIONS_KILLED", 0) + s.get("ASSISTS", 0)
+                target = max(teammates, key=score)
+            else:
+                target = random.choice(teammates)
+
+            summoner_id = target.get("summonerId", 0)
+            honor_body = {
+                "gameId": game_id,
+                "honorCategory": "HEART",
+                "summonerId": summoner_id,
+            }
+            res = self.lcu.request("POST", "/lol-honor-v2/v1/honor-player", honor_body)
+            name = target.get("summonerName", "teammate")
+            if res and res.status_code in [200, 204]:
+                self._log(f"Honored {name} ({strategy})")
+            else:
+                Logger.debug("Auto", f"Honor request returned {res.status_code if res else 'None'}")
+        except Exception as e:
+            Logger.debug("Auto", f"Auto-honor error: {e}")
+
+    # ── Mass Invite ──
+    def mass_invite_friends(self):
+        """Invite all online friends (or VIP list) to the current lobby."""
+        try:
+            vip_raw = self.config.get("vip_invite_list", "")
+            vip_names = set()
+            if vip_raw.strip():
+                vip_names = {n.strip().lower() for n in vip_raw.split(",") if n.strip()}
+
+            res = self.lcu.request("GET", "/lol-chat/v1/friends")
+            if not res or res.status_code != 200:
+                self._log("Failed to fetch friends.")
+                return 0
+            friends = res.json()
+
+            invitations = []
+            for f in friends:
+                avail = f.get("availability", "offline")
+                if avail == "offline":
+                    continue
+                game_name = f.get("gameName", "")
+                summoner_id = f.get("summonerId", 0)
+                if not summoner_id:
+                    continue
+                if vip_names and game_name.lower() not in vip_names:
+                    continue
+                invitations.append({
+                    "toSummonerId": summoner_id,
+                    "state": "Requested",
+                })
+
+            if not invitations:
+                self._log("No online friends to invite.")
+                return 0
+
+            inv_res = self.lcu.request("POST", "/lol-lobby/v2/lobby/invitations", invitations)
+            count = len(invitations)
+            if inv_res and inv_res.status_code in [200, 204]:
+                self._log(f"Invited {count} friend(s) to lobby!")
+            else:
+                self._log(f"Invite failed (status {inv_res.status_code if inv_res else 'N/A'})")
+            return count
+        except Exception as e:
+            Logger.debug("Auto", f"Mass invite error: {e}")
+            self._log("Mass invite failed.")
+            return 0
+
+    # ── Custom Status ──
+    def set_custom_status(self, status_text: str):
+        """Push a custom status message to the League Client."""
+        try:
+            body = {"statusMessage": status_text}
+            res = self.lcu.request("PUT", "/lol-chat/v1/me", body)
+            if res and res.status_code in [200, 201]:
+                self._log(f"Status → \"{status_text}\"")
+            else:
+                self._log("Status update failed.")
+        except Exception as e:
+            Logger.debug("Auto", f"Set status error: {e}")
