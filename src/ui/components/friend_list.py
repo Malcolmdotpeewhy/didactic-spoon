@@ -254,6 +254,40 @@ class FriendPriorityList(ctk.CTkFrame):
         self.btn_up_global.pack(side="right", padx=(0, 2))
         CTkTooltip(self.btn_up_global, "Move Up")
 
+        # 🔮 Malcolm's Infusion: Export List Area
+        self.btn_export = ctk.CTkButton(
+            self.header, text="⎘", width=20, height=20,
+            corner_radius=4, font=("Arial", 14),
+            fg_color="transparent",
+            text_color=get_color("colors.text.muted"),
+            hover_color=get_color("colors.state.hover"),
+            command=self._export_list, cursor="hand2",
+            )
+        self.btn_export.pack(side="right", padx=(0, 2))
+        CTkTooltip(self.btn_export, "Export List to Clipboard")
+
+    def _export_list(self):
+        """Copies the active Friend Auto-Join list to the clipboard."""
+        if not self._friends_data:
+            from ui.components.toast import ToastManager
+            ToastManager.get_instance().show("Friend list is empty!", icon="⚠️", theme="error")
+            return
+
+        names = [f.get("name", "") for f in self._friends_data if f.get("name", "")]
+        export_str = "\n".join(names)
+
+        self.clipboard_clear()
+        self.clipboard_append(export_str)
+        self.update()
+
+        from ui.components.toast import ToastManager
+        ToastManager.get_instance().show(
+            "Friend List Copied!",
+            icon="📋",
+            theme="success",
+            confetti=True
+        )
+
     def _build_body(self):
         self.body = ctk.CTkFrame(self, fg_color="transparent")
         self.body.pack(fill="x", pady=(SPACING_SM, SPACING_MD), padx=SPACING_MD)

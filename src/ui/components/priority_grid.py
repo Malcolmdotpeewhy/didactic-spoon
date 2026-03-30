@@ -464,6 +464,27 @@ class PriorityIconGrid(ctk.CTkFrame):
 
         names = self._get_priority_list()
 
+        if not names:
+            # 🔮 Malcolm's Infusion: Interactive Empty State
+            empty_btn = ctk.CTkButton(
+                self.grid_parent,
+                text="+\nAdd Champion",
+                font=get_font("body", "bold"),
+                fg_color="transparent",
+                border_width=1,
+                border_color=get_color("colors.border.subtle"),
+                text_color=get_color("colors.text.muted"),
+                hover_color=get_color("colors.background.card"),
+                width=180, height=80,
+                corner_radius=8,
+                command=self._show_add_input,
+                cursor="hand2"
+            )
+            empty_btn.grid(row=0, column=0, columnspan=ICONS_PER_ROW, pady=20, padx=10)
+            self._icon_widgets.append((empty_btn, empty_btn, -1))
+            self._sync_edit_bar_state()
+            return
+
         # ⚡ Bolt: Lift static color lookups outside the grid generation loop and event handlers
         # to prevent repetitive string parsing overhead and optimize high-frequency hover events.
         _hover_border = get_color("colors.accent.gold", "#C8AA6E")
