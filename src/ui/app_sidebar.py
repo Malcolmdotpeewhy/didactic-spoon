@@ -80,7 +80,8 @@ class SidebarWidget(ctk.CTkFrame):
             command=self._minimize_window, cursor="hand2",
             )
         self.btn_minimize.pack(side="right", padx=(4, 1))
-        self.tooltip_minimize = CTkTooltip(self.btn_minimize, "Minimize Sidebar")
+        hk_compact = self.config.get("hotkey_compact_mode", "ctrl+shift+m").upper()
+        self.tooltip_minimize = CTkTooltip(self.btn_minimize, f"Minimize Sidebar ({hk_compact})")
 
         self.drag_widgets = [self, self.header, self.lbl_title]
 
@@ -106,7 +107,8 @@ class SidebarWidget(ctk.CTkFrame):
             command=self._on_power_click
         )
         self.btn_power_status.pack(side="left", padx=(0, 4))
-        CTkTooltip(self.btn_power_status, "Toggle Automation")
+        hk_auto = self.config.get("hotkey_toggle_automation", "ctrl+shift+a").upper()
+        CTkTooltip(self.btn_power_status, f"Toggle Automation ({hk_auto})")
 
         self.var_game_mode = ctk.StringVar(value=self.config.get("aram_mode", "ARAM"))
         self.opt_game_mode = ctk.CTkOptionMenu(
@@ -228,7 +230,8 @@ class SidebarWidget(ctk.CTkFrame):
             command=self._find_match
         )
         self.btn_find_match.pack(fill="x", pady=0)
-        CTkTooltip(self.btn_find_match, "Start or Cancel Matchmaking")
+        hk_find = self.config.get("hotkey_find_match", "ctrl+shift+f").upper()
+        CTkTooltip(self.btn_find_match, f"Start or Cancel Matchmaking ({hk_find})")
 
         # ── STEP 2: Divider above Quick Actions ──
         self.actions_divider = ctk.CTkFrame(
@@ -282,7 +285,8 @@ class SidebarWidget(ctk.CTkFrame):
             command=lambda: self.master._hotkey_launch_client() if hasattr(self.master, "_hotkey_launch_client") else None
         )
         self.btn_launch_client.pack(fill="x", pady=(SPACING_SM, 0))
-        CTkTooltip(self.btn_launch_client, "Open the Riot Client and start League")
+        hk_launch = self.config.get("hotkey_launch_client", "ctrl+shift+l").upper()
+        CTkTooltip(self.btn_launch_client, f"Open the Riot Client and start League ({hk_launch})")
         
         # Divider after button
         self.divider_btn = ctk.CTkFrame(self.main_body, height=1, fg_color="#1E2328")

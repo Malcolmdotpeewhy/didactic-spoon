@@ -10,3 +10,6 @@
 ## 2026-03-29 - Interactive Label Affordances
 **Learning:** In CustomTkinter, `CTkLabel` elements acting as buttons or toggles (like collapsible section headers) do not inherently provide hover affordances. Without explicitly setting `cursor="hand2"` and text color hover states, users lack the visual cue that the element is interactive.
 **Action:** Always apply explicit cursor and hover color bindings to interactive labels to ensure accessibility and intuitive UX.
+## 2024-05-19 - Keyboard Shortcut Discoverability
+**Learning:** Users often miss global hotkeys because they are hidden within the settings menu. Adding dynamic keyboard shortcut hints directly to the tooltips of corresponding UI buttons significantly improves hotkey discoverability and overall keyboard accessibility without cluttering the main interface.
+**Action:** Always append keyboard shortcut hints (e.g., `(CTRL+SHIFT+X)`) to the tooltips of interactive elements that are bound to global hotkeys.
