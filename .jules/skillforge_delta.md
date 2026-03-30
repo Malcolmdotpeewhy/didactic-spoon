@@ -25,3 +25,8 @@
 - Change: Mandated that skills within each category in skills.md must be sorted in descending order of their total score.
 - Reason: Self-audit detected readability issues with raw numbers in the equation and observed that listing high-proficiency skills first improves the usability of the capability model.
 - Impact: Enhanced at-a-glance comprehension of scoring variables and improved structural efficiency of skills.md.
+
+## Version: v1.4 → v1.5
+- Change: Reverted skill scoring weights for complexity (0.3 -> 0.25) and recency (0.1 -> 0.15) to original model.
+- Reason: Self-audit detected drift where scoring formula in skills.md did not align with original specification.
+- Impact: Restored accurate skill representation and aligned Target System with Self System rules.

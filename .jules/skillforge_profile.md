@@ -77,7 +77,7 @@ Each version includes:
 [Inference] The agent may evolve its scoring formula over time.
 
 **Initial model:**
-`Score = (Evidence × 0.4) + (Frequency × 0.2) + (Complexity × 0.3) + (Recency × 0.1)`
+`Score = (Evidence × 0.4) + (Frequency × 0.2) + (Complexity × 0.25) + (Recency × 0.15)`
 
 **Confidence Thresholds:**
 - High: Score >= 7.5
