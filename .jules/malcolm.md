@@ -11,3 +11,6 @@
 ## 2024-03-29 - Contextual Feedback for Configuration Inputs
 **Learning:** Providing immediate, contextual micro-feedback (like success flashes or error nudges) on configuration inputs (e.g., hotkey recording) transforms a dry, error-prone task into an intuitive, gamified experience, reducing cognitive load and increasing confidence.
 **Action:** When designing data entry or configuration components, always incorporate distinct visual and textual states for 'listening', 'success', and 'invalid' to provide continuous haptic-like feedback.
+## 2024-05-24 - Interactive Empty States turn Dead Ends into Conversion Points
+**Learning:** Empty lists (like Priority or Friends) present a "dead end" friction point for new users. Instead of leaving a blank space, transforming the empty area into a large, themed, interactive dropzone/button significantly reduces cognitive load and directs immediate user action.
+**Action:** Always verify what the "empty state" of a component looks like. If it lacks clear instruction, replace it with a low-friction, gamified call-to-action button that directly launches the creation flow.
