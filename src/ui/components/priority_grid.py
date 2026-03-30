@@ -962,6 +962,14 @@ class PriorityIconGrid(ctk.CTkFrame):
         if event.keysym in ("Return", "Escape", "Up", "Down", "Left", "Right", "Tab"):
             return
 
+        # ⚡ Bolt: Debounce champion search input to prevent UI thread lag from
+        # O(N) widget destruction and recreation on rapid keystrokes.
+        if hasattr(self, "_debounce_timer") and self._debounce_timer is not None:
+            self.after_cancel(self._debounce_timer)
+
+        self._debounce_timer = self.after(150, self._perform_add_search)
+
+    def _perform_add_search(self):
         query = self.add_entry.get().strip().lower()
 
         # Clear existing suggestions

@@ -159,6 +159,14 @@ class Omnibar(ctk.CTkFrame):
         # Ignore navigation keys
         if event.keysym in ("Up", "Down", "Return", "Escape"):
             return
+
+        # ⚡ Bolt: Debounce search input to reduce UI blocking on rapid keystrokes
+        if hasattr(self, "_debounce_timer") and self._debounce_timer is not None:
+            self.after_cancel(self._debounce_timer)
+
+        self._debounce_timer = self.after(150, self._perform_search)
+
+    def _perform_search(self):
         query = self.search_input.get().strip().lower()
         self._filter_results(query)
 
