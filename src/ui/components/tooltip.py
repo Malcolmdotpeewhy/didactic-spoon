@@ -81,6 +81,12 @@ class CTkTooltip:
         except Exception as e:  # pylint: disable=broad-exception-caught
             Logger.error("tooltip.py", f"Tooltip Error: {e}")
 
+    def configure(self, text=None, delay=None):
+        if text is not None:
+            self.text = text
+        if delay is not None:
+            self.delay = delay
+
     def animate_in(self):
         """Holographic slide-up animation."""
         try:

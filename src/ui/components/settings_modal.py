@@ -39,6 +39,7 @@ class HotkeyRecorder(ctk.CTkButton):
             # type: ignore
             **kwargs,
         )
+        self._tooltip = CTkTooltip(self, "Click to record a new hotkey")
 
     def _toggle_recording(self):
         if self._recording:
@@ -55,6 +56,8 @@ class HotkeyRecorder(ctk.CTkButton):
             text_color="#ffffff",
             border_color=get_color("colors.accent.primary"),
         )
+        if hasattr(self, "_tooltip"):
+            self._tooltip.configure(text="Press your desired key combination")
         self._hook = keyboard.on_press(self._on_key_press)
         self._animate_pulse()
 
@@ -118,12 +121,14 @@ class HotkeyRecorder(ctk.CTkButton):
             if self._pressed_keys and not non_modifiers:
                 # Invalid hotkey (only modifiers)
                 self.configure(
-                    text="! Invalid",
+                    text="! Needs a key",
                     fg_color=get_color("colors.state.warning", "#E67E22"),
                     text_color="#ffffff",
                     border_color=get_color("colors.state.warning", "#E67E22"),
                 )
-                self.after(800, self._revert_visuals)
+                if hasattr(self, "_tooltip"):
+                    self._tooltip.configure(text="A non-modifier key is required")
+                self.after(1200, self._revert_visuals)
                 return
             else:
                 self._revert_visuals()
@@ -150,6 +155,8 @@ class HotkeyRecorder(ctk.CTkButton):
             text_color=get_color("colors.text.primary"),
             border_color=get_color("colors.border.subtle"),
         )
+        if hasattr(self, "_tooltip"):
+            self._tooltip.configure(text="Click to record a new hotkey")
 
     def get(self):
         return self._hotkey_value

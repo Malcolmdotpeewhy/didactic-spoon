@@ -13,3 +13,7 @@
 ## 2024-05-19 - Keyboard Shortcut Discoverability
 **Learning:** Users often miss global hotkeys because they are hidden within the settings menu. Adding dynamic keyboard shortcut hints directly to the tooltips of corresponding UI buttons significantly improves hotkey discoverability and overall keyboard accessibility without cluttering the main interface.
 **Action:** Always append keyboard shortcut hints (e.g., `(CTRL+SHIFT+X)`) to the tooltips of interactive elements that are bound to global hotkeys.
+
+## 2024-03-31 - Actionable Configuration Errors
+**Learning:** Generic error states like "Invalid" in configuration inputs (like HotkeyRecorder) fail to provide guidance. Users need to know *why* it failed (e.g., only modifiers were pressed).
+**Action:** Always provide actionable micro-copy (e.g., "! Needs a key") and sufficient display duration (1200ms) for temporary error states.
