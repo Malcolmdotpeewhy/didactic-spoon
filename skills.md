@@ -8,6 +8,13 @@
   - Confidence: High
 - **[Inference]** Strong grasp of extending `ctk.CTkFrame`, applying `get_color()`, and avoiding unsupported kwargs for stability.
 
+### Event Loop Optimization
+- **Description:** Eliminate main thread latency by precomputing static variables for high-frequency event handlers.
+- **Scoring Breakdown:**
+  - Score: (E:8 x 0.4) + (F:7 x 0.2) + (C:7 x 0.25) + (R:9 x 0.15) = 7.70
+  - Confidence: High
+- **[Inference]** Understands how to prevent micro-stuttering in Tkinter/CustomTkinter by moving O(N) operations and variable initializations out of the hot path.
+
 ### Add Toast Notification
 - **Description:** Show a toast notification from anywhere in the application.
 - **Scoring Breakdown:**
@@ -95,6 +102,14 @@
   - Confidence: Low
 - **[Inference]** Able to extend global command palette logic efficiently.
 
+## Testing & Quality Assurance
+### Advanced UI Mock Testing
+- **Description:** Test CustomTkinter logic using `sys.modules` patching and headless xvfb environments.
+- **Scoring Breakdown:**
+  - Score: (E:9 x 0.4) + (F:6 x 0.2) + (C:8 x 0.25) + (R:9 x 0.15) = 8.15
+  - Confidence: High
+- **[Inference]** Capable of testing UI components dynamically by bypassing strict CustomTkinter instantiation limits.
+
 ## DevOps & Environment Setup
 ### Run Tests
 - **Description:** Run the LeagueLoop test suite and diagnose failures.
@@ -146,8 +161,8 @@
 - **[Inference]** Capable of generating deployment installers from build outputs.
 ## Gap Analysis
 - **Missing CI/CD Automation:** While `Build Executable` and `Build Installer` skills exist, they are manual processes.
-- **Limited Advanced Testing:** `Run Tests` shows capability with basic unit tests, but there's a gap in advanced mock integration testing.
+- **Limited Cross-Platform Testing:** Advanced UI Mock testing focuses on Linux via `xvfb-run`; capability on Windows `windnd` and macOS is untested.
 
 ## Skill Recommendations
 - **Learn CI/CD Automation:** Implement GitHub Actions to automate the `Build Executable` and `Build Installer` steps to eliminate manual building and reduce friction in deployments.
-- **Enhance Testing Skills:** Develop skills in advanced mock integration testing, especially for UI components and LCU API interactions, to improve overall code reliability and confidence in automated refactoring.
+- **Expand Test Matrix:** Add multi-os test matrices to GitHub Actions to verify CustomTkinter implementations across diverse environments.

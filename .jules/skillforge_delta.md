@@ -35,3 +35,8 @@
 - Change: Enforced exact two-decimal precision (e.g., 8.30, 7.05) for all score calculations and threshold evaluations in `skills.md`.
 - Reason: Self-audit detected arithmetic drift and inconsistent rounding in existing scores (e.g., 8.05 rounded to 8.0, 7.75 rounded to 7.8, and 7.45 triggering rounding anomalies relative to the 7.50 Confidence threshold).
 - Impact: Improved mathematical determinism, accuracy of the scoring model, and exact precision of confidence classification boundaries.
+
+## Version: v1.6 → v1.7
+- Change: Ingested recent capabilities involving Advanced UI Mock Testing and Event Loop Optimization into the Target System (`skills.md`). Re-evaluated the Gap Analysis based on these added capabilities.
+- Reason: Routine execution loop to continuously map user capability models against observed outcomes. The previous gap concerning advanced integration testing was successfully resolved by the new UI tests.
+- Impact: Ensured `skills.md` remains highly accurate to real-world outcomes and reflects recent performance engineering implementations.
