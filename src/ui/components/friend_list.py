@@ -399,6 +399,11 @@ class FriendPriorityList(ctk.CTkFrame):
             self.body.pack_forget()
             self.lbl_section.configure(text="▶  FRIEND AUTO-JOIN")
 
+    def _focus_add_input(self):
+        # We don't need to check if it's expanded, because the button is only
+        # visible if the list is expanded.
+        self.combo_add.entry.focus_set()
+
     def _render_list(self):
         # We unpack directly into the scroll frame to avoid nest bloat as requested
         for w in self.list_parent.winfo_children():
@@ -406,8 +411,22 @@ class FriendPriorityList(ctk.CTkFrame):
             
         lst = self._friends_data
         if not lst:
-            lbl = ctk.CTkLabel(self.list_parent, text="No friends configured.\nType a name and click Add.", font=get_font("caption"), text_color=get_color("colors.text.muted"))
-            lbl.pack(pady=20)
+            # 🔮 Malcolm's Infusion: Interactive Empty State
+            empty_btn = ctk.CTkButton(
+                self.list_parent,
+                text="+\nAdd Friend",
+                font=get_font("body", "bold"),
+                fg_color="transparent",
+                border_width=1,
+                border_color=get_color("colors.border.subtle"),
+                text_color=get_color("colors.text.muted"),
+                hover_color=get_color("colors.background.card"),
+                width=180, height=80,
+                corner_radius=8,
+                command=self._focus_add_input,
+                cursor="hand2"
+            )
+            empty_btn.pack(pady=20)
             return
 
         # ⚡ Bolt: Apply LICM for faster list rendering
