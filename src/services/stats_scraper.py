@@ -120,11 +120,10 @@ class StatsScraper:
 
         results = {}
         try:
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(html, "html.parser")
-            script_tag = soup.find("script", id="__NEXT_DATA__")
-            if script_tag and script_tag.string:
-                nd = json.loads(script_tag.string)
+            # ⚡ Bolt: Replace heavy BeautifulSoup DOM parsing with fast regex extraction
+            match = re.search(r'<script\s+id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.DOTALL | re.IGNORECASE)
+            if match:
+                nd = json.loads(match.group(1))
                 # Navigate the nested structure
                 props = nd.get("props", {}).get("pageProps", {})
                 champs = props.get("data", props.get("champions", {}))
@@ -142,7 +141,7 @@ class StatsScraper:
                                 clean = name.translate(_CLEAN_TRANS).lower()
                                 results[clean] = float(wr)
         except Exception as e:
-            Logger.debug("Stats", f"BS4 parsing failed for lolalytics: {e}")
+            Logger.debug("Stats", f"JSON parsing failed for lolalytics: {e}")
 
         # Also try regex fallback for win rate data in the HTML
         if not results:
@@ -179,40 +178,23 @@ class StatsScraper:
 
         results = {}
         try:
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(html, "html.parser")
+            # ⚡ Bolt: Replace heavy BeautifulSoup DOM parsing with fast regex extraction
             # Metasrc typically uses a table where rows have data-champ
-            rows = soup.find_all("tr", attrs={"data-champ": True})
+            rows = re.finditer(r'<tr[^>]*data-champ="([^"]+)"[^>]*>(.*?)</tr>', html, re.IGNORECASE | re.DOTALL)
             for row in rows:
-                champ = row["data-champ"].translate(_CLEAN_TRANS).lower()
-                # Find all percentages in text
-                text = row.get_text()
+                champ = row.group(1).translate(_CLEAN_TRANS).lower()
+                # Strip HTML tags to get pure text content for percentage search
+                text = re.sub(r'<[^>]+>', '', row.group(2))
                 pcts = re.findall(r'([\d.]+)%', text)
                 if pcts:
                     try:
                         results[champ] = float(pcts[0])
                     except ValueError:
                         pass
-                        
-            # If the table structure changed, look for build links
-            if len(results) < 20:
-                links = soup.find_all("a", href=re.compile(r'/build/'))
-                for link in links:
-                    name_el = link.string
-                    if not name_el: continue
-                    champ = name_el.strip().translate(_CLEAN_TRANS).lower()
-                    parent = link.find_parent(["tr", "div"])
-                    if parent:
-                        pcts = re.findall(r'(\d{2}\.\d{2})%', parent.get_text())
-                        for pct_str in pcts:
-                            wr = float(pct_str)
-                            if 35.0 <= wr <= 65.0:
-                                results[champ] = wr
-                                break
         except Exception as e:
-            Logger.debug("Stats", f"BS4 parsing failed for metasrc: {e}")
+            Logger.debug("Stats", f"Regex parsing failed for metasrc strategy 1: {e}")
 
-        # Strategy 2 Fallback: Regex
+        # Strategy 2 Fallback: Regex for build links if table structure changed
         if len(results) < 20:
             build_matches = re.finditer(r'/build/([a-z\-]+)"[^>]*>([^<]+)</a>', html, re.IGNORECASE)
             for match in build_matches:

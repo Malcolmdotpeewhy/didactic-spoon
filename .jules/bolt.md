@@ -22,3 +22,7 @@
 ## 2026-03-30 - Optimize Hovered Champion Lookups in High-Frequency UI
 **Learning:** High-frequency UI event handlers (like updating hovered champions from LCU data) that perform O(N) list iterations with repeated string `.lower()` allocations on both the target and the list items cause unnecessary CPU overhead and micro-stuttering in Tkinter applications.
 **Action:** Optimize O(N) membership checks inside UI loops by pre-caching the lowercase target string and using a short-circuiting generator expression (`any()`) to minimize string allocations.
+
+## 2026-03-31 - Expensive BeautifulSoup parsing blocks background threads
+**Learning:** In Python web scrapers, importing and using heavy DOM parsers like `BeautifulSoup` on background threads can still cause CPU spikes that delay the main UI thread, especially when only extracting a simple JSON payload or a small set of known table rows.
+**Action:** To optimize Python web scrapers and prevent background thread CPU spikes from blocking the main UI thread, replace heavy DOM parsers (like `BeautifulSoup`) with targeted regular expressions (`re.search` or `re.findall`) when extracting simple JSON payloads or specific known HTML structures.
