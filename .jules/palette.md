@@ -17,3 +17,6 @@
 ## 2024-03-31 - Actionable Configuration Errors
 **Learning:** Generic error states like "Invalid" in configuration inputs (like HotkeyRecorder) fail to provide guidance. Users need to know *why* it failed (e.g., only modifiers were pressed).
 **Action:** Always provide actionable micro-copy (e.g., "! Needs a key") and sufficient display duration (1200ms) for temporary error states.
+## 2026-03-31 - Keyboard Accessibility on CustomTkinter Settings
+**Learning:** High-density configuration modals using CustomTkinter buttons for hotkey recording severely limit keyboard users because they lack default focus rings and space/enter activation.
+**Action:** Explicitly bind <FocusIn>, <FocusOut>, <KeyPress-space>, and <KeyPress-Return> to interactive elements like HotkeyRecorder to guarantee WCAG-compliant keyboard operability.
