@@ -41,6 +41,25 @@ class HotkeyRecorder(ctk.CTkButton):
         )
         self._tooltip = CTkTooltip(self, "Click to record a new hotkey")
 
+        # 🎨 Palette: Keyboard Accessibility Focus States
+        self._focus_border = get_color("colors.accent.primary", "#0AC8B9")
+        self._unfocus_border = get_color("colors.border.subtle")
+
+        if hasattr(self, "_canvas"):
+            self._canvas.configure(takefocus=1)
+            self._canvas.bind("<FocusIn>", self._on_focus, add="+")
+            self._canvas.bind("<FocusOut>", self._on_unfocus, add="+")
+            self._canvas.bind("<KeyPress-space>", lambda e: self._toggle_recording(), add="+")
+            self._canvas.bind("<KeyPress-Return>", lambda e: self._toggle_recording(), add="+")
+
+    def _on_focus(self, event=None):
+        if not self._recording:
+            self.configure(border_color=self._focus_border, border_width=2)
+
+    def _on_unfocus(self, event=None):
+        if not self._recording:
+            self.configure(border_color=self._unfocus_border, border_width=1)
+
     def _toggle_recording(self):
         if self._recording:
             self._stop_recording(cancel=True)
