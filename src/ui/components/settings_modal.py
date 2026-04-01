@@ -14,6 +14,18 @@ class HotkeyRecorder(ctk.CTkButton):
     Click to start recording → press your key combo → it captures and displays it.
     """
 
+    _MODIFIERS_MAP = {
+        "left ctrl": "ctrl", "right ctrl": "ctrl",
+        "left shift": "shift", "right shift": "shift",
+        "left alt": "alt", "right alt": "alt",
+        "left windows": "win", "right windows": "win",
+        "control_l": "ctrl", "control_r": "ctrl",
+        "shift_l": "shift", "shift_r": "shift",
+        "alt_l": "alt", "alt_r": "alt",
+    }
+    _MODIFIER_NAMES = {"ctrl", "shift", "alt", "win"}
+    _MODIFIER_ORDER = ["ctrl", "shift", "alt", "win"]
+
     def __init__(self, master, initial_value="", **kwargs):
         self._hotkey_value = initial_value
         self._recording = False
@@ -100,23 +112,14 @@ class HotkeyRecorder(ctk.CTkButton):
         ev_name = getattr(event, "name", None)
         name = ev_name.lower() if isinstance(ev_name, str) else ""
 
-        modifiers_map = {
-            "left ctrl": "ctrl", "right ctrl": "ctrl",
-            "left shift": "shift", "right shift": "shift",
-            "left alt": "alt", "right alt": "alt",
-            "left windows": "win", "right windows": "win",
-            "control_l": "ctrl", "control_r": "ctrl",
-            "shift_l": "shift", "shift_r": "shift",
-            "alt_l": "alt", "alt_r": "alt",
-        }
-        name = modifiers_map.get(name, name)
+        # ⚡ Bolt: Use pre-allocated static maps to avoid dictionary allocation overhead on every keystroke
+        name = self._MODIFIERS_MAP.get(name, name)
         self._pressed_keys.add(name)
 
-        modifier_names = {"ctrl", "shift", "alt", "win"}
-        non_modifiers = self._pressed_keys - modifier_names
+        non_modifiers = self._pressed_keys - self._MODIFIER_NAMES
         if non_modifiers:
             parts = []
-            for mod in ["ctrl", "shift", "alt", "win"]:
+            for mod in self._MODIFIER_ORDER:
                 if mod in self._pressed_keys:
                     parts.append(mod)
             parts.extend(sorted(non_modifiers))
@@ -135,8 +138,7 @@ class HotkeyRecorder(ctk.CTkButton):
 
         if cancel:
             # Check if they only pressed modifiers
-            modifier_names = {"ctrl", "shift", "alt", "win"}
-            non_modifiers = self._pressed_keys - modifier_names
+            non_modifiers = self._pressed_keys - self._MODIFIER_NAMES
             if self._pressed_keys and not non_modifiers:
                 # Invalid hotkey (only modifiers)
                 self.configure(
