@@ -24,3 +24,7 @@
 ## 2024-05-20 - Global Button Cursor Affordance
 **Learning:** Base CustomTkinter button components do not default to `cursor="hand2"`. Missing this across shared components like `IconButton`, `PrimaryButton`, and `SidebarItem` causes a systemic lack of visual feedback for interactive elements.
 **Action:** Always ensure `cursor="hand2"` is passed down to `super().__init__` in generic button wrapper classes to guarantee global interaction consistency.
+
+## 2024-05-21 - Interactive List Results Affordance
+**Learning:** In CustomTkinter, complex interactive list items (like the search results in the Omnibar) that are built from generic frames and labels (`CTkFrame`, `CTkLabel`) do not inherently show a pointing cursor on hover. Without explicitly setting `cursor="hand2"` on the container and all its children, users miss the critical visual cue that the entire row is clickable.
+**Action:** Always apply `cursor="hand2"` to all sub-components (frames, icons, text labels) of an interactive list item to ensure uniform hover affordances across the entire clickable area.

@@ -226,7 +226,8 @@ class Omnibar(ctk.CTkFrame):
                 self.results_frame,
                 fg_color=bg_color,
                 corner_radius=_radius_sm,
-                height=48
+                height=48,
+                cursor="hand2"
             )
             row.pack(fill="x", padx=_pad_sm, pady=2)
             row.pack_propagate(False)
@@ -237,11 +238,12 @@ class Omnibar(ctk.CTkFrame):
                 text=cmd.get("icon", "⚡"),
                 font=_font_body,
                 text_color=text_color,
-                width=30
+                width=30,
+                cursor="hand2"
             ).pack(side="left", padx=(_pad_sm, _pad_xs))
 
             # Text Container
-            text_cont = ctk.CTkFrame(row, fg_color="transparent")
+            text_cont = ctk.CTkFrame(row, fg_color="transparent", cursor="hand2")
             text_cont.pack(side="left", fill="both", expand=True)
 
             ctk.CTkLabel(
@@ -249,7 +251,8 @@ class Omnibar(ctk.CTkFrame):
                 text=cmd.get("title", ""),
                 font=_font_body_bold,
                 text_color=text_color,
-                anchor="w"
+                anchor="w",
+                cursor="hand2"
             ).pack(fill="x", side="top", pady=(4, 0))
 
             if cmd.get("subtitle"):
@@ -258,7 +261,8 @@ class Omnibar(ctk.CTkFrame):
                     text=cmd.get("subtitle", ""),
                     font=_font_caption,
                     text_color=sub_color,
-                    anchor="w"
+                    anchor="w",
+                    cursor="hand2"
                 ).pack(fill="x", side="top")
 
             # Click binding
