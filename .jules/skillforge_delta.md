@@ -45,3 +45,8 @@
 - Change: Ingested recent capabilities involving UI Affordances, Drag-and-Drop integration, Background Task testing, and Security mitigations into the Target System (`skills.md`). Re-evaluated the Gap Analysis based on these added capabilities.
 - Reason: Routine execution loop to continuously map user capability models against observed outcomes. New skills were added based on recent system modifications.
 - Impact: Ensured `skills.md` remains highly accurate to real-world outcomes and reflects recent UX, testing, and security engineering implementations.
+
+## Version: v1.8 → v1.9
+- Change: Ingested recent capabilities involving Hover State Normalization and UI Instantiation Testing into the Target System (`skills.md`). Re-evaluated the Gap Analysis based on these added capabilities.
+- Reason: Routine execution loop to continuously map user capability models against observed outcomes. New skills were added based on recent system modifications.
+- Impact: Ensured `skills.md` remains highly accurate to real-world outcomes and reflects recent UX automation and UI testing implementations.
