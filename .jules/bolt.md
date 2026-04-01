@@ -34,3 +34,7 @@
 ## 2026-03-31 - Synchronous Asset Loading in UI Loops
 **Learning:** Loading remote assets (like icons or images) synchronously within a UI render loop forces the main thread to wait for the download/read operation to complete. This leads to severe UI thread freezing and rendering stalls, especially when dealing with lists or grids where multiple assets are loaded sequentially.
 **Action:** Replace synchronous loading calls (e.g., `get_icon`) with asynchronous equivalents (e.g., `get_icon_async`) inside UI loops. Provide a callback to update the widget safely once the asset is ready, ensuring the main UI thread remains responsive during rendering.
+
+## 2024-06-25 - Loop Invariant Code Motion (LICM) for Dynamic Search Parameters
+**Learning:** In UI search loops (like queue resolution), performing string normalization (e.g., `.lower()`) on the static search parameter (like `mode`) inside the loop causes unnecessary string allocation overhead on every iteration.
+**Action:** Hoist the static target string's normalization outside the loop. Combine this with a short-circuiting generator expression or O(1) lookups to prevent redundant string allocations on every iteration.

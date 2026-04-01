@@ -575,12 +575,16 @@ class SidebarWidget(ctk.CTkFrame):
                         if "mayhem" in name or "mayhem" in desc:
                             return int(q.get("id"))
 
-                for q in queues:
-                    if q.get("isCustom"): continue
-                    q_name = q.get("name")
-                    if isinstance(mode, str) and isinstance(q_name, str):
-                        if mode.lower() in q_name.lower():
-                            return int(q.get("id"))
+                # ⚡ Bolt: Hoist the target string's normalization outside the loop
+                # to prevent redundant string allocations on every iteration.
+                if isinstance(mode, str):
+                    mode_lower = mode.lower()
+                    for q in queues:
+                        if q.get("isCustom"): continue
+                        q_name = q.get("name")
+                        if isinstance(q_name, str):
+                            if mode_lower in q_name.lower():
+                                return int(q.get("id"))
         except Exception:
             pass
         return 450 # Default to ARAM
