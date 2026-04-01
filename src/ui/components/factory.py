@@ -147,6 +147,10 @@ class RiotButton(ctk.CTkFrame):
             self.lbl.configure(text=kwargs.pop("text"))
         if "text_color" in kwargs:
             self.lbl.configure(text_color=kwargs.pop("text_color"))
+        if "inner_color" in kwargs:
+            inner_c = kwargs.pop("inner_color")
+            self.inner.configure(fg_color=inner_c)
+            self._inner_color = inner_c
         if "command" in kwargs:
             self.command = kwargs.pop("command")
         if kwargs:
