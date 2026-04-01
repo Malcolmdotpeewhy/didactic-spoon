@@ -26,3 +26,7 @@
 ## 2026-03-31 - Expensive BeautifulSoup parsing blocks background threads
 **Learning:** In Python web scrapers, importing and using heavy DOM parsers like `BeautifulSoup` on background threads can still cause CPU spikes that delay the main UI thread, especially when only extracting a simple JSON payload or a small set of known table rows.
 **Action:** To optimize Python web scrapers and prevent background thread CPU spikes from blocking the main UI thread, replace heavy DOM parsers (like `BeautifulSoup`) with targeted regular expressions (`re.search` or `re.findall`) when extracting simple JSON payloads or specific known HTML structures.
+
+## 2024-06-25 - Local Data Structure Allocation in High-Frequency Key Events
+**Learning:** Re-allocating static data structures (like maps, sets, and lists) inside high-frequency keyboard event handlers (e.g. `_on_key_press` in `HotkeyRecorder`) causes unnecessary heap allocations and garbage collection pressure, leading to micro-stutters during rapid input.
+**Action:** Move static data structures (like modifier key maps) to class-level variables or constants to eliminate runtime allocation overhead on the hot path.
