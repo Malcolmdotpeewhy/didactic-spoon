@@ -30,3 +30,7 @@
 ## 2024-06-25 - Local Data Structure Allocation in High-Frequency Key Events
 **Learning:** Re-allocating static data structures (like maps, sets, and lists) inside high-frequency keyboard event handlers (e.g. `_on_key_press` in `HotkeyRecorder`) causes unnecessary heap allocations and garbage collection pressure, leading to micro-stutters during rapid input.
 **Action:** Move static data structures (like modifier key maps) to class-level variables or constants to eliminate runtime allocation overhead on the hot path.
+
+## 2026-03-31 - Synchronous Asset Loading in UI Loops
+**Learning:** Loading remote assets (like icons or images) synchronously within a UI render loop forces the main thread to wait for the download/read operation to complete. This leads to severe UI thread freezing and rendering stalls, especially when dealing with lists or grids where multiple assets are loaded sequentially.
+**Action:** Replace synchronous loading calls (e.g., `get_icon`) with asynchronous equivalents (e.g., `get_icon_async`) inside UI loops. Provide a callback to update the widget safely once the asset is ready, ensuring the main UI thread remains responsive during rendering.

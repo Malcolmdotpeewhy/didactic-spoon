@@ -46,10 +46,14 @@ class DraggableList(ctk.CTkScrollableFrame):
             
             # Champion Icon
             if self.asset_manager:
-                icon = self.asset_manager.get_icon("champion", item, size=(32, 32))
-                if icon:
-                    lbl_icon = ctk.CTkLabel(frame, text="", image=icon)
-                    lbl_icon.pack(side="left", padx=5)
+                lbl_icon = ctk.CTkLabel(frame, text="", width=32, height=32)
+                lbl_icon.pack(side="left", padx=5)
+
+                def _update_icon(img, lbl=lbl_icon):
+                    if lbl.winfo_exists():
+                        lbl.configure(image=img)
+
+                self.asset_manager.get_icon_async("champion", item, _update_icon, size=(32, 32), widget=lbl_icon)
             
             # Name
             display_name = item
