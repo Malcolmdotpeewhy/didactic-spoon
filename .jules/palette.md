@@ -34,3 +34,6 @@
 ## 2024-04-02 - Interactive Collapsible Headers
 **Learning:** In CustomTkinter, structural UI elements acting as toggle buttons (like CardHeader labels) do not natively receive standard click interaction affordances, resulting in a hidden hit area that decreases discoverability. Users intuitively attempt to click the header text itself rather than just a tiny trailing icon button.
 **Action:** When creating collapsible UI sections or composite widgets, explicitly bind `<Button-1>` to the main descriptive label, set `cursor="hand2"`, and implement visual hover feedback via `<Enter>` and `<Leave>` bindings changing `text_color` to expand the actionable target area.
+## 2024-03-24 - Interactive Toasts
+**Learning:** Temporary feedback overlays (like Toasts) in CustomTkinter UIs benefit greatly from click-to-dismiss interactivity, but rapid clicking during animations can cause stacking bugs if state isn't guarded.
+**Action:** Always bind click-to-dismiss handlers with standard `cursor="hand2"` affordances to both the main frame and internal child labels. Guard the dismiss action with a flag (e.g., `_is_dismissing`) to prevent animation stacking on rapid clicks.

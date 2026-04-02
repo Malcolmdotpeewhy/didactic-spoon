@@ -26,31 +26,38 @@ class Toast(ctk.CTkFrame):
             fg_color=bg_hex,
             corner_radius=get_radius("md"),
             border_width=1,
-            border_color=border_c
+            border_color=border_c,
+            cursor="hand2"
         )
         
         self.duration = duration
+        self._is_dismissing = False
 
         # Malcolm's UX Enhancement: Add subtle hover effect for interactive feel
         self.bind("<Enter>", self._on_hover)
         self.bind("<Leave>", self._on_leave)
+
+        # Palette: Make toast interactive and dismissable
+        self.bind("<Button-1>", lambda e: self.dismiss())
 
         # Layout
         self.grid_columnconfigure(1, weight=1)
         
         # Icon
         self.lbl_icon = ctk.CTkLabel(
-            self, text=icon, font=get_font("body"), width=30
+            self, text=icon, font=get_font("body"), width=30, cursor="hand2"
         )
         self.lbl_icon.grid(row=0, column=0, padx=(10, 5), pady=10)
+        self.lbl_icon.bind("<Button-1>", lambda e: self.dismiss())
 
         # Message
         self.lbl_msg = ctk.CTkLabel(
             self, text=message, font=get_font("body", "medium"),
             text_color=get_color("colors.text.primary"),
-            anchor="w", justify="left", wraplength=250
+            anchor="w", justify="left", wraplength=250, cursor="hand2"
         )
         self.lbl_msg.grid(row=0, column=1, padx=(5, 15), pady=10)
+        self.lbl_msg.bind("<Button-1>", lambda e: self.dismiss())
 
         # Slide-in Animation State
         self._target_y = 5 # Padding target
@@ -174,6 +181,9 @@ class Toast(ctk.CTkFrame):
 
     def dismiss(self):
         """Start the dismissal animation."""
+        if self._is_dismissing:
+            return
+        self._is_dismissing = True
         self._slide_out()
 
     def _slide_out(self):
