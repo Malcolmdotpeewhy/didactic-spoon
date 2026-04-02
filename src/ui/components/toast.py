@@ -26,7 +26,8 @@ class Toast(ctk.CTkFrame):
             fg_color=bg_hex,
             corner_radius=get_radius("md"),
             border_width=1,
-            border_color=border_c
+            border_color=border_c,
+            cursor="hand2"
         )
         
         self.duration = duration
@@ -40,7 +41,7 @@ class Toast(ctk.CTkFrame):
         
         # Icon
         self.lbl_icon = ctk.CTkLabel(
-            self, text=icon, font=get_font("body"), width=30
+            self, text=icon, font=get_font("body"), width=30, cursor="hand2"
         )
         self.lbl_icon.grid(row=0, column=0, padx=(10, 5), pady=10)
 
@@ -48,9 +49,14 @@ class Toast(ctk.CTkFrame):
         self.lbl_msg = ctk.CTkLabel(
             self, text=message, font=get_font("body", "medium"),
             text_color=get_color("colors.text.primary"),
-            anchor="w", justify="left", wraplength=250
+            anchor="w", justify="left", wraplength=250, cursor="hand2"
         )
         self.lbl_msg.grid(row=0, column=1, padx=(5, 15), pady=10)
+
+        # Interactive click-to-dismiss
+        self.bind("<Button-1>", lambda e: self.dismiss())
+        self.lbl_icon.bind("<Button-1>", lambda e: self.dismiss())
+        self.lbl_msg.bind("<Button-1>", lambda e: self.dismiss())
 
         # Slide-in Animation State
         self._target_y = 5 # Padding target
@@ -174,6 +180,9 @@ class Toast(ctk.CTkFrame):
 
     def dismiss(self):
         """Start the dismissal animation."""
+        if getattr(self, "_is_dismissing", False):
+            return
+        self._is_dismissing = True
         self._slide_out()
 
     def _slide_out(self):

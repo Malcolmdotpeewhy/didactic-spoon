@@ -31,3 +31,6 @@
 ## $(date +%Y-%m-%d) - Context-Aware Interaction Feedback
 **Learning:** Hardcoded text states on multi-phase action buttons (like 'Find Match') leave users without visual confirmation of system state transitions.
 **Action:** Dynamically map button text and color to application phases (e.g., '■ Cancel Search' + Danger Color when active) to reduce cognitive load and provide clear status indicators.
+## 2024-05-20 - Interactive Dismissal for Toast Notifications
+**Learning:** Users instinctively try to click or swipe away temporary feedback overlays (toasts) if they obstruct underlying UI elements. Interactive notifications feel much more fluid.
+**Action:** Always bind click-to-dismiss (`<Button-1>`) handlers with standard `cursor="hand2"` affordances to temporary overlay components to respect user intent and prevent UI blocking.
