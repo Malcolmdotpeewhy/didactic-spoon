@@ -414,9 +414,12 @@ class SidebarWidget(ctk.CTkFrame):
             self.profile_container, text="▶  PROFILE",
             font=get_font("caption", "bold"),
             text_color=get_color("colors.text.muted"), anchor="w",
+            cursor="hand2"
         )
         self.lbl_profile_section.pack(fill="x", padx=SPACING_MD, pady=(SPACING_SM, SPACING_SM))
         self.lbl_profile_section.bind("<Button-1>", self._toggle_profile_collapse)
+        self.lbl_profile_section.bind("<Enter>", lambda e: self.lbl_profile_section.configure(text_color=get_color("colors.text.primary")))
+        self.lbl_profile_section.bind("<Leave>", lambda e: self.lbl_profile_section.configure(text_color=get_color("colors.text.muted")))
 
         self.profile_frame = ctk.CTkFrame(self.profile_container, fg_color="transparent")
         # starts collapsed

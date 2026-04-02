@@ -31,3 +31,6 @@
 ## $(date +%Y-%m-%d) - Context-Aware Interaction Feedback
 **Learning:** Hardcoded text states on multi-phase action buttons (like 'Find Match') leave users without visual confirmation of system state transitions.
 **Action:** Dynamically map button text and color to application phases (e.g., '■ Cancel Search' + Danger Color when active) to reduce cognitive load and provide clear status indicators.
+## 2026-04-02 - Collapsible Profile Header Affordances
+**Learning:** Collapsible labels used as section headers, like `lbl_profile_section` in `app_sidebar`, often miss interactive visual cues (`cursor="hand2"` and hover color changes) unlike their siblings. Without explicit states, users are unaware the header can be clicked to collapse the section.
+**Action:** Always ensure all collapsible header CTkLabels have `cursor="hand2"` and explicit `<Enter>`/`<Leave>` color change bindings.
