@@ -50,7 +50,6 @@ class LCUClient:
                 client_procs = [
                     "LeagueClientUx.exe",
                     "LeagueClient.exe",
-                    "RiotClientUx.exe",
                 ]
                 process = None
 

@@ -201,18 +201,8 @@ class SidebarWidget(ctk.CTkFrame):
         self.action_container = ctk.CTkFrame(self.main_body, fg_color="#0F1A24", corner_radius=get_radius("md"))
         self.action_container.pack(fill="x", pady=(0, SPACING_LG))
 
-        self.action_expanded = True
-        self.lbl_action_section = ctk.CTkLabel(
-            self.action_container, text="▼  ACTIONS",
-            font=get_font("caption", "bold"),
-            text_color=get_color("colors.text.muted"), anchor="w",
-        )
-        self.lbl_action_section.pack(fill="x", padx=SPACING_MD, pady=(SPACING_SM, SPACING_SM))
-        CTkTooltip(self.lbl_action_section, "Toggle Actions")
-        self.lbl_action_section.bind("<Button-1>", self._toggle_action_collapse)
-
         self.btn_frame = ctk.CTkFrame(self.action_container, fg_color="transparent")
-        self.btn_frame.pack(fill="x", padx=12, pady=(0, 12))
+        self.btn_frame.pack(fill="x", padx=12, pady=12)
 
         # Session Block relocated above self.action_container
 
@@ -248,28 +238,28 @@ class SidebarWidget(ctk.CTkFrame):
         self.quick_actions_frame.pack_propagate(False)
         self.quick_actions_frame.grid_columnconfigure((0, 1), weight=1)
 
-        self.requeue_button = ctk.CTkButton(
+        self.requeue_button = make_button(
             self.quick_actions_frame,
             text="Requeue",
+            style="primary",
+            font=("Arial", 12, "bold"),
             height=32,
-            fg_color="#0F1A24",
-            hover_color="#1A2733",
-            text_color="#AAB6C4",
+            border_width=1,
+            border_color="#F0E6D2",
             command=self._force_requeue,
-            
         )
         # NOT gridded here — dynamically revealed in _show_quick_actions()
         CTkTooltip(self.requeue_button, "Cancel and re-enter matchmaking queue")
 
-        self.dodge_button = ctk.CTkButton(
+        self.dodge_button = make_button(
             self.quick_actions_frame,
             text="Dodge",
+            style="secondary",
+            font=("Arial", 12, "bold"),
             height=32,
-            fg_color="#0F1A24",
-            hover_color="#1A2733",
-            text_color="#AAB6C4",
+            border_width=1,
+            border_color="#F0E6D2",
             command=self._force_dodge,
-            
         )
         # NOT gridded here — dynamically revealed in _show_quick_actions()
         CTkTooltip(self.dodge_button, "Force quit the client to dodge the lobby")
@@ -500,14 +490,7 @@ class SidebarWidget(ctk.CTkFrame):
             hwnd = self.master.winfo_id()
         ctypes.windll.user32.ShowWindow(hwnd, SW_MINIMIZE)
 
-    def _toggle_action_collapse(self, event=None):
-        self.action_expanded = not getattr(self, "action_expanded", True)
-        if self.action_expanded:
-            self.lbl_action_section.configure(text="▼  ACTIONS")
-            self.btn_frame.pack(fill="x", padx=12, pady=(0, 12))
-        else:
-            self.lbl_action_section.configure(text="▶  ACTIONS")
-            self.btn_frame.pack_forget()
+
 
     def _toggle_auto_collapse(self, event=None):
         self.auto_expanded = not getattr(self, "auto_expanded", True)
@@ -528,22 +511,18 @@ class SidebarWidget(ctk.CTkFrame):
     def on_lcu_connection_changed(self, connected: bool):
         if not self.winfo_exists(): return
         if connected:
-            if hasattr(self, "btn_launch_client") and self.btn_launch_client.winfo_viewable():
+            if hasattr(self, "btn_launch_client") and bool(self.btn_launch_client.winfo_manager()):
                 self.btn_launch_client.pack_forget()
                 if hasattr(self, "divider_btn"):
                     self.divider_btn.pack_forget()
-            # Apply startup status if configured
-            startup_status = self.config.get("startup_status", "")
-            if startup_status.strip():
-                engine = getattr(self.master, "automation", None)
-                if engine:
-                    import threading
-                    threading.Thread(target=lambda: engine.set_custom_status(startup_status.strip()), daemon=True).start()
         else:
-            if hasattr(self, "btn_launch_client") and not self.btn_launch_client.winfo_viewable():
+            self._hide_quick_actions()
+            self._stop_local_queue_timer()
+            
+            if hasattr(self, "btn_launch_client") and not bool(self.btn_launch_client.winfo_manager()):
                 self.btn_launch_client.pack(fill="x", pady=(SPACING_SM, 0))
-                if hasattr(self, "divider_btn"):
-                    self.divider_btn.pack(fill="x", pady=SPACING_MD)
+                if hasattr(self, "divider_btn") and hasattr(self, "auto_container"):
+                    self.divider_btn.pack(fill="x", pady=SPACING_MD, before=self.auto_container)
             self.time_label.configure(text="Disconnected", text_color="#ff4444")
             self.estimate_label.configure(text="● Offline", text_color="#ff4444")
 

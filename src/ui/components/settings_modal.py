@@ -13,6 +13,7 @@ class HotkeyRecorder(ctk.CTkButton):
 
     Click to start recording → press your key combo → it captures and displays it.
     """
+    _active_recorder = None
 
     def __init__(self, master, initial_value="", **kwargs):
         self._hotkey_value = initial_value
@@ -44,6 +45,10 @@ class HotkeyRecorder(ctk.CTkButton):
             self._start_recording()
 
     def _start_recording(self):
+        if HotkeyRecorder._active_recorder and HotkeyRecorder._active_recorder is not self:
+            HotkeyRecorder._active_recorder._stop_recording()
+        HotkeyRecorder._active_recorder = self
+
         self._recording = True
         self._pressed_keys = set()
         self.configure(
@@ -84,6 +89,9 @@ class HotkeyRecorder(ctk.CTkButton):
             self.after(50, lambda: self._stop_recording())
 
     def _stop_recording(self):
+        if HotkeyRecorder._active_recorder is self:
+            HotkeyRecorder._active_recorder = None
+
         self._recording = False
         if self._hook is not None:
             keyboard.unhook(self._hook)
@@ -395,28 +403,7 @@ class SettingsModal(ctk.CTkToplevel):
         self.entry_vip.pack(fill="x", pady=(0, 6))
         CTkTooltip(self.entry_vip, "Leave blank to invite ALL online friends")
 
-        # Startup Status
-        ctk.CTkLabel(
-            body, text="Startup Status",
-            font=get_font("caption"),
-            text_color=get_color("colors.text.muted"),
-        ).pack(anchor="w", pady=(0, 2))
 
-        self.startup_status_var = ctk.StringVar(value=self.config.get("startup_status", ""))
-        self.entry_startup_status = ctk.CTkEntry(
-            body,
-            textvariable=self.startup_status_var,
-            placeholder_text="Auto-applied on connect...",
-            font=get_font("body"),
-            fg_color=get_color("colors.background.card"),
-            text_color=get_color("colors.text.primary"),
-            border_color=get_color("colors.border.subtle"),
-            height=30,
-        )
-        self.entry_startup_status.pack(fill="x", pady=(0, 4))
-        CTkTooltip(self.entry_startup_status, "Custom status message applied when LeagueLoop connects")
-
-        _divider(body)
 
         # ━━━━━━━━ HOTKEYS ━━━━━━━━
         _section_header(body, "HOTKEYS")
@@ -609,7 +596,6 @@ class SettingsModal(ctk.CTkToplevel):
 
         # Save social
         self.config.set("vip_invite_list", self.vip_var.get().strip())
-        self.config.set("startup_status", self.startup_status_var.get().strip())
 
         if self.on_save_callback:
             try:

@@ -10,7 +10,7 @@
     "auto_hover": false,
     "auto_lock_in": false,
     "auto_random_skin": false,
-    "accept_delay": 6.0,
+    "accept_delay": 2.0,
     "polling_rate_champ_select": 0.5,
     "pick_TOP_1": "",
     "pick_TOP_2": "",
@@ -58,9 +58,10 @@
             "Lillia",
             "Leona",
             "Swain",
+            "Draven",
             "Nautilus",
             "Xerath",
-            "Draven",
+            "Nunu",
             "MasterYi",
             "Heimerdinger",
             "Lux",
@@ -68,22 +69,21 @@
             "Hwei",
             "Mordekaiser",
             "Braum",
-            "Nunu",
             "Ryze",
             "Ashe"
         ]
     },
-    "hotkey_launch_client": "ctrl+shift+l",
-    "hotkey_toggle_automation": "ctrl+shift+a",
-    "hotkey_find_match": "shift+alt+z",
-    "hotkey_compact_mode": "ctrl+`",
+    "hotkey_launch_client": "ctrl+alt+win+c",
+    "hotkey_toggle_automation": "ctrl+alt+win+x",
+    "hotkey_find_match": "ctrl+alt+win+space",
+    "hotkey_compact_mode": "ctrl+z",
     "aram_mode": "ARAM Mayhem",
     "auto_join_friend_enabled": true,
     "auto_join_friend": "Palafu",
     "auto_join_list": [
         {
             "name": "bo\u0438bo\u0438s",
-            "enabled": true
+            "enabled": false
         },
         {
             "name": "cheekycolossus",
@@ -92,6 +92,10 @@
         {
             "name": "i am ston3d",
             "enabled": false
+        },
+        {
+            "name": "palafu",
+            "enabled": true
         }
     ],
     "hidden_friends": [
@@ -203,5 +207,8 @@
         "NicholasLobo\u2069 #\u2066NA1\u2069"
     ],
     "auto_join_enabled": true,
-    "auto_honor_enabled": true
+    "auto_honor_enabled": true,
+    "honor_strategy": "random",
+    "vip_invite_list": "",
+    "startup_status": ""
 }

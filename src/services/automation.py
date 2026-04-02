@@ -450,11 +450,12 @@ class AutomationEngine:
         if self._honor_handled:
             return
 
-        self._honor_handled = True
         try:
             eog = self.lcu.request("GET", "/lol-end-of-game/v1/eog-stats-block")
             if not eog or eog.status_code != 200:
                 return
+            
+            self._honor_handled = True
             data = eog.json()
             game_id = data.get("gameId")
             my_puuid = None

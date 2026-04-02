@@ -34,7 +34,7 @@ class PriorityIconGrid(ctk.CTkFrame):
         self.config = config
         self.assets = assets
 
-        self._expanded = True
+        self._expanded = False
         self._edit_mode = False
         self._selected_indices = set()   # set of selected indices for reorder/mass-delete
         self._delete_marked = set()      # indices marked for deletion
@@ -128,7 +128,7 @@ class PriorityIconGrid(ctk.CTkFrame):
         self.header.pack(fill="x", padx=SPACING_MD, pady=(SPACING_MD, 0))
 
         self.lbl_section = ctk.CTkLabel(
-            self.header, text="▼  ARAM LIST",
+            self.header, text="▶  ARAM LIST",
             font=get_font("caption", "bold"),
             text_color=get_color("colors.text.muted"), anchor="w",
         )
@@ -205,7 +205,8 @@ class PriorityIconGrid(ctk.CTkFrame):
     # ───────────── body ─────────────
     def _build_body(self):
         self.body = ctk.CTkFrame(self, fg_color="transparent")
-        self.body.pack(fill="x", pady=(SPACING_SM, SPACING_MD), padx=SPACING_MD)
+        if self._expanded:
+            self.body.pack(fill="x", pady=(SPACING_SM, SPACING_MD), padx=SPACING_MD)
 
         # ── Hovered Champion Display ──
         self.hover_frame = ctk.CTkFrame(self.body, fg_color="#141E28", corner_radius=get_radius("sm"), height=48)
