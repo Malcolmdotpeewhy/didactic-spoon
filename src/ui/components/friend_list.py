@@ -52,6 +52,7 @@ class FriendPriorityList(ctk.CTkFrame):
             text_color=get_color("colors.text.muted"),
             hover_color=get_color("colors.state.hover"),
             command=self._on_mass_invite,
+            cursor="hand2",
         )
         self.btn_mass_invite.pack(side="right")
         CTkTooltip(self.btn_mass_invite, "Invite all online friends (or VIPs) to your lobby")
@@ -214,7 +215,7 @@ class FriendPriorityList(ctk.CTkFrame):
             if avail in ("dnd", "away", "chat"):
                 if not status_msg: status_msg = avail.capitalize()
                 
-            row = ctk.CTkFrame(self.list_parent, height=44, fg_color="transparent")
+            row = ctk.CTkFrame(self.list_parent, height=44, fg_color="transparent", cursor="hand2")
             row.pack(fill="x", pady=2)
             row.pack_propagate(False)
 
@@ -228,24 +229,25 @@ class FriendPriorityList(ctk.CTkFrame):
             row.bind("<Leave>", on_leave)
 
             # Auto-Join Dot indicator
-            action_frame = ctk.CTkFrame(row, fg_color="transparent", width=20)
+            action_frame = ctk.CTkFrame(row, fg_color="transparent", width=20, cursor="hand2")
             action_frame.pack(side="left", fill="y", padx=(8, 4))
             
             is_auto = self._auto_join_names.get(name.lower(), False)
             dot_color = get_color("colors.state.success") if is_auto else get_color("colors.state.error")
             
-            status = ctk.CTkLabel(action_frame, text="●", text_color=dot_color, font=("Arial", 14))
+            status = ctk.CTkLabel(action_frame, text="●", text_color=dot_color, font=("Arial", 14), cursor="hand2")
             status.pack(side="left", pady=(10,0))
             CTkTooltip(status, "Auto-Join: ON" if is_auto else "Auto-Join: OFF")
 
             # Name + Status
-            text_frame = ctk.CTkFrame(row, fg_color="transparent")
+            text_frame = ctk.CTkFrame(row, fg_color="transparent", cursor="hand2")
             text_frame.pack(side="left", expand=True, fill="x")
 
             lbl_name = ctk.CTkLabel(
                 text_frame, text=name,
                 font=get_font("body", "bold"),
                 text_color=get_color("colors.text.primary") if avail != "offline" else get_color("colors.text.disabled"),
+                cursor="hand2"
             )
             lbl_name.pack(anchor="w", pady=(4, 0))
 
@@ -253,7 +255,8 @@ class FriendPriorityList(ctk.CTkFrame):
                 text_frame,
                 text=status_msg,
                 text_color="#A0A7B0" if avail != "offline" else get_color("colors.text.disabled"),
-                font=("Segoe UI", 10)
+                font=("Segoe UI", 10),
+                cursor="hand2"
             )
             lbl_sub.pack(anchor="w", pady=(0, 4))
 

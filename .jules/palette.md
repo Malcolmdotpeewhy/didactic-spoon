@@ -37,3 +37,6 @@
 ## 2024-05-24 - CTkOptionMenu Affordance
 **Learning:** In CustomTkinter, \`CTkOptionMenu\` components (dropdowns) do not automatically provide a change in the cursor (e.g., to a pointing hand) when hovered. This omission can make it slightly less obvious that the element is clickable, particularly when styled to blend into the application background.
 **Action:** Always ensure \`cursor="hand2"\` is explicitly passed to \`CTkOptionMenu\` instances alongside other interactive widgets like \`CTkButton\` to maintain clear affordance and consistent visual UX cues across the application.
+## 2025-02-18 - FriendPriorityList Affordances
+**Learning:** In CustomTkinter applications, custom list elements that serve as interactive items (like right-click context menus in FriendPriorityList) do not inherently have standard hover affordances.
+**Action:** Always apply `cursor="hand2"` to all sub-components (frames, icons, text labels) of an interactive list item to ensure uniform hover affordances across the entire clickable area.
