@@ -200,22 +200,6 @@ class SidebarWidget(ctk.CTkFrame):
         self.action_container = ctk.CTkFrame(self.main_body, fg_color="#0F1A24", corner_radius=get_radius("md"))
         self.action_container.pack(fill="x", pady=(0, SPACING_LG))
 
-<<<<<<< HEAD
-=======
-        self.action_expanded = True
-        self.lbl_action_section = ctk.CTkLabel(
-            self.action_container, text="▼  ACTIONS",
-            font=get_font("caption", "bold"),
-            text_color=get_color("colors.text.muted"), anchor="w",
-            cursor="hand2"
-        )
-        self.lbl_action_section.pack(fill="x", padx=SPACING_MD, pady=(SPACING_SM, SPACING_SM))
-        CTkTooltip(self.lbl_action_section, "Toggle Actions")
-        self.lbl_action_section.bind("<Button-1>", self._toggle_action_collapse)
-        self.lbl_action_section.bind("<Enter>", lambda e: self.lbl_action_section.configure(text_color=get_color("colors.text.primary")))
-        self.lbl_action_section.bind("<Leave>", lambda e: self.lbl_action_section.configure(text_color=get_color("colors.text.muted")))
-
->>>>>>> 48a56ccccbee3ca92d42a0af9b88293e3b4c3956
         self.btn_frame = ctk.CTkFrame(self.action_container, fg_color="transparent")
         self.btn_frame.pack(fill="x", padx=12, pady=12)
 
@@ -260,20 +244,11 @@ class SidebarWidget(ctk.CTkFrame):
             style="primary",
             font=("Arial", 12, "bold"),
             height=32,
-<<<<<<< HEAD
             border_width=1,
             border_color="#F0E6D2",
             command=self._force_requeue,
         )
         # NOT gridded here — dynamically revealed in _show_quick_actions()
-=======
-            fg_color="#0F1A24",
-            hover_color="#1A2733",
-            text_color="#AAB6C4",
-            command=self._force_requeue, cursor="hand2",
-            )
-        self.requeue_button.grid(row=0, column=0, padx=(0, 6), pady=6, sticky="ew")
->>>>>>> 48a56ccccbee3ca92d42a0af9b88293e3b4c3956
         CTkTooltip(self.requeue_button, "Cancel and re-enter matchmaking queue")
 
         self.dodge_button = make_button(
@@ -282,20 +257,11 @@ class SidebarWidget(ctk.CTkFrame):
             style="secondary",
             font=("Arial", 12, "bold"),
             height=32,
-<<<<<<< HEAD
             border_width=1,
             border_color="#F0E6D2",
             command=self._force_dodge,
         )
         # NOT gridded here — dynamically revealed in _show_quick_actions()
-=======
-            fg_color="#0F1A24",
-            hover_color="#1A2733",
-            text_color="#AAB6C4",
-            command=self._force_dodge, cursor="hand2",
-            )
-        self.dodge_button.grid(row=0, column=1, padx=(6, 0), pady=6, sticky="ew")
->>>>>>> 48a56ccccbee3ca92d42a0af9b88293e3b4c3956
         CTkTooltip(self.dodge_button, "Force quit the client to dodge the lobby")
 
         # ── Launch Client ──
@@ -308,14 +274,8 @@ class SidebarWidget(ctk.CTkFrame):
             command=lambda: self.master._hotkey_launch_client() if hasattr(self.master, "_hotkey_launch_client") else None
         )
         self.btn_launch_client.pack(fill="x", pady=(SPACING_SM, 0))
-<<<<<<< HEAD
         CTkTooltip(self.btn_launch_client, "Open the Riot Client and start League")
 
-=======
-        hk_launch = self.config.get("hotkey_launch_client", "ctrl+shift+l").upper()
-        CTkTooltip(self.btn_launch_client, f"Open the Riot Client and start League ({hk_launch})")
-        
->>>>>>> 48a56ccccbee3ca92d42a0af9b88293e3b4c3956
         # Divider after button
         self.divider_btn = ctk.CTkFrame(self.main_body, height=1, fg_color="#1E2328")
         self.divider_btn.pack(fill="x", pady=SPACING_MD)
@@ -896,13 +856,6 @@ class SidebarWidget(ctk.CTkFrame):
         prev_ui_phase = getattr(self, "_last_ui_phase", None)
 
         if phase == "Matchmaking" and search_state and search_state.get("searchState") == "Searching":
-<<<<<<< HEAD
-=======
-            # Matchmaking is active
-            if hasattr(self, "btn_find_match"):
-                self.btn_find_match.configure(text="■  Cancel Search", text_color="#E74C3C", fg_color="#1E2328", inner_color="transparent")
-
->>>>>>> 48a56ccccbee3ca92d42a0af9b88293e3b4c3956
             time_in_queue = search_state.get("timeInQueue", 0)
             estimated_time = search_state.get("estimatedQueueTime", 0)
             self._start_local_queue_timer(time_in_queue, estimated_time)
@@ -910,7 +863,6 @@ class SidebarWidget(ctk.CTkFrame):
             self._last_ui_phase = "Matchmaking"
 
         elif phase == "ReadyCheck":
-<<<<<<< HEAD
             if prev_ui_phase != "ReadyCheck":
                 self._stop_local_queue_timer()
                 self.time_label.configure(text="Match Found!", text_color=get_color("colors.state.success", "#00C853"))
@@ -918,16 +870,6 @@ class SidebarWidget(ctk.CTkFrame):
                 self.progress_bar.set(1.0)
                 self.progress_bar.configure(progress_color="#00C853")
                 self._show_quick_actions()
-=======
-            if hasattr(self, "btn_find_match"):
-                self.btn_find_match.configure(text="▶  Find Match", text_color="#091428", fg_color="#C8AA6E", inner_color="#A98A48")
-            # Ready Check Pop
-            self._stop_local_queue_timer()
-            self.time_label.configure(text="Match Found!", text_color=get_color("colors.state.success", "#00C853"))
-            self.estimate_label.configure(text="● Ready", text_color="#00C853")
-            self.progress_bar.set(1.0)
-            self.progress_bar.configure(progress_color="#00C853")
->>>>>>> 48a56ccccbee3ca92d42a0af9b88293e3b4c3956
 
                 try:
                     from ui.components.toast import ToastManager
@@ -937,7 +879,6 @@ class SidebarWidget(ctk.CTkFrame):
             self._last_ui_phase = "ReadyCheck"
 
         elif phase == "ChampSelect":
-<<<<<<< HEAD
             if prev_ui_phase != "ChampSelect":
                 self._stop_local_queue_timer()
                 self.time_label.configure(text="Champ Select", text_color=get_color("colors.accent.purple", "#A855F7"))
@@ -969,39 +910,6 @@ class SidebarWidget(ctk.CTkFrame):
                 self.progress_bar.set(0)
                 self._hide_quick_actions()
             self._last_ui_phase = phase
-=======
-            if hasattr(self, "btn_find_match"):
-                self.btn_find_match.configure(text="▶  Find Match", text_color="#091428", fg_color="#C8AA6E", inner_color="#A98A48")
-            self._stop_local_queue_timer()
-            self.time_label.configure(text="Champ Select", text_color=get_color("colors.accent.purple", "#A855F7"))
-            self.estimate_label.configure(text="● Drafting", text_color="#A855F7")
-            self.progress_bar.set(1.0)
-            self.progress_bar.configure(progress_color="#A855F7")
-            self._last_phase_toast = phase
-
-        elif phase in ["InProgress", "EndOfGame"]:
-            if hasattr(self, "btn_find_match"):
-                self.btn_find_match.configure(text="▶  Find Match", text_color="#091428", fg_color="#C8AA6E", inner_color="#A98A48")
-            self._stop_local_queue_timer()
-            self.time_label.configure(text="In Game", text_color=get_color("colors.text.primary"))
-            self.estimate_label.configure(text="● Playing", text_color="#3B82F6")
-            self.progress_bar.set(0)
-            self._last_phase_toast = phase
-
-        else:
-            # Lobby / None
-            if hasattr(self, "btn_find_match"):
-                self.btn_find_match.configure(text="▶  Find Match", text_color="#091428", fg_color="#C8AA6E", inner_color="#A98A48")
-            self._stop_local_queue_timer()
-            if getattr(self.master, "lcu", None) and self.master.lcu.is_connected:
-                self.time_label.configure(text="Queue: Idle", text_color=get_color("colors.text.primary"))
-                self.estimate_label.configure(text="● Connected", text_color="#00C853")
-            else:
-                self.time_label.configure(text="Disconnected", text_color="#ff4444")
-                self.estimate_label.configure(text="● Offline", text_color="#ff4444")
-            self.progress_bar.set(0)
-            self._last_phase_toast = phase
->>>>>>> 48a56ccccbee3ca92d42a0af9b88293e3b4c3956
 
     def update_lobby_stats(self, team, bench, me=None):
         """Called from AutomationEngine during ChampSelect to show winrate stats."""
