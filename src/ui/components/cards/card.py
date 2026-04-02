@@ -54,6 +54,12 @@ class CardHeader(ctk.CTkFrame):
             )
             self.btn_toggle.pack(side="right", padx=TOKENS.get("spacing.md", 16), pady=TOKENS.get("spacing.sm", 8))
 
+            # 🎨 Palette: Add UX affordances for the collapsible label
+            self.label.configure(cursor="hand2")
+            self.label.bind("<Button-1>", lambda e: self.toggle())
+            self.label.bind("<Enter>", lambda e: self.label.configure(text_color=get_color("colors.text.secondary", default="#A09B8C")))
+            self.label.bind("<Leave>", lambda e: self.label.configure(text_color=get_color("colors.text.primary", default="#F0E6D2")))
+
         self.underline = ctk.CTkFrame(
             self,
             height=1,

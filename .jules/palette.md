@@ -31,3 +31,6 @@
 ## $(date +%Y-%m-%d) - Context-Aware Interaction Feedback
 **Learning:** Hardcoded text states on multi-phase action buttons (like 'Find Match') leave users without visual confirmation of system state transitions.
 **Action:** Dynamically map button text and color to application phases (e.g., '■ Cancel Search' + Danger Color when active) to reduce cognitive load and provide clear status indicators.
+## 2024-04-02 - Interactive Collapsible Headers
+**Learning:** In CustomTkinter, structural UI elements acting as toggle buttons (like CardHeader labels) do not natively receive standard click interaction affordances, resulting in a hidden hit area that decreases discoverability. Users intuitively attempt to click the header text itself rather than just a tiny trailing icon button.
+**Action:** When creating collapsible UI sections or composite widgets, explicitly bind `<Button-1>` to the main descriptive label, set `cursor="hand2"`, and implement visual hover feedback via `<Enter>` and `<Leave>` bindings changing `text_color` to expand the actionable target area.
