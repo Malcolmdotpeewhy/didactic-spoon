@@ -8,6 +8,27 @@
   - Confidence: High
 - **[Inference]** Proficient in defensive programming for asynchronous UI state changes.
 
+### Hot Path Eager Initialization
+- **Description:** Optimize high-frequency loops by hoisting lazy initialization and caching properties upfront.
+- **Scoring Breakdown:**
+  - Score: (E:9 x 0.4) + (F:7 x 0.2) + (C:8 x 0.25) + (R:9 x 0.15) = 8.35
+  - Confidence: High
+- **[Inference]** Strong grasp of Python loop optimization techniques.
+
+### Static Data Structure Hoisting
+- **Description:** Move static allocations outside of high-frequency callbacks to reduce garbage collection pressure.
+- **Scoring Breakdown:**
+  - Score: (E:9 x 0.4) + (F:7 x 0.2) + (C:8 x 0.25) + (R:9 x 0.15) = 8.35
+  - Confidence: High
+- **[Inference]** Proficient at heap allocation management in UI hot paths.
+
+### Generator Short-Circuiting Optimization
+- **Description:** Utilize `any()` and short-circuiting generator expressions with pre-normalized target strings in search paths.
+- **Scoring Breakdown:**
+  - Score: (E:9 x 0.4) + (F:7 x 0.2) + (C:8 x 0.25) + (R:9 x 0.15) = 8.35
+  - Confidence: High
+- **[Inference]** Understands how to prevent redundant string allocations and iteration overhead.
+
 ### Add UI Component
 - **Description:** Create a new reusable customtkinter UI component following project conventions.
 - **Scoring Breakdown:**
@@ -56,6 +77,7 @@
   - Score: (E:8 x 0.4) + (F:7 x 0.2) + (C:5 x 0.25) + (R:9 x 0.15) = 7.20
   - Confidence: Medium
 - **[Inference]** Understands Abstract Syntax Trees (AST) or text parsing to enforce CustomTkinter cursor best practices globally.
+
 ### Add Toggle Setting
 - **Description:** Add a new boolean toggle to the sidebar automation panel and persist it in config.
 - **Scoring Breakdown:**
@@ -84,6 +106,12 @@
   - Confidence: Low
 - **[Inference]** Familiar with `ui/components/factory.py` design system structure.
 
+### Add Omnibar Command
+- **Description:** Register a new command in the Ctrl+K omnibar command palette.
+- **Scoring Breakdown:**
+  - Score: (E:6 x 0.4) + (F:4 x 0.2) + (C:5 x 0.25) + (R:6 x 0.15) = 5.35
+  - Confidence: Low
+- **[Inference]** Able to extend global command palette logic efficiently.
 
 ## Automation & Background Processing
 ### Debug Champ Select
@@ -107,7 +135,6 @@
   - Confidence: Medium
 - **[Inference]** Understands the performance implications of HTML parsing in single-threaded GUI applications.
 
-
 ## LCU API Integration
 ### Add LCU API Endpoint
 - **Description:** Make a new League Client API call from the automation engine.
@@ -123,9 +150,36 @@
   - Confidence: Medium
 - **[Inference]** Understands the lockfile parsing process and SSL certificate validation bypass logic.
 
-
-
 ## Application Architecture & Data
+### Loop-Invariant Code Motion (LICM)
+- **Description:** Extract repeated function calls out of UI factory loops to eliminate overhead.
+- **Scoring Breakdown:**
+  - Score: (E:8 x 0.4) + (F:7 x 0.2) + (C:8 x 0.25) + (R:9 x 0.15) = 7.95
+  - Confidence: High
+- **[Inference]** Competent at manual performance engineering and caching in rendering loops.
+
+### Resolve Git Merge Conflicts
+- **Description:** Resolve raw Git merge markers (e.g., `<<<<<<< HEAD`, `=======`, `>>>>>>>`) left in Python source code to restore correct syntax and functionality.
+- **Scoring Breakdown:**
+  - Score: (E:9 x 0.4) + (F:6 x 0.2) + (C:7 x 0.25) + (R:9 x 0.15) = 7.90
+  - Confidence: High
+- **[Inference]** Understands how to properly clean up and merge conflicting code blocks using manual text editing or regex rather than blindly deleting markers.
+
+### Add Stats Scraper Source
+- **Description:** Add a new win rate data source to the stats scraper.
+- **Scoring Breakdown:**
+  - Score: (E:8 x 0.4) + (F:5 x 0.2) + (C:7 x 0.25) + (R:7 x 0.15) = 7.00
+  - Confidence: Medium
+- **[Inference]** Familiar with external API requests, JSON parsing, and fallback/caching strategies.
+
+## Testing & Quality Assurance
+### Refactor Regression Prevention
+- **Description:** Utilize exact code functionality preservation and defensive testing when applying optimizations.
+- **Scoring Breakdown:**
+  - Score: (E:9 x 0.4) + (F:7 x 0.2) + (C:8 x 0.25) + (R:9 x 0.15) = 8.35
+  - Confidence: High
+- **[Inference]** Capable of preventing unintentional logic changes during refactoring.
+
 ### Advanced UI Mock Testing
 - **Description:** Test CustomTkinter logic using `sys.modules` patching and headless xvfb environments.
 - **Scoring Breakdown:**
@@ -146,22 +200,7 @@
   - Score: (E:9 x 0.4) + (F:8 x 0.2) + (C:6 x 0.25) + (R:9 x 0.15) = 8.05
   - Confidence: High
 - **[Inference]** Effectively validates dynamic UI factories and layout components independently of active rendering contexts.
-### Loop-Invariant Code Motion (LICM)
-- **Description:** Extract repeated function calls out of UI factory loops to eliminate overhead.
-- **Scoring Breakdown:**
-  - Score: (E:8 x 0.4) + (F:7 x 0.2) + (C:8 x 0.25) + (R:9 x 0.15) = 7.95
-  - Confidence: High
-- **[Inference]** Competent at manual performance engineering and caching in rendering loops.
 
-### Resolve Git Merge Conflicts
-- **Description:** Resolve raw Git merge markers (e.g., `<<<<<<< HEAD`, `=======`, `>>>>>>>`) left in Python source code to restore correct syntax and functionality.
-- **Scoring Breakdown:**
-  - Score: (E:9 x 0.4) + (F:6 x 0.2) + (C:7 x 0.25) + (R:9 x 0.15) = 7.90
-  - Confidence: High
-- **[Inference]** Understands how to properly clean up and merge conflicting code blocks using manual text editing or regex rather than blindly deleting markers.
-
-
-## Testing & Quality Assurance
 ### Edit Config
 - **Description:** Safely modify config.json values with validation.
 - **Scoring Breakdown:**
@@ -190,7 +229,6 @@
   - Confidence: High
 - **[Inference]** Competent at patching `threading.Thread.start` to prevent background tasks from running, ensuring clean and isolated test states.
 
-
 ## DevOps & Environment Setup
 ### Git Sync
 - **Description:** Commit all changes and sync with the remote repository.
@@ -213,13 +251,6 @@
   - Confidence: Medium
 - **[Inference]** Strong troubleshooting skills using localized traceback outputs.
 
-### Add Stats Scraper Source
-- **Description:** Add a new win rate data source to the stats scraper.
-- **Scoring Breakdown:**
-  - Score: (E:8 x 0.4) + (F:5 x 0.2) + (C:7 x 0.25) + (R:7 x 0.15) = 7.00
-  - Confidence: Medium
-- **[Inference]** Familiar with external API requests, JSON parsing, and fallback/caching strategies.
-
 ### Install Dependency
 - **Description:** Install a new pip dependency into the project venv and update requirements.txt.
 - **Scoring Breakdown:**
@@ -241,13 +272,6 @@
   - Confidence: Medium
 - **[Inference]** Can manage external asset synchronization and storage.
 
-### Add Omnibar Command
-- **Description:** Register a new command in the Ctrl+K omnibar command palette.
-- **Scoring Breakdown:**
-  - Score: (E:6 x 0.4) + (F:4 x 0.2) + (C:5 x 0.25) + (R:6 x 0.15) = 5.35
-  - Confidence: Low
-- **[Inference]** Able to extend global command palette logic efficiently.
-
 ### Build Installer
 - **Description:** Compile the Inno Setup installer for LeagueLoop distribution.
 - **Scoring Breakdown:**
@@ -260,9 +284,11 @@
 - **Limited Cross-Platform Testing:** Advanced UI Mock testing focuses on Linux via `xvfb-run`; capability on Windows `windnd` and macOS is untested.
 - **Accessibility Support:** The project requires explicit WCAG checks and structural keyboard-first paradigms.
 - **UI State Snapshot Testing:** While kwargs instantiation is tested, verifying deep UI state correctness after complex interactions remains a gap.
+- **Automated Performance Regression Testing:** The system requires tests to detect micro-stutter regressions in the Tkinter UI event loops.
 
 ## Skill Recommendations
 - **Learn CI/CD Automation:** Implement GitHub Actions to automate the `Build Executable` and `Build Installer` steps to eliminate manual building and reduce friction in deployments.
 - **Expand Test Matrix:** Add multi-os test matrices to GitHub Actions to verify CustomTkinter implementations across diverse environments.
 - **Study CustomTkinter Accessibility:** Explore capabilities to implement screen-reader support and improve semantic layout.
 - **Implement Snapshot Testing:** Add capabilities to capture and verify CustomTkinter widget hierarchies and visual states during automated tests.
+- **Implement Performance Tests:** Create specific timing/benchmarking tests using `timeit` to track regression in high-frequency functions.

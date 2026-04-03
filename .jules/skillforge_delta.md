@@ -65,3 +65,10 @@
 - Change: Ingested recent capabilities involving O(1) Widget Updates, LICM, RegEx DOM Parsing, and Dynamic Widget State Guarding into the Target System (`skills.md`).
 - Reason: Routine execution loop to continuously map user capability models against observed outcomes.
 - Impact: Ensured `skills.md` remains highly accurate to real-world outcomes and reflects recent performance engineering and state management implementations.
+
+## Version: v1.12 → v1.13
+- Change: Ingested recent capabilities involving Hot Path Eager Initialization, Static Data Structure Hoisting, Generator Short-Circuiting Optimization, and Refactor Regression Prevention into the Target System (`skills.md`).
+- Change: Relocated misplaced skills (e.g., 'Edit Config', 'Prevent Command Injection', 'Add Stats Scraper Source', 'Advanced UI Mock Testing', 'Add Omnibar Command') to their correct domain categories to resolve structural drift.
+- Change: Updated Gap Analysis and Skill Recommendations to include Automated Performance Regression Testing.
+- Reason: Routine self-audit and execution loop. Identified structural drift in `skills.md` where testing and configuration capabilities were incorrectly categorized. Added new capabilities based on recent performance engineering optimizations.
+- Impact: Improved domain accuracy, structural integrity, and mapped the Target System to real-world performance engineering outcomes.
