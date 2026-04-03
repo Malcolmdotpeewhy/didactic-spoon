@@ -40,3 +40,6 @@
 ## 2025-02-18 - FriendPriorityList Affordances
 **Learning:** In CustomTkinter applications, custom list elements that serve as interactive items (like right-click context menus in FriendPriorityList) do not inherently have standard hover affordances.
 **Action:** Always apply `cursor="hand2"` to all sub-components (frames, icons, text labels) of an interactive list item to ensure uniform hover affordances across the entire clickable area.
+## $(date +%Y-%m-%d) - Adding interactive affordances to standalone CTkLabels
+**Learning:** In CustomTkinter, `CTkLabel` elements acting as standalone buttons or toggles (like collapsible section headers) do not inherently provide hover affordances. It is crucial to manually apply `cursor="hand2"` and `<Enter>`/`<Leave>` color change bindings so the user knows they are interactive, as `app_sidebar.py` showed with its `lbl_profile_section`.
+**Action:** Always explicitly set `cursor="hand2"` and bind `<Enter>` and `<Leave>` events to toggle text color on standalone `CTkLabels` acting as buttons/toggles.
