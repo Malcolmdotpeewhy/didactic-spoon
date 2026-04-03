@@ -72,3 +72,8 @@
 - Change: Updated Gap Analysis and Skill Recommendations to include Automated Performance Regression Testing.
 - Reason: Routine self-audit and execution loop. Identified structural drift in `skills.md` where testing and configuration capabilities were incorrectly categorized. Added new capabilities based on recent performance engineering optimizations.
 - Impact: Improved domain accuracy, structural integrity, and mapped the Target System to real-world performance engineering outcomes.
+
+## Version: v1.13 → v1.14
+- Change: Ingested 10 new CustomTkinter UI development capabilities (including Event Debouncing, Composite Styling, Interactive Overlays) into `skills.md`.
+- Reason: Routine self-audit and execution loop. Identified missing UX, performance, and state management skills based on recent observations.
+- Impact: Improved Target System domain accuracy, correctly mapped recent UI/UX optimizations, and ensured strict scoring and precision requirements are maintained.

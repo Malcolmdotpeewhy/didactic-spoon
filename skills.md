@@ -1,6 +1,13 @@
 # Target System: skills.md (User Capability Model)
 
 ## Python CustomTkinter UI Development
+### Event Debouncing Optimization
+- **Description:** Implement debounce timers (`self.after`, `self.after_cancel`) in high-frequency event handlers like search inputs to prevent UI thread latency and rapid O(N) widget rebuilds.
+- **Scoring Breakdown:**
+  - Score: (E:9 x 0.4) + (F:8 x 0.2) + (C:8 x 0.25) + (R:9 x 0.15) = 8.55
+  - Confidence: High
+- **[Inference]** Highly proficient at optimizing rapid user inputs and throttling expensive rendering tasks in single-threaded UIs.
+
 ### Dynamic Widget State Guarding
 - **Description:** Wrap widget state mutations in `hasattr` checks to prevent crashes during async phases.
 - **Scoring Breakdown:**
@@ -29,6 +36,13 @@
   - Confidence: High
 - **[Inference]** Understands how to prevent redundant string allocations and iteration overhead.
 
+### Composite Component Styling
+- **Description:** Override `.configure()` in custom composite CustomTkinter widgets to explicitly route styling kwargs to appropriate internal sub-widgets.
+- **Scoring Breakdown:**
+  - Score: (E:9 x 0.4) + (F:7 x 0.2) + (C:8 x 0.25) + (R:9 x 0.15) = 8.35
+  - Confidence: High
+- **[Inference]** Strong grasp of customizing standard component behavior to support complex dynamic layouts.
+
 ### Add UI Component
 - **Description:** Create a new reusable customtkinter UI component following project conventions.
 - **Scoring Breakdown:**
@@ -43,12 +57,26 @@
   - Confidence: High
 - **[Inference]** Strong grasp of Tkinter event loop optimization to prevent micro-stuttering.
 
+### Loop-Closure Late Binding Prevention
+- **Description:** Pass loop variables as default arguments in lambda callbacks to avoid late binding bugs when dynamically generating UI elements.
+- **Scoring Breakdown:**
+  - Score: (E:9 x 0.4) + (F:8 x 0.2) + (C:7 x 0.25) + (R:9 x 0.15) = 8.30
+  - Confidence: High
+- **[Inference]** Deep understanding of Python closures and common gotchas in UI factory loops.
+
 ### Implement UI Affordances
 - **Description:** Add interactive visual cues like pointer cursors and hover states to CustomTkinter components.
 - **Scoring Breakdown:**
   - Score: (E:9 x 0.4) + (F:8 x 0.2) + (C:6 x 0.25) + (R:9 x 0.15) = 8.05
   - Confidence: High
 - **[Inference]** Strong understanding of event binding (`<Enter>`, `<Leave>`) and cursor configuration to improve usability.
+
+### Interactive Feedback Overlays
+- **Description:** Bind click-to-dismiss handlers to temporary overlays with proper guard flags to prevent animation stacking and UI blocking.
+- **Scoring Breakdown:**
+  - Score: (E:8 x 0.4) + (F:7 x 0.2) + (C:8 x 0.25) + (R:9 x 0.15) = 7.95
+  - Confidence: High
+- **[Inference]** Proficient at building non-blocking, robust temporary UI overlays with safe destruction paths.
 
 ### UI State Management & Animation
 - **Description:** Implement robust state removal and event cleanup for animated CustomTkinter widgets.
@@ -64,6 +92,20 @@
   - Confidence: High
 - **[Inference]** Understands how to prevent micro-stuttering in Tkinter/CustomTkinter by moving O(N) operations and variable initializations out of the hot path.
 
+### Context-Aware Interaction Feedback
+- **Description:** Dynamically restyle button layout colors during state transitions (e.g., active to destructive) to provide clear visual confirmation.
+- **Scoring Breakdown:**
+  - Score: (E:8 x 0.4) + (F:7 x 0.2) + (C:7 x 0.25) + (R:9 x 0.15) = 7.70
+  - Confidence: High
+- **[Inference]** Proficient at providing dynamic user feedback through visual state changes.
+
+### Contextual Micro-Feedback
+- **Description:** Provide distinct visual and textual states (e.g., listening, success, invalid) for configuration inputs to reduce cognitive load.
+- **Scoring Breakdown:**
+  - Score: (E:8 x 0.4) + (F:7 x 0.2) + (C:7 x 0.25) + (R:9 x 0.15) = 7.70
+  - Confidence: High
+- **[Inference]** Understands the importance of haptic-like responsiveness and clear system states in interactive UIs.
+
 ### Implement Drag-and-Drop Wrappers
 - **Description:** Add drag-and-drop capabilities to CustomTkinter components using TkinterDnD.
 - **Scoring Breakdown:**
@@ -71,12 +113,40 @@
   - Confidence: High
 - **[Inference]** Understands how to avoid multiple inheritance metaclass conflicts by dynamically binding methods to instances during initialization.
 
+### Dynamic Tooltip Updates
+- **Description:** Use `.configure(text='...')` on custom `CTkTooltip` components to dynamically update text and prevent UI state errors.
+- **Scoring Breakdown:**
+  - Score: (E:8 x 0.4) + (F:7 x 0.2) + (C:6 x 0.25) + (R:9 x 0.15) = 7.45
+  - Confidence: Medium
+- **[Inference]** Familiar with safely mutating properties of custom overlay widgets.
+
+### Empty State Call-to-Action
+- **Description:** Replace empty states in UI lists with interactive dashed placeholder buttons to reduce cognitive load and guide user action.
+- **Scoring Breakdown:**
+  - Score: (E:8 x 0.4) + (F:6 x 0.2) + (C:6 x 0.25) + (R:9 x 0.15) = 7.25
+  - Confidence: Medium
+- **[Inference]** Understands UX principles for empty states and preventing dead ends in applications.
+
 ### Hover State Normalization
 - **Description:** Implement automated recursive checks and fixes for missing interactive hover affordances across UI modules.
 - **Scoring Breakdown:**
   - Score: (E:8 x 0.4) + (F:7 x 0.2) + (C:5 x 0.25) + (R:9 x 0.15) = 7.20
   - Confidence: Medium
 - **[Inference]** Understands Abstract Syntax Trees (AST) or text parsing to enforce CustomTkinter cursor best practices globally.
+
+### Actionable Micro-Copy
+- **Description:** Replace generic error messages with actionable guidance and ensure sufficient display duration for temporary error states.
+- **Scoring Breakdown:**
+  - Score: (E:8 x 0.4) + (F:7 x 0.2) + (C:5 x 0.25) + (R:9 x 0.15) = 7.20
+  - Confidence: Medium
+- **[Inference]** Understands user-centric error handling and temporal feedback principles.
+
+### Hotkey Discoverability Hints
+- **Description:** Append dynamic keyboard shortcut hints to the tooltips of interactive elements to improve accessibility without cluttering the UI.
+- **Scoring Breakdown:**
+  - Score: (E:8 x 0.4) + (F:7 x 0.2) + (C:5 x 0.25) + (R:9 x 0.15) = 7.20
+  - Confidence: Medium
+- **[Inference]** Competent at improving keyboard accessibility and feature discoverability.
 
 ### Add Toggle Setting
 - **Description:** Add a new boolean toggle to the sidebar automation panel and persist it in config.
