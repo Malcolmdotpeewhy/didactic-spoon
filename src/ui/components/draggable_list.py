@@ -71,7 +71,7 @@ class DraggableList(ctk.CTkScrollableFrame):
             btn_up = ctk.CTkButton(
                 actions, text="▲", width=25, height=25,
                 fg_color="transparent", hover_color="gray30",
-                command=lambda idx=i: self._move_item(idx, -1),
+                command=lambda f=frame: self._move_item(f, -1),
                 cursor="hand2",
             )
             btn_up.pack(side="left", padx=2)
@@ -83,7 +83,7 @@ class DraggableList(ctk.CTkScrollableFrame):
             btn_down = ctk.CTkButton(
                 actions, text="▼", width=25, height=25,
                 fg_color="transparent", hover_color="gray30",
-                command=lambda idx=i: self._move_item(idx, 1),
+                command=lambda f=frame: self._move_item(f, 1),
                 cursor="hand2",
             )
             btn_down.pack(side="left", padx=2)
@@ -106,7 +106,7 @@ class DraggableList(ctk.CTkScrollableFrame):
             lbl_drag.pack(side="right", padx=5)
             CTkTooltip(lbl_drag, "Drag to reorder")
             
-            lbl_drag.bind("<Button-1>", lambda e, x=item, idx=i: self._on_drag_start(e, x, idx))
+            lbl_drag.bind("<Button-1>", lambda e, f=frame: self._on_drag_start(e, f))
             lbl_drag.bind("<ButtonRelease-1>", self._on_drag_release)
 
             # Malcolm's Infusion: Row hover states
@@ -124,13 +124,49 @@ class DraggableList(ctk.CTkScrollableFrame):
                 child.bind("<Enter>", on_enter)
                 child.bind("<Leave>", on_leave)
 
-    def _move_item(self, index, offset):
+    def _move_item(self, frame, offset):
+        if frame not in self._row_frames: return
+        index = self._row_frames.index(frame)
         new_idx = index + offset
+
         if 0 <= new_idx < len(self.items):
-            item = self.items.pop(index)
-            self.items.insert(new_idx, item)
+            # ⚡ Bolt: O(1) targeted widget repacking
+            # Instead of destroying and rebuilding all CTkFrames on every list mutation,
+            # we simply unpack and repack the existing widgets in the new order.
+            # This completely eliminates CustomTkinter widget allocation overhead and prevents micro-stutters.
+
+            # Swap data
+            self.items.insert(new_idx, self.items.pop(index))
             self.on_reorder(self.items)
-            self.render()
+
+            # Swap frames
+            self._row_frames.insert(new_idx, self._row_frames.pop(index))
+
+            # Repack O(N) frames without destroying
+            for f in self._row_frames:
+                f.pack_forget()
+
+            for i, f in enumerate(self._row_frames):
+                f.pack(fill="x", pady=2, padx=5)
+                # Update priority label
+                lbl_pri = f.winfo_children()[0]
+                lbl_pri.configure(text=f"#{i+1}")
+
+                # Update Up/Down button states
+                actions = f.winfo_children()[3]
+                btn_up = actions.winfo_children()[0]
+                btn_down = actions.winfo_children()[1]
+
+                if i == 0:
+                    btn_up.configure(state="disabled", text_color="gray40")
+                else:
+                    btn_up.configure(state="normal", text_color="#F0E6D2")
+
+                if i == len(self.items) - 1:
+                    btn_down.configure(state="disabled", text_color="gray40")
+                else:
+                    btn_down.configure(state="normal", text_color="#F0E6D2")
+
             self.after(50, lambda: self._highlight_row(new_idx))
 
     def _highlight_row(self, index):
@@ -202,27 +238,23 @@ class DraggableList(ctk.CTkScrollableFrame):
     def _do_remove(self, item):
         self.on_remove(item)
         
-    def _on_drag_start(self, event, item, index):
-        self._drag_data["item"] = item
+    def _on_drag_start(self, event, frame):
+        if frame not in self._row_frames: return
+        index = self._row_frames.index(frame)
+        self._drag_data["item"] = self.items[index]
         self._drag_data["index"] = index
+        self._drag_data["frame"] = frame
         self._drag_data["y"] = event.y_root
         
     def _on_drag_release(self, event):
-        if not self._drag_data["item"]: return
+        if not self._drag_data.get("item"): return
         
         delta_y = event.y_root - self._drag_data["y"]
         row_height = 40
         slots_moved = round(delta_y / row_height)
         
         if slots_moved != 0:
-            old_idx = self._drag_data["index"]
-            new_idx = max(0, min(len(self.items) - 1, old_idx + slots_moved))
-            
-            if old_idx != new_idx:
-                item = self.items.pop(old_idx)
-                self.items.insert(new_idx, item)
-                self.on_reorder(self.items)
-                self.render()
-                self.after(50, lambda idx=new_idx: self._highlight_row(idx))
+            frame = self._drag_data["frame"]
+            self._move_item(frame, slots_moved)
                 
-        self._drag_data = {"y": 0, "item": None, "index": -1}
+        self._drag_data = {"y": 0, "item": None, "index": -1, "frame": None}
