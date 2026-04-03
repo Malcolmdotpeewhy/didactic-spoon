@@ -121,9 +121,12 @@ class FriendPriorityList(ctk.CTkFrame):
                     friends = res.json()
                     
                     # Sort active friends to top, then alphabetical
+                    for f in friends:
+                        f["_name_lower"] = f.get("gameName", "").lower()
+
                     def sort_key(f):
                         avail = f.get("availability", "offline")
-                        gn = f.get("gameName", "").lower()
+                        gn = f.get("_name_lower", f.get("gameName", "").lower())
                         prio = 1 if avail == "offline" else 0
                         return (prio, gn)
                         
@@ -181,7 +184,8 @@ class FriendPriorityList(ctk.CTkFrame):
             name = f.get("gameName", "")
             avail = f.get("availability", "offline")
             msg = f.get("availabilityMessage", "Online")
-            is_auto = self._auto_join_names.get(name.lower(), False)
+            name_lower = f.get("_name_lower", name.lower())
+            is_auto = self._auto_join_names.get(name_lower, False)
             sig.append(f"{name}|{avail}|{msg}|{is_auto}")
         return "|".join(sig)
 
@@ -232,7 +236,8 @@ class FriendPriorityList(ctk.CTkFrame):
             action_frame = ctk.CTkFrame(row, fg_color="transparent", width=20, cursor="hand2")
             action_frame.pack(side="left", fill="y", padx=(8, 4))
             
-            is_auto = self._auto_join_names.get(name.lower(), False)
+            name_lower = item.get("_name_lower", name.lower())
+            is_auto = self._auto_join_names.get(name_lower, False)
             dot_color = get_color("colors.state.success") if is_auto else get_color("colors.state.error")
             
             status = ctk.CTkLabel(action_frame, text="●", text_color=dot_color, font=("Arial", 14), cursor="hand2")

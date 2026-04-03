@@ -38,3 +38,6 @@
 ## 2024-06-25 - Loop Invariant Code Motion (LICM) for Dynamic Search Parameters
 **Learning:** In UI search loops (like queue resolution), performing string normalization (e.g., `.lower()`) on the static search parameter (like `mode`) inside the loop causes unnecessary string allocation overhead on every iteration.
 **Action:** Hoist the static target string's normalization outside the loop. Combine this with a short-circuiting generator expression or O(1) lookups to prevent redundant string allocations on every iteration.
+## 2024-06-25 - Eager String Normalization in Data Fetch
+**Learning:** Performing string normalizations (like `.lower()`) on dynamic data inside high-frequency UI render loops (e.g. `_render_list`) causes unnecessary string allocations on the main thread, leading to UI stuttering during rapid updates.
+**Action:** Move string normalization completely upstream to the background data-fetch phase (e.g. `_fetch_lcu_friends_loop`), caching the normalized string directly in the data payload for O(1) lookups in the UI thread.
