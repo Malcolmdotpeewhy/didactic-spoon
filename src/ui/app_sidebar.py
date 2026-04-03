@@ -274,7 +274,8 @@ class SidebarWidget(ctk.CTkFrame):
             command=lambda: self.master._hotkey_launch_client() if hasattr(self.master, "_hotkey_launch_client") else None
         )
         self.btn_launch_client.pack(fill="x", pady=(SPACING_SM, 0))
-        CTkTooltip(self.btn_launch_client, "Open the Riot Client and start League")
+        hk_launch = self.config.get("hotkey_launch_client", "ctrl+shift+l").upper()
+        CTkTooltip(self.btn_launch_client, f"Open the Riot Client and start League ({hk_launch})")
 
         # Divider after button
         self.divider_btn = ctk.CTkFrame(self.main_body, height=1, fg_color="#1E2328")
@@ -471,7 +472,7 @@ class SidebarWidget(ctk.CTkFrame):
             self.btn_collapse.configure(text="◀")
             self.master.geometry(f"200x{h}")
             if hasattr(self, 'tooltip_collapse'):
-                self.tooltip_collapse.text = "Collapse Sidebar"
+                self.tooltip_collapse.configure(text="Collapse Sidebar")
         else:
             self.main_body.pack_forget()
             self.btn_close.pack_forget()
@@ -485,7 +486,7 @@ class SidebarWidget(ctk.CTkFrame):
             self.btn_collapse.configure(text="▶")
             self.master.geometry("44x44")
             if hasattr(self, 'tooltip_collapse'):
-                self.tooltip_collapse.text = "Expand Sidebar"
+                self.tooltip_collapse.configure(text="Expand Sidebar")
             
     def _minimize_window(self):
         """Minimize via Win32 API — tkinter's iconify() is blocked by overrideredirect(True)."""
