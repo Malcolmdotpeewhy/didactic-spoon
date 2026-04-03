@@ -1,6 +1,13 @@
 # Target System: skills.md (User Capability Model)
 
 ## Python CustomTkinter UI Development
+### Dynamic Widget State Guarding
+- **Description:** Wrap widget state mutations in `hasattr` checks to prevent crashes during async phases.
+- **Scoring Breakdown:**
+  - Score: (E:9 x 0.4) + (F:7 x 0.2) + (C:8 x 0.25) + (R:9 x 0.15) = 8.35
+  - Confidence: High
+- **[Inference]** Proficient in defensive programming for asynchronous UI state changes.
+
 ### Add UI Component
 - **Description:** Create a new reusable customtkinter UI component following project conventions.
 - **Scoring Breakdown:**
@@ -8,19 +15,19 @@
   - Confidence: High
 - **[Inference]** Strong grasp of extending `ctk.CTkFrame`, applying `get_color()`, and avoiding unsupported kwargs for stability.
 
+### O(1) Widget Updates
+- **Description:** Optimize high-frequency UI events by avoiding O(N) destruction and using targeted index updates.
+- **Scoring Breakdown:**
+  - Score: (E:9 x 0.4) + (F:8 x 0.2) + (C:7 x 0.25) + (R:9 x 0.15) = 8.30
+  - Confidence: High
+- **[Inference]** Strong grasp of Tkinter event loop optimization to prevent micro-stuttering.
+
 ### Implement UI Affordances
 - **Description:** Add interactive visual cues like pointer cursors and hover states to CustomTkinter components.
 - **Scoring Breakdown:**
   - Score: (E:9 x 0.4) + (F:8 x 0.2) + (C:6 x 0.25) + (R:9 x 0.15) = 8.05
   - Confidence: High
 - **[Inference]** Strong understanding of event binding (`<Enter>`, `<Leave>`) and cursor configuration to improve usability.
-
-### Debug Champ Select
-- **Description:** Diagnose issues with champion select automation (priority sniper, skin equip).
-- **Scoring Breakdown:**
-  - Score: (E:9 x 0.4) + (F:5 x 0.2) + (C:9 x 0.25) + (R:8 x 0.15) = 8.05
-  - Confidence: High
-- **[Inference]** Highly proficient at tracing API flows and debugging LCU session state updates.
 
 ### UI State Management & Animation
 - **Description:** Implement robust state removal and event cleanup for animated CustomTkinter widgets.
@@ -42,13 +49,6 @@
   - Score: (E:8 x 0.4) + (F:6 x 0.2) + (C:8 x 0.25) + (R:8 x 0.15) = 7.60
   - Confidence: High
 - **[Inference]** Understands how to avoid multiple inheritance metaclass conflicts by dynamically binding methods to instances during initialization.
-
-### Add Automation Phase Handler
-- **Description:** Add a new game phase handler to the automation engine.
-- **Scoring Breakdown:**
-  - Score: (E:8 x 0.4) + (F:6 x 0.2) + (C:8 x 0.25) + (R:8 x 0.15) = 7.60
-  - Confidence: High
-- **[Inference]** Understands thread safety (`self.after()`) and decoupling UI from backend processes.
 
 ### Hover State Normalization
 - **Description:** Implement automated recursive checks and fixes for missing interactive hover affordances across UI modules.
@@ -84,7 +84,29 @@
   - Confidence: Low
 - **[Inference]** Familiar with `ui/components/factory.py` design system structure.
 
+
 ## Automation & Background Processing
+### Debug Champ Select
+- **Description:** Diagnose issues with champion select automation (priority sniper, skin equip).
+- **Scoring Breakdown:**
+  - Score: (E:9 x 0.4) + (F:5 x 0.2) + (C:9 x 0.25) + (R:8 x 0.15) = 8.05
+  - Confidence: High
+- **[Inference]** Highly proficient at tracing API flows and debugging LCU session state updates.
+
+### Add Automation Phase Handler
+- **Description:** Add a new game phase handler to the automation engine.
+- **Scoring Breakdown:**
+  - Score: (E:8 x 0.4) + (F:6 x 0.2) + (C:8 x 0.25) + (R:8 x 0.15) = 7.60
+  - Confidence: High
+- **[Inference]** Understands thread safety (`self.after()`) and decoupling UI from backend processes.
+
+### RegEx Over DOM Parsing
+- **Description:** Replace heavy DOM parsers with targeted regular expressions to prevent UI thread blocking.
+- **Scoring Breakdown:**
+  - Score: (E:8 x 0.4) + (F:6 x 0.2) + (C:7 x 0.25) + (R:8 x 0.15) = 7.35
+  - Confidence: Medium
+- **[Inference]** Understands the performance implications of HTML parsing in single-threaded GUI applications.
+
 
 ## LCU API Integration
 ### Add LCU API Endpoint
@@ -100,6 +122,7 @@
   - Score: (E:7 x 0.4) + (F:6 x 0.2) + (C:6 x 0.25) + (R:7 x 0.15) = 6.55
   - Confidence: Medium
 - **[Inference]** Understands the lockfile parsing process and SSL certificate validation bypass logic.
+
 
 
 ## Application Architecture & Data
@@ -123,12 +146,20 @@
   - Score: (E:9 x 0.4) + (F:8 x 0.2) + (C:6 x 0.25) + (R:9 x 0.15) = 8.05
   - Confidence: High
 - **[Inference]** Effectively validates dynamic UI factories and layout components independently of active rendering contexts.
+### Loop-Invariant Code Motion (LICM)
+- **Description:** Extract repeated function calls out of UI factory loops to eliminate overhead.
+- **Scoring Breakdown:**
+  - Score: (E:8 x 0.4) + (F:7 x 0.2) + (C:8 x 0.25) + (R:9 x 0.15) = 7.95
+  - Confidence: High
+- **[Inference]** Competent at manual performance engineering and caching in rendering loops.
+
 ### Resolve Git Merge Conflicts
 - **Description:** Resolve raw Git merge markers (e.g., `<<<<<<< HEAD`, `=======`, `>>>>>>>`) left in Python source code to restore correct syntax and functionality.
 - **Scoring Breakdown:**
   - Score: (E:9 x 0.4) + (F:6 x 0.2) + (C:7 x 0.25) + (R:9 x 0.15) = 7.90
   - Confidence: High
 - **[Inference]** Understands how to properly clean up and merge conflicting code blocks using manual text editing or regex rather than blindly deleting markers.
+
 
 ## Testing & Quality Assurance
 ### Edit Config
@@ -158,6 +189,7 @@
   - Score: (E:8 x 0.4) + (F:7 x 0.2) + (C:7 x 0.25) + (R:8 x 0.15) = 7.55
   - Confidence: High
 - **[Inference]** Competent at patching `threading.Thread.start` to prevent background tasks from running, ensuring clean and isolated test states.
+
 
 ## DevOps & Environment Setup
 ### Git Sync
@@ -222,6 +254,7 @@
   - Score: (E:6 x 0.4) + (F:3 x 0.2) + (C:6 x 0.25) + (R:5 x 0.15) = 5.25
   - Confidence: Low
 - **[Inference]** Capable of generating deployment installers from build outputs.
+
 ## Gap Analysis
 - **Missing CI/CD Automation:** While `Build Executable` and `Build Installer` skills exist, they are manual processes.
 - **Limited Cross-Platform Testing:** Advanced UI Mock testing focuses on Linux via `xvfb-run`; capability on Windows `windnd` and macOS is untested.

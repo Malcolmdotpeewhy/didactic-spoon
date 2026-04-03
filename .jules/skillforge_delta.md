@@ -55,3 +55,13 @@
 - Change: Ingested recent capabilities involving resolving raw Git merge conflict markers in source code into the Target System (`skills.md`).
 - Reason: Routine execution loop to continuously map user capability models against observed outcomes. The previous system failure caused by git merge artifacts was successfully resolved.
 - Impact: Ensured `skills.md` remains highly accurate to real-world outcomes and reflects recent version control mitigation implementations.
+
+## Version: v1.10 → v1.11
+- Change: Relocated misplaced skills (e.g., 'Debug Champ Select', 'Add Automation Phase Handler') to their correct domain categories.
+- Reason: Self-audit detected structural drift where automation and background logic were misclassified under UI Development.
+- Impact: Improved domain accuracy and structural integrity of the Target System.
+
+## Version: v1.11 → v1.12
+- Change: Ingested recent capabilities involving O(1) Widget Updates, LICM, RegEx DOM Parsing, and Dynamic Widget State Guarding into the Target System (`skills.md`).
+- Reason: Routine execution loop to continuously map user capability models against observed outcomes.
+- Impact: Ensured `skills.md` remains highly accurate to real-world outcomes and reflects recent performance engineering and state management implementations.

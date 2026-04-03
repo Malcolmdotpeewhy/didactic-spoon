@@ -131,6 +131,7 @@ Flags:
 -   Use inline variable labels (E:, F:, C:, R:) within the Scoring Breakdown equation for clarity.
 -   All calculated scores must be formatted to exactly two decimal places to prevent rounding drift.
 -   Sort skills within each category in descending order of their total score.
+-   Maintain domain accuracy by ensuring skills are assigned to their correct category based on core functionality.
 
 ## Success Criteria
 System is functioning correctly if:
