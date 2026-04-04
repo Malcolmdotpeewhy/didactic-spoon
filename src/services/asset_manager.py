@@ -65,6 +65,21 @@ DEFAULT_CONFIG = {
     "always_on_top": True,
     "poro_snacks": 0,
     "stealth_mode": False,
+    "priority_picker": {
+        "enabled": True,
+        "list": [
+            "Nautilus",
+            "Xerath",
+            "Nunu & Willump",
+            "Master Yi",
+            "Veigar",
+            "Lux",
+            "Heimerdinger",
+            "Nidalee",
+            "Pyke",
+            "Jhin"
+        ]
+    }
 }
 
 
@@ -430,6 +445,9 @@ class AssetManager:
         elif type_ == "item":
             fname = f"item_{key}.png"
             url = f"https://ddragon.leagueoflegends.com/cdn/{self.ddragon_ver}/img/item/{key}.png"
+        elif type_ == "profileicon":
+            fname = f"profileicon_{key}.png"
+            url = f"https://ddragon.leagueoflegends.com/cdn/{self.ddragon_ver}/img/profileicon/{key}.png"
         else:
             return None
 

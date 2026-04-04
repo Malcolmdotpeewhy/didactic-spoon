@@ -1,53 +1,83 @@
-# LeagueLoop
+<div align="center">
+  <img src="assets/app.ico" alt="LeagueLoop Icon" width="128"/>
+  <h1>LeagueLoop-Lock</h1>
+  <p><strong>Advanced Automation, Overlaid Elegance, and Ultimate Matchmaking Control for League of Legends</strong></p>
+</div>
 
-A powerful, automated tool for your League of Legends client experience.
-LeagueLoop sits in your system tray and interacts with the League Client Update (LCU) API to automate tedious pre-game tasks like accepting matches, calling roles, picking champions, and sending custom chat commands.
+---
 
-## Features
+## ⚡ Overview
 
-- **Auto-Join**: Automatically accepts friend requests or joins lobbies when invited by priority friends.
-- **Auto-Accept Match**: Automatically clicks the "Accept" button when a match is found.
-- **Champion Sniper**: Instantly hovers or locks in your preferred champion during Champion Select based on priority queues.
-- **Omnibar (Ctrl+K)**: Quick, global command palette for interacting with the application.
-- **Customizable UI**: Built with CustomTkinter for a sleek, dark-themed experience.
+**LeagueLoop** is an autonomous League of Legends companion client written natively in Python utilizing **CustomTkinter** for a deeply modern, high-performance overlay experience. Operating seamlessly alongside the Riot Client and League Client Update (LCU), LeagueLoop bypasses repetitive UI workflows to get you into the Rift effortlessly.
 
-## Setup
+Whether you're dodging queues, insta-locking ARAM priorities, or managing your automated lobby status, LeagueLoop provides a beautifully crafted control panel packed with highly responsive macros and logic.
 
-1. **Requirements**: Python 3.10+
-2. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+<div align="center">
+  <img src="assets/preview.png" alt="LeagueLoop UI Preview"/>
+</div>
 
-## Running the Application
+---
 
-To run LeagueLoop in development mode:
+## 🔥 Features At A Glance
+
+### 1. **Complete Automation Engine**
+- **Auto-Accept Match**: Never miss a queue pop.
+- **Priority Sniper & Auto-Pick**: Configure backup roles, custom bans, and insta-lock logic.
+- **ARAM Mayhem Prioritization**: Drag-and-drop or select from your customized `ARAM List`. Ships with a default list consisting of top-played ARAM monsters *(Nautilus, Xerath, Heimerdinger, Master Yi, Veigar, etc.)*.
+- **Auto-Honor System**: Instantly honor friends or top-performers algorithmically via LCU APIs.
+
+### 2. **Beautiful, Real-Time Overlay UI**
+- **Dynamic Friendlist**: Glowing indicators for active players with direct Auto-Join injection. Profile icons and LCU states sync live.
+- **Status Magic**: Inject a `Custom Status` into your LoL Client from the UI.
+- **Micro-Animations & Feedback**: Granular visual feedback for every user-interacted component.
+
+### 3. **The "Orb" (Compact Mode)**
+- Tired of huge windows during drafting? A single click (or shortcut) morphs LeagueLoop into a glowing, draggable **Orb** that stays above your client natively via Win32 OS-level injection hooks. 
+
+### 4. **Omnibar Palette** (Press `CTRL+K`)
+- Rapid interface access: Switch queues *(Arena, TFT, ARAM Mayhem, Quickplay, etc.)*, reboot the League Client UX, wipe cache directories, or trigger Queue Roulette—all from a sleek command bar.
+
+---
+
+## 🛠 Prerequisites
+
+- Windows 10/11
+- Official Riot Client and League of Legends Installed.
+- Python 3.10+ (If running from source)
+
+---
+
+## 📦 Installation & Setup
+
+You can run LeagueLoop without compiling anything by downloading the setup file:
+
+1. Download the latest `LeagueLoop_Installer.exe` from the Releases tab.
+2. Run the installer and launch **LeagueLoop**.
+3. **Optional:** Adjust the hotkeys inside the settings modal to your preference. 
+
+### Building from Source
+
+To construct a new executable instance using the bundled PyInstaller and InnoSetup automation scripts:
+
 ```bash
-launch_dev.bat
+# Clone Repository
+git clone https://github.com/Malcolmdotpeewhy/LeagueLoop-Lock.git
+cd LeagueLoop-Lock
+
+# Install Dependencies
+pip install -r requirements.txt
+
+# Run Development Server Native
+python -m src.core.main
 ```
-*(Or manually: `set PYTHONPATH=%CD%\src && python run.py`)*
 
-## Building the Executable
-
-To compile the application into a single standalone Windows executable using PyInstaller:
+Then, you can utilize the internal build scripts *(assuming InnoSetup is installed at standard paths)*:
 ```bash
-build.bat
+pyinstaller LeagueLoop.spec --clean -y
+ISCC.exe "installer.iss"
 ```
-*(The executable will be located in the `dist/LeagueLoop/` directory).*
 
-## Creating the Installer
+---
 
-LeagueLoop uses **Inno Setup** to package the built executable into an installer.
-1. Download and install [Inno Setup](https://jrsoftware.org/isinfo.php).
-2. Right click `installer.iss` and click **Compile**.
-3. The final installer will be located in the `dist/` directory as `LeagueLoop_Installer.exe`.
-
-## Repository Structure
-
-- `src/core/` - Core engine and application entry point
-- `src/services/` - Subsystems like automation logic, LCU API handler, and asset manager
-- `src/ui/` - The CustomTkinter graphical interface and layout modules
-- `src/utils/` - Utility functions for environment paths and logging
-- `tests/` - Application test suite
-- `build.bat` - Script for compiling the executable
-- `installer.iss` - Inno script for installer generation
+## ⚙ Legal & Disclaimer
+_LeagueLoop was created under Riot Games' policy using assets owned by Riot Games. Riot Games does not endorse or sponsor this project. The creator is **NOT** liable for any account suspensions, system issues, or penalties incurred while using this software. Using LCU Automation is done entirely at your own risk._
