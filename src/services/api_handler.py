@@ -75,9 +75,9 @@ class LCUClient:
                         return False
                     self._last_scan_time = now
 
-                    for p in psutil.process_iter(["name"]):
+                    for p in psutil.process_iter():
                         try:
-                            name = p.info["name"]
+                            name = p.name()
                             if name in client_procs:
                                 found_procs[name] = p
                                 # Optimization: Stop early if we found the best one
