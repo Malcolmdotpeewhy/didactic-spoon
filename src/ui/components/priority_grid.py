@@ -38,7 +38,6 @@ class PriorityIconGrid(ctk.CTkFrame):
         self._edit_mode = False
         self._selected_indices = set()   # set of selected indices for reorder/mass-delete
         self._delete_marked = set()      # indices marked for deletion
-        self._icon_cache = {}
         self._icon_widgets = []
         self._undo_stack = []            # stack of previous priority lists for undo
 
@@ -100,19 +99,6 @@ class PriorityIconGrid(ctk.CTkFrame):
 
         if hasattr(self, "_sync_undo_btn"):
             self._sync_undo_btn()
-
-    def _load_icon(self, champ_name):
-        if champ_name in self._icon_cache:
-            return self._icon_cache[champ_name]
-        p = get_asset_path(os.path.join("assets", f"champion_{champ_name}.png"))
-        if os.path.exists(p):
-            try:
-                img = ctk.CTkImage(Image.open(p), size=(ICON_SIZE, ICON_SIZE))
-                self._icon_cache[champ_name] = img
-                return img
-            except Exception:
-                pass
-        return None
 
     def _sync_undo_btn(self):
         if not hasattr(self, "btn_undo"):
@@ -424,9 +410,11 @@ class PriorityIconGrid(ctk.CTkFrame):
             self.hover_add_btn.configure(state="normal", text="+ Add", fg_color=get_color("colors.accent.primary"), text_color="#ffffff")
 
         # Load icon
-        icon_img = self._load_icon(champ_name)
-        if icon_img:
-            self.hover_icon.configure(image=icon_img, text="", fg_color="transparent")
+        def _update_hover_icon(img):
+            if hasattr(self, "hover_icon") and self.hover_icon.winfo_exists():
+                self.hover_icon.configure(image=img, text="", fg_color="transparent")
+
+        self.assets.get_icon_async("champion", champ_name, _update_hover_icon, size=(ICON_SIZE, ICON_SIZE), widget=self.hover_icon)
             
         if not self.hover_frame.winfo_viewable():
             # Show it above the scroll area
@@ -523,7 +511,14 @@ class PriorityIconGrid(ctk.CTkFrame):
             lbl.place(relx=0.5, rely=0.5, anchor="center")
 
             # Start async load
-            self.after(10 * i, lambda n=name, l=lbl: self._load_icon_async(n, l))
+            def _update_icon(img, label=lbl):
+                try:
+                    if label.winfo_exists():
+                        label.configure(image=img, text="", fg_color="transparent")
+                except Exception:
+                    pass
+
+            self.assets.get_icon_async("champion", name, _update_icon, size=(ICON_SIZE, ICON_SIZE), widget=lbl)
 
             # Hover animations for grid
             def _on_enter(e, n=name, idx=i, c=cell, hb=_hover_border):
@@ -544,21 +539,6 @@ class PriorityIconGrid(ctk.CTkFrame):
             self._icon_widgets.append((cell, lbl, i))
 
         self._refresh_visuals()
-
-    def _load_icon_async(self, champ_name, label_widget):
-        try:
-            # Safely check if widget still exists
-            if not label_widget.winfo_exists():
-                return
-        except Exception:
-            return
-
-        icon_img = self._load_icon(champ_name)
-        if icon_img:
-            try:
-                label_widget.configure(image=icon_img, text="", fg_color="transparent")
-            except Exception:
-                pass
 
     # ───────────── tooltip ─────────────
     def _show_tooltip(self, event, name, idx=None):

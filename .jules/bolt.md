@@ -41,3 +41,7 @@
 ## 2024-06-25 - Eager String Normalization in Data Fetch
 **Learning:** Performing string normalizations (like `.lower()`) on dynamic data inside high-frequency UI render loops (e.g. `_render_list`) causes unnecessary string allocations on the main thread, leading to UI stuttering during rapid updates.
 **Action:** Move string normalization completely upstream to the background data-fetch phase (e.g. `_fetch_lcu_friends_loop`), caching the normalized string directly in the data payload for O(1) lookups in the UI thread.
+
+## 2026-03-31 - Pseudo-Async Asset Loading in Tkinter
+**Learning:** Using `self.after()` to stagger synchronous file I/O operations (like `Image.open()`) in Tkinter/CustomTkinter still blocks the main UI thread during execution, causing severe micro-stutters and rendering stalls when processing lists.
+**Action:** Replace pseudo-async staggered calls with truly asynchronous loaders (like `AssetManager.get_icon_async`) that offload I/O to background threads and safely update the widget via a callback, while being careful to pass default arguments (`def cb(img, w=widget)`) to avoid loop-closure bugs.
