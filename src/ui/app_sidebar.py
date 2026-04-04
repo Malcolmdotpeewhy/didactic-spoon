@@ -293,7 +293,8 @@ class SidebarWidget(ctk.CTkFrame):
             cursor="hand2"
         )
         self.lbl_auto_section.pack(fill="x", padx=SPACING_MD, pady=(SPACING_SM, SPACING_SM))
-        CTkTooltip(self.lbl_auto_section, "Toggle Automation")
+        hk_auto_sec = self.config.get("hotkey_toggle_automation", "ctrl+shift+a").upper()
+        CTkTooltip(self.lbl_auto_section, f"Toggle Automation ({hk_auto_sec})")
         self.lbl_auto_section.bind("<Button-1>", self._toggle_auto_collapse)
         self.lbl_auto_section.bind("<Enter>", lambda e: self.lbl_auto_section.configure(text_color=get_color("colors.text.primary")))
         self.lbl_auto_section.bind("<Leave>", lambda e: self.lbl_auto_section.configure(text_color=get_color("colors.text.muted")))
