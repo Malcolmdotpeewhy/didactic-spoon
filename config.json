@@ -4,7 +4,7 @@
     "auto_pick": "",
     "auto_pick_backup": "",
     "auto_ban": "",
-    "custom_status": "Using AutoLock",
+    "custom_status": "LeagueLoop — github.com/Malcolmdotpeewhy/LeagueLoop-Installer",
     "auto_aram_swap": false,
     "auto_set_roles": false,
     "auto_hover": false,
@@ -35,9 +35,8 @@
     "always_on_top": true,
     "poro_snacks": 0,
     "stealth_mode": true,
-    "auto_spells": true,
     "priority_picker": {
-        "enabled": false,
+        "enabled": true,
         "list": [
             "Fizz",
             "Singed",
@@ -69,14 +68,17 @@
             "Hwei",
             "Mordekaiser",
             "Braum",
-            "Ryze",
-            "Ashe"
+            "Ashe",
+            "Vex",
+            "Morgana",
+            "Ryze"
         ]
     },
+    "auto_spells": true,
     "hotkey_launch_client": "ctrl+alt+win+c",
     "hotkey_toggle_automation": "ctrl+alt+win+x",
-    "hotkey_find_match": "ctrl+alt+win+space",
-    "hotkey_compact_mode": "ctrl+z",
+    "hotkey_find_match": "shift+alt+z",
+    "hotkey_compact_mode": "alt+esc",
     "aram_mode": "ARAM Mayhem",
     "auto_join_friend_enabled": true,
     "auto_join_friend": "Palafu",
@@ -99,10 +101,14 @@
         },
         {
             "name": "zerb",
-            "enabled": true
+            "enabled": false
         },
         {
             "name": "i am richie89",
+            "enabled": true
+        },
+        {
+            "name": "cr\u00e8me de la crem",
             "enabled": true
         }
     ],
@@ -214,7 +220,7 @@
         "Palafu#NA1",
         "NicholasLobo\u2069 #\u2066NA1\u2069"
     ],
-    "auto_join_enabled": true,
+    "auto_join_enabled": false,
     "auto_honor_enabled": true,
     "honor_strategy": "random",
     "vip_invite_list": "",

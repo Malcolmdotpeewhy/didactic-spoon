@@ -12,8 +12,19 @@
 
 Whether you're dodging queues, insta-locking ARAM priorities, or managing your automated lobby status, LeagueLoop provides a beautifully crafted control panel packed with highly responsive macros and logic.
 
+## Screenshots
+
 <div align="center">
-  <img src="assets/preview.png" alt="LeagueLoop UI Preview"/>
+  <table>
+    <tr>
+      <td align="center"><img src="assets/screenshots/lobby_idle.png" alt="Lobby — Idle" width="220"/><br/><sub>Lobby — Idle</sub></td>
+      <td align="center"><img src="assets/screenshots/connected.png" alt="Connected" width="220"/><br/><sub>Connected &amp; Ready</sub></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="assets/screenshots/champ_select.png" alt="Champ Select" width="220"/><br/><sub>Champ Select — Live Drafting</sub></td>
+      <td align="center"><img src="assets/screenshots/mode_picker.png" alt="Mode Picker" width="220"/><br/><sub>Queue Mode Selector</sub></td>
+    </tr>
+  </table>
 </div>
 
 ---
@@ -32,7 +43,7 @@ Whether you're dodging queues, insta-locking ARAM priorities, or managing your a
 - **Micro-Animations & Feedback**: Granular visual feedback for every user-interacted component.
 
 ### 3. **The "Orb" (Compact Mode)**
-- Tired of huge windows during drafting? A single click (or shortcut) morphs LeagueLoop into a glowing, draggable **Orb** that stays above your client natively via Win32 OS-level injection hooks. 
+- Tired of huge windows during drafting? A single click (or shortcut) morphs LeagueLoop into a glowing, draggable **Orb** that stays above your client natively via Win32 OS-level injection hooks.
 
 ### 4. **Omnibar Palette** (Press `CTRL+K`)
 - Rapid interface access: Switch queues *(Arena, TFT, ARAM Mayhem, Quickplay, etc.)*, reboot the League Client UX, wipe cache directories, or trigger Queue Roulette—all from a sleek command bar.
@@ -51,9 +62,9 @@ Whether you're dodging queues, insta-locking ARAM priorities, or managing your a
 
 You can run LeagueLoop without compiling anything by downloading the setup file:
 
-1. Download the latest `LeagueLoop_Installer.exe` from the Releases tab.
+1. Download the latest **[LeagueLoop_Installer.exe](https://github.com/Malcolmdotpeewhy/LeagueLoop-Installer)** from the Installer repo.
 2. Run the installer and launch **LeagueLoop**.
-3. **Optional:** Adjust the hotkeys inside the settings modal to your preference. 
+3. **Optional:** Adjust the hotkeys inside the settings modal to your preference.
 
 ### Building from Source
 
