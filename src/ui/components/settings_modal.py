@@ -440,6 +440,19 @@ class SettingsModal(ctk.CTkToplevel):
         # ━━━━━━━━ AUTOMATION ━━━━━━━━
         _section_header(body, "AUTOMATION")
 
+        # Auto Honor
+        row_honor_toggle = ctk.CTkFrame(body, fg_color="transparent")
+        row_honor_toggle.pack(fill="x", pady=4)
+        ctk.CTkLabel(
+            row_honor_toggle, text="Auto-Honor Teammate",
+            font=get_font("body"), text_color=get_color("colors.text.primary"),
+        ).pack(side="left")
+
+        self.honor_enabled_var = ctk.BooleanVar(value=bool(self.config.get("auto_honor_enabled", True)))
+        self.honor_enabled_switch = LolToggle(row_honor_toggle, variable=self.honor_enabled_var)
+        self.honor_enabled_switch.pack(side="right")
+        CTkTooltip(self.honor_enabled_switch, "Automatically honor a teammate at end-of-game")
+
         # Honor Strategy
         row_honor = ctk.CTkFrame(body, fg_color="transparent")
         row_honor.pack(fill="x", pady=4)
@@ -472,6 +485,38 @@ class SettingsModal(ctk.CTkToplevel):
         # ━━━━━━━━ SOCIAL ━━━━━━━━
         _section_header(body, "SOCIAL")
 
+        # Auto Join
+        row_join_toggle = ctk.CTkFrame(body, fg_color="transparent")
+        row_join_toggle.pack(fill="x", pady=4)
+        ctk.CTkLabel(
+            row_join_toggle, text="Auto-Join VIP Lobbies",
+            font=get_font("body"), text_color=get_color("colors.text.primary"),
+        ).pack(side="left")
+
+        self.join_enabled_var = ctk.BooleanVar(value=bool(self.config.get("auto_join_enabled", True)))
+        self.join_enabled_switch = LolToggle(row_join_toggle, variable=self.join_enabled_var)
+        self.join_enabled_switch.pack(side="right")
+        CTkTooltip(self.join_enabled_switch, "Automatically accept lobby invites from VIP friends")
+
+        # Custom Status
+        ctk.CTkLabel(
+            body, text="Custom Status Message",
+            font=get_font("caption"), text_color=get_color("colors.text.muted"),
+        ).pack(anchor="w", pady=(0, 2))
+
+        self.status_var = ctk.StringVar(value=self.config.get("custom_status", ""))
+        self.entry_status = ctk.CTkEntry(
+            body, textvariable=self.status_var,
+            placeholder_text="e.g. Powered by LeagueLoop",
+            font=get_font("body"),
+            fg_color=get_color("colors.background.card"),
+            text_color=get_color("colors.text.primary"),
+            border_color=get_color("colors.border.subtle"),
+            height=30,
+        )
+        self.entry_status.pack(fill="x", pady=(0, 10))
+        CTkTooltip(self.entry_status, "Automatically sets your League status text.")
+        
         # VIP Invite List
         ctk.CTkLabel(
             body, text="VIP Invite List (comma-separated)",
@@ -633,6 +678,18 @@ class SettingsModal(ctk.CTkToplevel):
         self.stealth_switch._state = False
         self.stealth_switch._animate()
 
+        self.honor_enabled_var.set(True)
+        self.honor_enabled_switch._state = True
+        self.honor_enabled_switch._animate()
+        
+        self.join_enabled_var.set(True)
+        self.join_enabled_switch._state = True
+        self.join_enabled_switch._animate()
+        
+        self.honor_var.set("random")
+        self.status_var.set("LeagueLoop — github.com/Malcolmdotpeewhy/LeagueLoop-Installer")
+        self.vip_var.set("")
+
         # Default hotkeys
         default_hotkeys = {
             "hotkey_launch_client": "ctrl+shift+l",
@@ -681,9 +738,12 @@ class SettingsModal(ctk.CTkToplevel):
         self.config.set("stealth_mode", bool(self.stealth_var.get()))
 
         # Save honor strategy
+        self.config.set("auto_honor_enabled", bool(self.honor_enabled_var.get()))
         self.config.set("honor_strategy", self.honor_var.get())
 
         # Save social
+        self.config.set("auto_join_enabled", bool(self.join_enabled_var.get()))
+        self.config.set("custom_status", self.status_var.get().strip())
         self.config.set("vip_invite_list", self.vip_var.get().strip())
 
         if self.on_save_callback:

@@ -94,6 +94,9 @@ class AutomationEngine:
 
                 if self.lcu.connect(silent=True):
                     Logger.debug("AutoLoop", "Self-Heal Successful: Reconnected to LCU.")
+                    default_status = self.config.get("custom_status", "").strip()
+                    if default_status:
+                        threading.Thread(target=lambda: self.set_custom_status(default_status), daemon=True).start()
                 else:
                     self._stop_event.wait(2)
                 continue

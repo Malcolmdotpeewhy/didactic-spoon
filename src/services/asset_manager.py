@@ -72,6 +72,7 @@ DEFAULT_CONFIG = {
     "ban_UTILITY_1": "",
     "ban_UTILITY_2": "",
     "ban_UTILITY_3": "",
+    "custom_status": "LeagueLoop \u2014 github.com/Malcolmdotpeewhy/LeagueLoop-Installer",
     "always_on_top": True,
     "poro_snacks": 0,
     "stealth_mode": False,
