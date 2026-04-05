@@ -687,7 +687,7 @@ class SettingsModal(ctk.CTkToplevel):
         self.join_enabled_switch._animate()
         
         self.honor_var.set("random")
-        self.status_var.set("🎮 LeagueLoop ⚙️ github.com/Intrusive-Thots/LeagueLoop-Installer")
+        self.status_var.set("🎮 LeagueLoop ⚙️ https://github.com/Intrusive-Thots/LeagueLoop-Installer")
         self.vip_var.set("")
 
         # Default hotkeys
