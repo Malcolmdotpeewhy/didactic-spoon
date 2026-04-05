@@ -232,26 +232,33 @@ class FriendPriorityList(ctk.CTkFrame):
             row.bind("<Enter>", on_enter)
             row.bind("<Leave>", on_leave)
 
-            # Auto-Join Dot indicator
-            action_frame = ctk.CTkFrame(row, fg_color="transparent", width=20, cursor="hand2")
-            action_frame.pack(side="left", fill="y", padx=(8, 4))
-            
-            name_lower = item.get("_name_lower", name.lower())
-            is_auto = self._auto_join_names.get(name_lower, False)
-            dot_color = get_color("colors.state.success") if is_auto else get_color("colors.state.error")
-            
-            status = ctk.CTkLabel(action_frame, text="●", text_color=dot_color, font=("Arial", 14), cursor="hand2")
-            status.pack(side="left", pady=(10,0))
-            CTkTooltip(status, "Auto-Join: ON" if is_auto else "Auto-Join: OFF")
+            # Profile Icon
+            icon_frame = ctk.CTkFrame(row, fg_color="transparent", width=36, height=36)
+            icon_frame.pack(side="left", padx=(8, 4), pady=4)
+            icon_frame.pack_propagate(False)
+            icon_lbl = ctk.CTkLabel(icon_frame, text="")
+            icon_lbl.pack(expand=True, fill="both")
+            root = self.winfo_toplevel()
+            assets = getattr(root, "assets", None)
+            if assets and hasattr(assets, "get_icon_async"):
+                icon_id = str(item.get("icon", 1))
+                assets.get_icon_async("profileicon", icon_id, lambda img, l=icon_lbl: l.configure(image=img) if l.winfo_exists() else None, size=(36, 36), widget=icon_lbl)
+
+            # Online Status Dot (Green/Red)
+            dot_color = "#39FF14" if avail != "offline" else get_color("colors.state.error")
+            status_dot = ctk.CTkLabel(row, text="●", text_color=dot_color, font=("Arial", 14), cursor="hand2", width=14)
+            status_dot.pack(side="left", padx=(2, 4))
+            CTkTooltip(status_dot, f"Status: {avail}")
 
             # Name + Status
             text_frame = ctk.CTkFrame(row, fg_color="transparent", cursor="hand2")
             text_frame.pack(side="left", expand=True, fill="x")
 
+            name_color = "#00FFCC" if avail != "offline" else get_color("colors.text.disabled")
             lbl_name = ctk.CTkLabel(
                 text_frame, text=name,
-                font=get_font("body", "bold"),
-                text_color=get_color("colors.text.primary") if avail != "offline" else get_color("colors.text.disabled"),
+                font=("Arial", 14, "bold"),
+                text_color=name_color,
                 cursor="hand2"
             )
             lbl_name.pack(anchor="w", pady=(4, 0))
@@ -265,6 +272,19 @@ class FriendPriorityList(ctk.CTkFrame):
             )
             lbl_sub.pack(anchor="w", pady=(0, 4))
 
+            # Auto-Join Blue Indicator
+            name_lower = item.get("_name_lower", name.lower())
+            is_auto = self._auto_join_names.get(name_lower, False)
+            
+            if is_auto:
+                auto_join_lbl = ctk.CTkLabel(row, text="⚭", font=("Arial", 20, "bold"), text_color="#00A2FF", cursor="hand2", width=24)
+                auto_join_lbl.pack(side="right", padx=(4, 8))
+                CTkTooltip(auto_join_lbl, "Auto-Join is Active")
+            else:
+                auto_join_lbl = ctk.CTkLabel(row, text="⚭", font=("Arial", 20, "bold"), text_color="#4A5568", cursor="hand2", width=24)
+                auto_join_lbl.pack(side="right", padx=(4, 8))
+                CTkTooltip(auto_join_lbl, "Auto-Join is Inactive (Right-click to toggle)")
+
             # Bind right click context menu
             def _popup(e, fn=name):
                 self._show_context_menu(e, fn)
@@ -273,7 +293,9 @@ class FriendPriorityList(ctk.CTkFrame):
             text_frame.bind("<Button-3>", _popup)
             lbl_name.bind("<Button-3>", _popup)
             lbl_sub.bind("<Button-3>", _popup)
-            status.bind("<Button-3>", _popup)
+            status_dot.bind("<Button-3>", _popup)
+            icon_lbl.bind("<Button-3>", _popup)
+            auto_join_lbl.bind("<Button-3>", _popup)
 
     def _on_mass_invite(self):
         """Delegate mass invite to the automation engine via the widget tree."""

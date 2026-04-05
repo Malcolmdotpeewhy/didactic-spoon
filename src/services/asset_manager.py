@@ -57,14 +57,29 @@ DEFAULT_CONFIG = {
     "pick_UTILITY_2": "",
     "pick_UTILITY_3": "",
     # Role-Based Bans
-    "ban_TOP": "",
-    "ban_JUNGLE": "",
-    "ban_MIDDLE": "",
-    "ban_BOTTOM": "",
-    "ban_UTILITY": "",
+    "ban_TOP_1": "",
+    "ban_TOP_2": "",
+    "ban_TOP_3": "",
+    "ban_JUNGLE_1": "",
+    "ban_JUNGLE_2": "",
+    "ban_JUNGLE_3": "",
+    "ban_MIDDLE_1": "",
+    "ban_MIDDLE_2": "",
+    "ban_MIDDLE_3": "",
+    "ban_BOTTOM_1": "",
+    "ban_BOTTOM_2": "",
+    "ban_BOTTOM_3": "",
+    "ban_UTILITY_1": "",
+    "ban_UTILITY_2": "",
+    "ban_UTILITY_3": "",
     "always_on_top": True,
     "poro_snacks": 0,
     "stealth_mode": False,
+    "hotkey_launch_client": "ctrl+shift+l",
+    "hotkey_toggle_automation": "ctrl+shift+a",
+    "hotkey_find_match": "ctrl+shift+f",
+    "hotkey_compact_mode": "ctrl+shift+m",
+    "hotkey_omnibar": "ctrl+k",
     "priority_picker": {
         "enabled": True,
         "list": [
@@ -79,7 +94,8 @@ DEFAULT_CONFIG = {
             "Pyke",
             "Jhin"
         ]
-    }
+    },
+    "arena_pairs": []
 }
 
 

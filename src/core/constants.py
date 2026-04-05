@@ -4,6 +4,9 @@ Centralizes magic numbers and configuration defaults.
 """
 
 # --- Queue IDs ---
+QUEUE_DRAFT = 400
+QUEUE_RANKED_SOLO = 420
+QUEUE_RANKED_FLEX = 440
 QUEUE_ARAM = 450
 QUEUE_ARENA = 1700
 

@@ -85,7 +85,7 @@ class AboutPage(ctk.CTkToplevel):
         footer.pack(fill="x", side="bottom")
 
         self.lbl_author = ctk.CTkLabel(
-            footer, text="Made by Malcolm Hopper",
+            footer, text="Made by Malcolm",
             font=get_font("body", "bold"),
             text_color="#C8AA6E",
             cursor="hand2",

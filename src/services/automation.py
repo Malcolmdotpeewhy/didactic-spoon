@@ -8,8 +8,9 @@ from typing import Optional, Callable, List
 from .api_handler import LCUClient  # type: ignore
 from .asset_manager import AssetManager, ConfigManager  # type: ignore
 from utils.logger import Logger  # type: ignore
-from core.constants import (  # type: ignore
-    QUEUE_ARENA, TICK_SLEEP_DEFAULT, TICK_SLEEP_CHAMPSELECT,
+from core.constants import (
+    QUEUE_ARENA, QUEUE_DRAFT, QUEUE_RANKED_SOLO, QUEUE_RANKED_FLEX,
+    TICK_SLEEP_DEFAULT, TICK_SLEEP_CHAMPSELECT,
     TICK_SLEEP_READYCHECK, TICK_SLEEP_LOBBY, TICK_SLEEP_INGAME,
     PRIORITY_SWAP_COOLDOWN,
 )
@@ -249,12 +250,17 @@ class AutomationEngine:
 
         has_bench = len(bench) > 0
         is_arena = self.current_queue_id == QUEUE_ARENA
+        is_draft = self.current_queue_id in {QUEUE_DRAFT, QUEUE_RANKED_SOLO, QUEUE_RANKED_FLEX}
 
         if has_bench and not is_arena:
             # ARAM logic
             priority_cfg = self.config.get("priority_picker", {})
             if priority_cfg.get("enabled", False):
                 self._perform_priority_sniper(session, priority_cfg.get("list", []))
+        elif is_arena:
+            self._perform_arena_synergy(session)
+        elif is_draft:
+            self._perform_draft_assistant(session)
 
         # Auto-equip a non-default skin
         if not getattr(self, "_skin_equipped", False):
@@ -308,6 +314,186 @@ class AutomationEngine:
 
         except Exception as e:
             Logger.error("Auto", f"Skin equip error: {e}")
+
+    def _perform_arena_synergy(self, session):
+        pairs = self.config.get("arena_pairs", [])
+        if not pairs:
+            return
+
+        my_team = session.get("myTeam", [])
+        me = self._get_local_player(session)
+        if not me:
+            return
+
+        # Teammate in Arena is the OTHER person on myTeam
+        teammate = next((p for p in my_team if p.get("cellId") != me.get("cellId")), None)
+        if not teammate:
+            return
+
+        teammate_champ_id = teammate.get("championId", 0)
+        teammate_champ_intent = teammate.get("championPickIntent", 0)
+
+        # Check intent or lock
+        target_id = teammate_champ_id if teammate_champ_id != 0 else teammate_champ_intent
+        if target_id == 0:
+            return
+            
+        teammate_champ_name = self.assets.get_champ_name(target_id)
+        if not teammate_champ_name:
+            return
+
+        # Find matching pair
+        mapped_me_list = []
+        for pair in pairs:
+            if pair.get("teammate", "").lower() == teammate_champ_name.lower():
+                val = pair.get("me", [])
+                mapped_me_list = val if isinstance(val, list) else [val]
+                break
+
+        if not mapped_me_list:
+            return
+
+        banned_ids = []
+        for b in session.get("bannedChampions", []):
+            if isinstance(b, dict):
+                banned_ids.append(b.get("championId", 0))
+            else:
+                banned_ids.append(b)
+
+        # Iterate over fallbacks to find the highest priority available champion
+        mapped_my_id = 0
+        mapped_me_champ = ""
+        for champ_name in mapped_me_list:
+            if not champ_name:
+                continue
+            cid = self.assets.name_to_id.get(champ_name.lower())
+            if cid and cid not in banned_ids:
+                mapped_my_id = cid
+                mapped_me_champ = champ_name
+                break
+                
+        if not mapped_my_id:
+            return
+
+        my_current_pick = me.get("championId", 0)
+        my_current_intent = me.get("championPickIntent", 0)
+
+        # If already set correctly and locked (or we already hovered it and teammate hasn't locked), do nothing
+        if my_current_pick == mapped_my_id or (my_current_intent == mapped_my_id and teammate_champ_id == 0):
+            return
+            
+        # We need to change our intent/pick
+        try:
+            # Find the pick action for our cellId
+            actions = session.get("actions", [])
+            my_action_id = 0
+            for row in actions:
+                for action in row:
+                    if action.get("actorCellId") == me.get("cellId"):
+                        my_action_id = action.get("id", 0)
+                        break
+                if my_action_id:
+                    break
+
+            if my_action_id:
+                # Patch hover
+                now = time.time()
+                if not hasattr(self, "_last_synergy_patch"): self._last_synergy_patch = 0
+                
+                # Prevent spamming PATCH on every tick if already attempting
+                if now - self._last_synergy_patch > 0.5:
+                    self._log(f"Synergy: Teammate wants {teammate_champ_name}, selecting {mapped_me_champ}...")
+                    self.lcu.request("PATCH", f"/lol-champ-select/v1/session/actions/{my_action_id}", data={"championId": mapped_my_id})
+                    self._last_synergy_patch = now
+                
+                # If teammate LOCKED, and we just patched or already have the right intent, we LOCK.
+                if teammate_champ_id != 0 and my_current_intent == mapped_my_id:
+                    self._log(f"Synergy: Teammate locked {teammate_champ_name}, locking {mapped_me_champ}!")
+                    self.lcu.request("POST", f"/lol-champ-select/v1/session/actions/{my_action_id}/complete")
+                    
+        except Exception as e:
+            Logger.error("Auto", f"Arena synergy error: {e}")
+
+    def _perform_draft_assistant(self, session):
+        me = self._get_local_player(session)
+        if not me:
+            return
+
+        assigned = me.get("assignedPosition", "")
+        if not assigned:
+            return
+            
+        assigned = assigned.upper()
+        
+        # Find active action for me
+        actions = session.get("actions", [])
+        my_action = None
+        for row in actions:
+            for action in row:
+                if action.get("actorCellId") == me.get("cellId") and action.get("isInProgress"):
+                    my_action = action
+                    break
+            if my_action:
+                break
+
+        if not my_action:
+            return
+
+        action_type = my_action.get("type", "")
+        action_id = my_action.get("id", 0)
+        
+        my_team = session.get("myTeam", [])
+        banned_champ_ids = []
+        for b in session.get("bannedChampions", []):
+            if isinstance(b, dict): banned_champ_ids.append(b.get("championId", 0))
+            else: banned_champ_ids.append(b)
+
+        now = time.time()
+        if not hasattr(self, "_last_draft_action_time"): self._last_draft_action_time = 0
+
+        if action_type == "ban":
+            teammate_hovers = set(p.get("championPickIntent", 0) for p in my_team if p.get("cellId") != me.get("cellId") and p.get("championPickIntent", 0) > 0)
+            
+            for i in range(1, 4):
+                ban_str = self.config.get(f"ban_{assigned}_{i}", "")
+                if not ban_str: continue
+                ban_id = self.assets.name_to_id.get(ban_str.lower(), 0)
+                if not ban_id: continue
+                
+                if ban_id in banned_champ_ids: continue
+                if ban_id in teammate_hovers:
+                    self._log(f"Draft: Skipping ban {ban_str} because a teammate is hovering it.")
+                    continue
+                
+                # Prevent spamming
+                if my_action.get("championId") != ban_id and (now - self._last_draft_action_time > 0.5):
+                    self._log(f"Draft: Hovering Ban {ban_str}")
+                    self.lcu.request("PATCH", f"/lol-champ-select/v1/session/actions/{action_id}", data={"championId": ban_id})
+                    self._last_draft_action_time = now
+                break
+
+        elif action_type == "pick":
+            enemy_team = session.get("theirTeam", [])
+            picked_ids = set()
+            for p in my_team + enemy_team:
+                cid = p.get("championId", 0)
+                if cid > 0:
+                    picked_ids.add(cid)
+                    
+            for i in range(1, 4):
+                pick_str = self.config.get(f"pick_{assigned}_{i}", "")
+                if not pick_str: continue
+                pick_id = self.assets.name_to_id.get(pick_str.lower(), 0)
+                if not pick_id: continue
+                
+                if pick_id in banned_champ_ids or pick_id in picked_ids:
+                    continue
+                
+                if my_action.get("championId") != pick_id and (now - self._last_draft_action_time > 0.5):
+                    self._log(f"Draft: Hovering Pick {pick_str}")
+                    self.lcu.request("PATCH", f"/lol-champ-select/v1/session/actions/{action_id}", data={"championId": pick_id})
+                    self._last_draft_action_time = now
+                break
 
     def _perform_priority_sniper(self, session, priority_list):
         if not priority_list: return
@@ -474,6 +660,14 @@ class AutomationEngine:
             if not teammates:
                 return
 
+            friend_teammates = []
+            friends_res = self.lcu.request("GET", "/lol-chat/v1/friends")
+            if friends_res and friends_res.status_code == 200:
+                friend_puuids = {f.get("puuid", "") for f in friends_res.json()}
+                friend_teammates = [p for p in teammates if p.get("puuid", "") in friend_puuids]
+            
+            candidates = friend_teammates if friend_teammates else teammates
+
             strategy = self.config.get("honor_strategy", "random")
             if strategy == "best_kda":
                 def kda(p):
@@ -481,14 +675,14 @@ class AutomationEngine:
                     a = p.get("stats", {}).get("ASSISTS", 0)
                     d = max(p.get("stats", {}).get("NUM_DEATHS", 1), 1)
                     return (k + a) / d
-                target = max(teammates, key=kda)
+                target = max(candidates, key=kda)
             elif strategy == "mvp":
                 def score(p):
                     s = p.get("stats", {})
                     return s.get("CHAMPIONS_KILLED", 0) + s.get("ASSISTS", 0)
-                target = max(teammates, key=score)
+                target = max(candidates, key=score)
             else:
-                target = random.choice(teammates)
+                target = random.choice(candidates)
 
             summoner_id = target.get("summonerId", 0)
             honor_body = {

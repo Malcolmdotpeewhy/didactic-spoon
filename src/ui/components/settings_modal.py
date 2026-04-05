@@ -503,6 +503,7 @@ class SettingsModal(ctk.CTkToplevel):
             ("Toggle Automation", "hotkey_toggle_automation", "ctrl+shift+a"),
             ("Find Match", "hotkey_find_match", "ctrl+shift+f"),
             ("Compact Mode", "hotkey_compact_mode", "ctrl+shift+m"),
+            ("Omnibar", "hotkey_omnibar", "ctrl+k"),
         ]
 
         for label_text, config_key, default_val in hotkeys:
@@ -638,6 +639,7 @@ class SettingsModal(ctk.CTkToplevel):
             "hotkey_toggle_automation": "ctrl+shift+a",
             "hotkey_find_match": "ctrl+shift+f",
             "hotkey_compact_mode": "ctrl+shift+m",
+            "hotkey_omnibar": "ctrl+k",
         }
         for key, default_val in default_hotkeys.items():
             if key in self.recorders:
