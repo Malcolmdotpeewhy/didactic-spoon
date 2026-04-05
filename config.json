@@ -44,7 +44,7 @@
     "ban_UTILITY_3": "",
     "always_on_top": true,
     "poro_snacks": 0,
-    "stealth_mode": false,
+    "stealth_mode": true,
     "hotkey_launch_client": "ctrl+alt+win+c",
     "hotkey_toggle_automation": "ctrl+alt+win+x",
     "hotkey_find_match": "shift+alt+z",
