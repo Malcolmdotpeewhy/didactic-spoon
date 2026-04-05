@@ -451,7 +451,7 @@ class SidebarWidget(ctk.CTkFrame):
 
         presets = [
             ("🚀", "Grinding Ranked"),
-            ("🎮", "LeagueLoop ⚙️ github.com/Malcolmdotpeewhy/didactic-spoon"),
+            ("🎮", "LeagueLoop ⚙️ https://github.com/Intrusive-Thots/LeagueLoop-Installer"),
             ("🌮", "Eating / Brb"),
             ("💤", "AFK"),
         ]

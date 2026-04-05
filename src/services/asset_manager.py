@@ -32,7 +32,7 @@ DEFAULT_CONFIG = {
     "auto_pick": "",  # Legacy/Global Fallback
     "auto_pick_backup": "",
     "auto_ban": "",
-    "custom_status": "LeagueLoop — github.com/Malcolmdotpeewhy/LeagueLoop-Installer",
+    "custom_status": "🎮 LeagueLoop ⚙️ https://github.com/Intrusive-Thots/LeagueLoop-Installer",
     "auto_aram_swap": False,
     "auto_set_roles": False,
     "auto_hover": False,
