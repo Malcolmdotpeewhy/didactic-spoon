@@ -658,13 +658,21 @@ class AutomationEngine:
             teammates = []
             
             for team in teams:
+                players = team.get("players", [])
+
                 is_my_team = team.get("isPlayerTeam", False)
-                team_puuids = [p.get("puuid", "") for p in team.get("players", [])]
-                if is_my_team or (my_puuid and my_puuid in team_puuids):
-                    for player in team.get("players", []):
-                        puuid = player.get("puuid", "")
+                if not is_my_team and my_puuid:
+                    for p in players:
+                        if p.get("puuid") == my_puuid:
+                            is_my_team = True
+                            break
+
+                if is_my_team:
+                    for p in players:
+                        puuid = p.get("puuid", "")
                         if puuid and puuid != my_puuid:
-                            teammates.append(player)
+                            teammates.append(p)
+                    break
 
             if not teammates:
                 return
