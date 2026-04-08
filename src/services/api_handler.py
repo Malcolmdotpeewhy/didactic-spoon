@@ -75,15 +75,15 @@ class LCUClient:
                         return False
                     self._last_scan_time = now
 
-                    for p in psutil.process_iter():
+                    for p in psutil.process_iter(attrs=['name']):
                         try:
-                            name = p.name()
+                            name = p.info['name']
                             if name in client_procs:
                                 found_procs[name] = p
                                 # Optimization: Stop early if we found the best one
                                 if name == highest_priority:
                                     break
-                        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, KeyError):
                             continue
 
                     scan_duration = time.time() - scan_start
