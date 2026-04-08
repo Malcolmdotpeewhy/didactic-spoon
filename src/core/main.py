@@ -298,7 +298,7 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
                 if os.path.exists(c):
                     if hasattr(self, "sidebar") and self.sidebar.winfo_exists():
                         self.sidebar.update_action_log("Launching Riot Client...")
-                    subprocess.Popen(f'"{c}" --launch-product=league_of_legends --launch-patchline=live', shell=True)
+                    subprocess.Popen([c, "--launch-product=league_of_legends", "--launch-patchline=live"])
                     return
             if hasattr(self, "sidebar") and self.sidebar.winfo_exists():
                 self.sidebar.update_action_log("Error: Could not find Riot Client.")
