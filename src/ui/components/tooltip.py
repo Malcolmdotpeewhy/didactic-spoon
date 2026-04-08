@@ -2,7 +2,7 @@
 from utils.logger import Logger
 import tkinter
 import customtkinter as ctk
-from ..components.factory import get_color, get_font, parse_border, TOKENS
+from ..components.factory import get_color, get_font, TOKENS
 
 class CTkTooltip:
     """
