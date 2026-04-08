@@ -476,12 +476,9 @@ class AutomationEngine:
                 break
 
         elif action_type == "pick":
+            from itertools import chain
             enemy_team = session.get("theirTeam", [])
-            picked_ids = set()
-            for p in my_team + enemy_team:
-                cid = p.get("championId", 0)
-                if cid > 0:
-                    picked_ids.add(cid)
+            picked_ids = {cid for p in chain(my_team, enemy_team) if (cid := p.get("championId", 0)) > 0}
                     
             for i in range(1, 4):
                 pick_str = self.config.get(f"pick_{assigned}_{i}", "")
