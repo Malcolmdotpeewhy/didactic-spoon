@@ -3,7 +3,7 @@ import customtkinter as ctk  # type: ignore
 import keyboard  # type: ignore
 
 from ui.ui_shared import CTkTooltip  # type: ignore
-from ui.components.factory import get_color, get_font, get_radius, make_button  # type: ignore
+from ui.components.factory import get_color, get_font, make_button  # type: ignore
 from ui.components.lol_toggle import LolToggle  # type: ignore
 from ui.components.hover import apply_click_animation  # type: ignore
 from utils.logger import Logger  # type: ignore
