@@ -23,8 +23,7 @@ from utils.logger import Logger  # type: ignore
 from utils.path_utils import get_asset_path  # type: ignore
 from core.version import __version__  # type: ignore
 from core.constants import (  # type: ignore
-    SIDEBAR_WIDTH, SIDEBAR_HEIGHT, COMPACT_SIZE, COMPACT_BUTTON_SIZE,
-    COMPACT_GLOW_SIZE, DOCKING_POLL_INTERVAL, DOCKING_IDLE_INTERVAL,
+    SIDEBAR_WIDTH, SIDEBAR_HEIGHT, DOCKING_POLL_INTERVAL, DOCKING_IDLE_INTERVAL,
     CONNECTION_POLL_INTERVAL, CONNECTION_ERROR_INTERVAL,
     GEOMETRY_THRESHOLD,
 )
@@ -122,9 +121,6 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
         self._setup_window_dragging()
 
         # Keyboard shortcuts
-        self._compact_mode = False
-        self._full_geometry = None
-        self._compact_hotkey = None
         self._launch_hotkey = None
         self._automation_hotkey = None
         self._queue_hotkey = None
@@ -181,18 +177,9 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
     def on_drag_start(self, event):
         self._drag_data["x"] = event.x
         self._drag_data["y"] = event.y
-        if getattr(self, "compact_mode", False) and hasattr(self, "_compact_frame"):
-            try:
-                self._compact_frame.configure(border_color=get_color("colors.accent.primary", "#0ac8b9"))
-            except Exception:
-                pass
 
     def on_drag_stop(self, event):
-        if getattr(self, "compact_mode", False) and hasattr(self, "_compact_frame"):
-            try:
-                self._compact_frame.configure(border_color=get_color("colors.accent.gold", "#C8AA6E"))
-            except Exception:
-                pass
+        pass
 
     def on_drag_motion(self, event):
         x = self.winfo_x() - self._drag_data["x"] + event.x
@@ -225,21 +212,9 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
                 ctypes.windll.user32.ShowWindow(hwnd, SW_RESTORE)
             except Exception:
                 pass
-            self.deiconify()
-            # Do not set topmost=True here anymore, OS handles Z-order
-            self.lift()
+            self.after(0, self.deiconify)
+            self.after(50, self.lift)
             Logger.info("SYS", "Game ended. Restoring window.")
-        elif state == "restore_quiet":
-            try:
-                import ctypes
-                SW_RESTORE = 9
-                hwnd = ctypes.windll.user32.GetParent(self.winfo_id())
-                if hwnd == 0: hwnd = self.winfo_id()
-                ctypes.windll.user32.ShowWindow(hwnd, SW_RESTORE)
-            except Exception:
-                pass
-            self.deiconify()
-            Logger.info("SYS", "Game ended. Window restored (stealth).")
 
     def _attach_to_hwnd(self, parent_hwnd):
         """OS-level bond to League Client. Syncs minimize/restore and Z-order natively."""
@@ -323,12 +298,6 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
                 "subtitle": "Deletes downloaded champion images",
                 "icon": "🗑️",
                 "action": self.assets.clear_cache
-            },
-            {
-                "title": "Toggle Compact Mode",
-                "subtitle": "Shrinks LeagueLoop to a glowing orb",
-                "icon": "🗖",
-                "action": lambda: self.after(0, self.toggle_compact_mode)
             },
             {
                 "title": "Quit LeagueLoop",
@@ -453,14 +422,12 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
         except Exception as e:
             Logger.debug("SYS", f"Failed to unhook hotkeys: {e}")
             
-        self._compact_hotkey = self.config.get("hotkey_compact_mode", "ctrl+shift+m")
         self._launch_hotkey = self.config.get("hotkey_launch_client", "ctrl+shift+l")
         self._automation_hotkey = self.config.get("hotkey_toggle_automation", "ctrl+shift+a")
         self._queue_hotkey = self.config.get("hotkey_find_match", "ctrl+shift+f")
         self._omnibar_hotkey = self.config.get("hotkey_omnibar", "ctrl+k")
 
         try:
-            keyboard.add_hotkey(self._compact_hotkey, lambda: self.after(0, self.toggle_compact_mode), suppress=False)
             keyboard.add_hotkey(self._launch_hotkey, self._hotkey_launch_client, suppress=False)
             keyboard.add_hotkey(self._automation_hotkey, self._hotkey_toggle_automation, suppress=False)
             keyboard.add_hotkey(self._queue_hotkey, self._hotkey_find_match, suppress=False)
@@ -471,73 +438,6 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
     def on_settings_saved(self):
         self._bind_hotkeys()
         self.scraper.set_mode(self.config.get("aram_mode", "ARAM"))
-
-    def toggle_compact_mode(self):
-        if self._compact_mode:
-            self._compact_mode = False
-            self.attributes("-topmost", True)
-            self.overrideredirect(True)
-            try:
-                self.attributes("-transparentcolor", "")
-            except TclError:
-                pass
-
-            self.sidebar.grid()
-            if hasattr(self, "_compact_frame"):
-                self._compact_frame.destroy()
-
-            if self._full_geometry:
-                self.geometry(self._full_geometry)
-            else:
-                self.geometry(f"{SIDEBAR_WIDTH}x{SIDEBAR_HEIGHT}")
-
-            if self.sidebar:
-                self.sidebar.update_action_log("Restored Full Mode")
-        else:
-            self._compact_mode = True
-            self._full_geometry = self.geometry()
-            self.sidebar.grid_remove()
-
-            trans_color = "black"
-            self._compact_frame = ctk.CTkFrame(self, fg_color=trans_color, corner_radius=0)
-            self._compact_frame.grid(row=0, column=0, sticky="nsew")
-
-            compact_icon = self.sidebar.img_on if self.sidebar.power_state else self.sidebar.img_off
-            compact_text = "" if compact_icon else "⏻"
-            
-            ring_color = get_color("colors.accent.primary") if self.sidebar.power_state else get_color("colors.text.muted")
-            
-            glow_frame = ctk.CTkFrame(
-                self._compact_frame, fg_color=trans_color, bg_color=trans_color,
-                corner_radius=40, border_width=3, border_color=ring_color,
-                width=80, height=80
-            )
-            glow_frame.place(relx=0.5, rely=0.5, anchor="center")
-            glow_frame.pack_propagate(False)
-
-            btn_compact = ctk.CTkButton(
-                glow_frame, text=compact_text, image=compact_icon,
-                font=("Arial", 20, "bold"), width=72, height=72, corner_radius=36,
-                fg_color=trans_color, hover_color=get_color("colors.state.hover"),
-                command=self.toggle_compact_mode,
-            )
-            btn_compact.place(relx=0.5, rely=0.5, anchor="center")
-            CTkTooltip(btn_compact, "Return to Full Mode")
-
-            self.geometry(f"{COMPACT_SIZE}x{COMPACT_SIZE}")
-            self.attributes("-topmost", True)
-            self.overrideredirect(True)
-            try:
-                self.attributes("-transparentcolor", trans_color)
-            except TclError:
-                pass
-
-            self._compact_frame.bind("<ButtonPress-1>", self.on_drag_start)
-            btn_compact.bind("<ButtonPress-1>", self.on_drag_start)
-            self._compact_frame.bind("<B1-Motion>", self.on_drag_motion)
-            btn_compact.bind("<B1-Motion>", self.on_drag_motion)
-            self._compact_frame.bind("<ButtonRelease-1>", self.on_drag_stop)
-            btn_compact.bind("<ButtonRelease-1>", self.on_drag_stop)
 
     def toggle_power(self, power_state):
         Logger.info("SYS", f"Power Toggled: {power_state}")
@@ -624,12 +524,17 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
                         if my_id == 0: 
                             my_id = self.winfo_id()
                             
-                        # Topmost only if Riot Client, or League Client, or LeagueLoop is active
+                        # Topmost & Visible only if Riot Client, or League Client, or LeagueLoop is active
                         is_active = (fg_hwnd == hwnd) or (fg_hwnd == my_id)
                         
                         if is_active != last_topmost:
                             last_topmost = is_active
-                            self.after(0, lambda a=is_active: self.attributes("-topmost", a))
+                            if is_active:
+                                self.after(0, lambda: self.attributes("-alpha", 1.0))
+                                self.after(0, lambda: self.attributes("-topmost", True))
+                            else:
+                                self.after(0, lambda: self.attributes("-alpha", 0.0))
+                                self.after(0, lambda: self.attributes("-topmost", False))
                         
                     time.sleep(DOCKING_POLL_INTERVAL)
                 else:

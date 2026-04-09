@@ -74,19 +74,6 @@ class SidebarWidget(ctk.CTkFrame):
         self.btn_settings.pack(side="right", padx=(4, 1))
         CTkTooltip(self.btn_settings, "Open Settings")
 
-        # ▼ Minimize
-        self.btn_minimize = ctk.CTkButton(
-            self.header, text="—", width=20, height=20,
-            corner_radius=10, font=("Arial", 10, "bold"),
-            fg_color="transparent",
-            text_color=get_color("colors.text.muted"),
-            hover_color=get_color("colors.state.hover"),
-            command=self.master.toggle_compact_mode, cursor="hand2",
-            )
-        self.btn_minimize.pack(side="right", padx=(4, 1))
-        hk_compact = self.config.get("hotkey_compact_mode", "ctrl+shift+m").upper()
-        self.tooltip_minimize = CTkTooltip(self.btn_minimize, f"Minimize Sidebar ({hk_compact})")
-
         self.drag_widgets = [self, self.header, self.lbl_title]
 
         # ── Collapsible Body ──
@@ -884,23 +871,25 @@ class SidebarWidget(ctk.CTkFrame):
 
     def _show_quick_actions(self):
         """Reveal the Requeue & Dodge buttons during active matchmaking phases."""
-        if hasattr(self, "quick_actions_frame") and not self.quick_actions_frame.winfo_viewable():
-            if hasattr(self, "btn_find_match") and self.btn_find_match.winfo_viewable():
+        if hasattr(self, "quick_actions_frame"):
+            if hasattr(self, "btn_find_match"):
                 self.btn_find_match.pack_forget()
             
             self.requeue_button.grid(row=0, column=0, padx=(0, 4), pady=0, sticky="ew")
             self.dodge_button.grid(row=0, column=1, padx=(4, 0), pady=0, sticky="ew")
             self.quick_actions_frame.pack(fill="x", pady=0)
 
-    def _hide_quick_actions(self):
+    def _hide_quick_actions(self, show_find_match=True):
         """Hide the Requeue & Dodge buttons when idle or in-game."""
-        if hasattr(self, "quick_actions_frame") and self.quick_actions_frame.winfo_viewable():
+        if hasattr(self, "quick_actions_frame"):
             self.requeue_button.grid_remove()
             self.dodge_button.grid_remove()
             self.quick_actions_frame.pack_forget()
             
-            if hasattr(self, "btn_find_match") and not self.btn_find_match.winfo_viewable():
+            if show_find_match and hasattr(self, "btn_find_match"):
                 self.btn_find_match.pack(fill="x", pady=0)
+            elif not show_find_match and hasattr(self, "btn_find_match"):
+                self.btn_find_match.pack_forget()
 
     def _start_local_queue_timer(self, time_in_queue, estimated_time):
         """Start or re-sync the local queue timer. Idempotent — won't restart if already running."""
@@ -1050,7 +1039,7 @@ class SidebarWidget(ctk.CTkFrame):
                 self.estimate_label.configure(text="● Ready", text_color="#00C853")
                 self.progress_bar.set(1.0)
                 self.progress_bar.configure(progress_color="#00C853")
-                self._show_quick_actions()
+                self._hide_quick_actions(show_find_match=False)
 
                 try:
                     from ui.components.toast import ToastManager
@@ -1075,7 +1064,7 @@ class SidebarWidget(ctk.CTkFrame):
                 self.time_label.configure(text="In Game", text_color=get_color("colors.text.primary"))
                 self.estimate_label.configure(text="● Playing", text_color="#3B82F6")
                 self.progress_bar.set(0)
-                self._hide_quick_actions()
+                self._hide_quick_actions(show_find_match=False)
             self._last_ui_phase = phase
 
         elif phase == "EndOfGame":
@@ -1084,7 +1073,7 @@ class SidebarWidget(ctk.CTkFrame):
                 self.time_label.configure(text="Post Game", text_color=get_color("colors.text.primary"))
                 self.estimate_label.configure(text="● Waiting Stats", text_color="#F59E0B")
                 self.progress_bar.set(0)
-                self._hide_quick_actions()
+                self._hide_quick_actions(show_find_match=False)
             self._last_ui_phase = phase
             
         elif phase == "Reconnect":
@@ -1093,12 +1082,12 @@ class SidebarWidget(ctk.CTkFrame):
                 self.time_label.configure(text="Reconnect", text_color="#ff4444")
                 self.estimate_label.configure(text="● Crash/DC", text_color="#ff4444")
                 self.progress_bar.set(0)
-                self._hide_quick_actions()
+                self._hide_quick_actions(show_find_match=False)
             self._last_ui_phase = phase
 
         else:
-            # Lobby / None — only update if we actually changed phases
-            if prev_ui_phase not in ["Lobby", "None", None] or prev_ui_phase is None:
+            # Lobby / None
+            if prev_ui_phase not in ["Lobby", "None"] or prev_ui_phase is None:
                 self._stop_local_queue_timer()
                 if getattr(self.master, "lcu", None) and self.master.lcu.is_connected:
                     self.time_label.configure(text="Queue: Idle", text_color=get_color("colors.text.primary"))
@@ -1107,7 +1096,7 @@ class SidebarWidget(ctk.CTkFrame):
                     self.time_label.configure(text="Disconnected", text_color="#ff4444")
                     self.estimate_label.configure(text="● Offline", text_color="#ff4444")
                 self.progress_bar.set(0)
-                self._hide_quick_actions()
+                self._hide_quick_actions(show_find_match=True)
             self._last_ui_phase = phase
 
         # Update game-tool visibility whenever phase changes

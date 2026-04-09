@@ -144,10 +144,7 @@ class AutomationEngine:
             if phase == "InProgress":
                 wf("minimize")
             elif self.last_phase == "InProgress" and phase in ["EndOfGame", "Lobby", "None"]:
-                if self.config.get("stealth_mode"):
-                    wf("restore_quiet")
-                else:
-                    wf("restore")
+                wf("restore")
 
         self.last_phase = phase
 

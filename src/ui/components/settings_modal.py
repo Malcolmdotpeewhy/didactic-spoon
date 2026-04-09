@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 import customtkinter as ctk  # type: ignore
 import keyboard  # type: ignore
@@ -7,6 +8,9 @@ from ui.components.factory import get_color, get_font, make_button  # type: igno
 from ui.components.lol_toggle import LolToggle  # type: ignore
 from ui.components.hover import apply_click_animation  # type: ignore
 from utils.logger import Logger  # type: ignore
+from utils.path_utils import get_asset_path  # type: ignore
+from core.version import __version__  # type: ignore
+
 
 
 class HotkeyRecorder(ctk.CTkButton):
@@ -246,6 +250,13 @@ class SettingsModal(ctk.CTkToplevel):
         self.recorders = {}
 
         self.title("League Loop — Settings")
+        try:
+            icon_path = get_asset_path("assets/app.ico")
+            if os.path.exists(icon_path):
+                self.iconbitmap(icon_path)
+        except Exception:
+            pass
+
         self.geometry("380x560")
         self.resizable(False, False)
         self.attributes("-topmost", True)
@@ -313,7 +324,7 @@ class SettingsModal(ctk.CTkToplevel):
         ).pack(side="left", padx=16, pady=12)
 
         ctk.CTkLabel(
-            header, text="v1.0",
+            header, text=f"v{__version__}",
             font=get_font("caption"),
             text_color=get_color("colors.text.muted"),
         ).pack(side="right", padx=(8, 16), pady=12)
@@ -414,26 +425,6 @@ class SettingsModal(ctk.CTkToplevel):
 
         # ━━━━━━━━ BEHAVIOR ━━━━━━━━
         _section_header(body, "BEHAVIOR")
-
-        row_stealth = ctk.CTkFrame(body, fg_color="transparent")
-        row_stealth.pack(fill="x", pady=4)
-        ctk.CTkLabel(
-            row_stealth, text="Stealth Mode",
-            font=get_font("body"),
-            text_color=get_color("colors.text.primary"),
-        ).pack(side="left")
-
-        self.stealth_var = ctk.BooleanVar(value=bool(self.config.get("stealth_mode", False)))
-        self.stealth_switch = LolToggle(
-            row_stealth,
-            variable=self.stealth_var,
-        )
-        self.stealth_switch.pack(side="right")
-        CTkTooltip(
-            self.stealth_switch,
-            "Keep LeagueLoop in the background during automations.\n"
-            "It will only pop up when a game starts or ends."
-        )
 
         _divider(body)
 
@@ -547,7 +538,6 @@ class SettingsModal(ctk.CTkToplevel):
             ("Client Launch", "hotkey_launch_client", "ctrl+shift+l"),
             ("Toggle Automation", "hotkey_toggle_automation", "ctrl+shift+a"),
             ("Find Match", "hotkey_find_match", "ctrl+shift+f"),
-            ("Compact Mode", "hotkey_compact_mode", "ctrl+shift+m"),
             ("Omnibar", "hotkey_omnibar", "ctrl+k"),
         ]
 
@@ -673,11 +663,6 @@ class SettingsModal(ctk.CTkToplevel):
         self.slider_delay.set(2.0)
         self._on_delay_slide(2.0)
 
-        # Update LolToggle state safely
-        self.stealth_var.set(False)
-        self.stealth_switch._state = False
-        self.stealth_switch._animate()
-
         self.honor_enabled_var.set(True)
         self.honor_enabled_switch._state = True
         self.honor_enabled_switch._animate()
@@ -695,7 +680,6 @@ class SettingsModal(ctk.CTkToplevel):
             "hotkey_launch_client": "ctrl+shift+l",
             "hotkey_toggle_automation": "ctrl+shift+a",
             "hotkey_find_match": "ctrl+shift+f",
-            "hotkey_compact_mode": "ctrl+shift+m",
             "hotkey_omnibar": "ctrl+k",
         }
         for key, default_val in default_hotkeys.items():
@@ -733,9 +717,6 @@ class SettingsModal(ctk.CTkToplevel):
 
         # Save accept delay
         self.config.set("accept_delay", round(self.delay_var.get(), 1))
-
-        # Save stealth mode
-        self.config.set("stealth_mode", bool(self.stealth_var.get()))
 
         # Save honor strategy
         self.config.set("auto_honor_enabled", bool(self.honor_enabled_var.get()))
