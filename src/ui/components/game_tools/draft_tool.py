@@ -1,7 +1,8 @@
 import tkinter as tk
 import customtkinter as ctk
 
-from ui.components.factory import get_color, get_font, get_radius, make_input
+from ui.components.factory import get_color, get_font, get_radius
+from ui.components.champion_input import ChampionInput
 from ui.ui_shared import CTkTooltip
 from core.constants import SPACING_SM, SPACING_MD
 
@@ -70,7 +71,7 @@ class DraftTool(ctk.CTkFrame):
             
             for i in range(1, 4):
                 key = f"pick_{role}_{i}"
-                entry = make_input(pick_frame, placeholder=f"Pick {i}", height=28, font=get_font("caption"))
+                entry = ChampionInput(pick_frame, placeholder=f"Pick {i}", height=28)
                 entry.pack(fill="x", pady=2)
                 self._entries[key] = entry
                 
@@ -81,7 +82,7 @@ class DraftTool(ctk.CTkFrame):
             
             for i in range(1, 4):
                 key = f"ban_{role}_{i}"
-                entry = make_input(ban_frame, placeholder=f"Ban {i}", height=28, font=get_font("caption"))
+                entry = ChampionInput(ban_frame, placeholder=f"Ban {i}", height=28)
                 entry.pack(fill="x", pady=2)
                 self._entries[key] = entry
                 

@@ -12,7 +12,8 @@ Backend already supports ban evasion via automation.py's _perform_arena_synergy.
 import os
 import customtkinter as ctk
 
-from ui.components.factory import get_color, get_font, get_radius, make_input
+from ui.components.factory import get_color, get_font, get_radius
+from ui.components.champion_input import ChampionInput
 from ui.ui_shared import CTkTooltip
 from core.constants import SPACING_SM, SPACING_MD
 
@@ -153,17 +154,15 @@ class ArenaTool(ctk.CTkFrame):
         self.add_row = ctk.CTkFrame(self.add_container, fg_color="transparent", height=28)
         self.add_row.pack(fill="x")
 
-        self.add_entry = make_input(
+        self.add_entry = ChampionInput(
             self.add_row,
             placeholder="Champion name...",
             width=130,
             height=24,
-            font=get_font("caption")
+            on_commit=lambda c: self._commit_add_step(c)
         )
         self.add_entry.pack(side="left", padx=(0, 4))
-        self.add_entry.bind("<Return>", lambda e: self._commit_add_step())
-        self.add_entry.bind("<KeyRelease>", self._on_add_typing)
-        self.add_entry.bind("<Escape>", lambda e: self._cancel_add())
+        self.add_entry.bind("<Escape>", lambda e: self._cancel_add(), add="+")
 
         self.btn_commit = ctk.CTkButton(
             self.add_row, text="Add", width=44, height=24,
@@ -183,9 +182,6 @@ class ArenaTool(ctk.CTkFrame):
             text_color="#ff4444",
             command=self._cancel_add, cursor="hand2"
         ).pack(side="right", padx=(4, 0))
-
-        # Pill suggestions row (hidden initially)
-        self.suggestions_frame = ctk.CTkFrame(self.add_container, fg_color="transparent")
 
         # Tags row for step 2 fallback picks (hidden initially)
         self.tags_frame = ctk.CTkFrame(self.add_container, fg_color="transparent")
@@ -229,9 +225,10 @@ class ArenaTool(ctk.CTkFrame):
         self.btn_commit.configure(text="Next →",
                                   fg_color=get_color("colors.accent.primary"))
         self.tags_frame.pack_forget()
-        self.suggestions_frame.pack_forget()
 
-        self.add_container.pack(fill="x", padx=4, pady=(4, 0), before=self.list_frame)
+        self.list_frame.pack_forget()
+        self.add_container.pack(fill="x", padx=4, pady=(4, 0))
+        self.list_frame.pack(fill="x")
         self.add_entry.focus_set()
 
     def _advance_to_step2(self):
@@ -245,7 +242,6 @@ class ArenaTool(ctk.CTkFrame):
         self.btn_commit.configure(text="Add",
                                   fg_color=get_color("colors.accent.primary"))
         self._pending_me_list = []
-        self.suggestions_frame.pack_forget()
         self.tags_frame.pack(fill="x", pady=(4, 0))
         self._render_tags()
         self.add_entry.focus_set()
@@ -255,17 +251,21 @@ class ArenaTool(ctk.CTkFrame):
         self._pending_teammate = ""
         self._pending_me_list = []
         self.add_container.pack_forget()
-        self.suggestions_frame.pack_forget()
         self.tags_frame.pack_forget()
         self.add_entry.delete(0, "end")
 
-    def _commit_add_step(self):
-        raw = self.add_entry.get().strip()
-        if not raw:
+    def _commit_add_step(self, resolved=None):
+        if not resolved:
+            raw = self.add_entry.get().strip()
+            if not raw:
+                return
+            resolved = self._resolve_champion_name(raw)
+
+        if not resolved:
+            self._flash_entry()
             return
 
         if self._add_step == 1:
-            resolved = self._resolve_champion_name(raw)
             if not resolved:
                 self._flash_entry()
                 return
@@ -273,18 +273,12 @@ class ArenaTool(ctk.CTkFrame):
             self._advance_to_step2()
 
         elif self._add_step == 2:
-            resolved = self._resolve_champion_name(raw)
-            if not resolved:
-                self._flash_entry()
-                return
-
             # Prevent duplicates in pending list
             if resolved not in self._pending_me_list:
                 self._pending_me_list.append(resolved)
                 self._render_tags()
 
             self.add_entry.delete(0, "end")
-            self.suggestions_frame.pack_forget()
             self.add_entry.focus_set()
 
     def _save_completed_pair(self):
@@ -382,80 +376,12 @@ class ArenaTool(ctk.CTkFrame):
             command=self._save_completed_pair, cursor="hand2"
         ).pack(side="right", padx=(4, 0))
 
+
+
     def _remove_pending_tag(self, idx):
         if 0 <= idx < len(self._pending_me_list):
             self._pending_me_list.pop(idx)
             self._render_tags()
-
-    # ───────────── autocomplete (Priority Grid style) ─────────────
-    def _on_add_typing(self, event):
-        if event.keysym in ("Return", "Escape", "Up", "Down", "Left", "Right", "Tab"):
-            return
-
-        if self._debounce_timer is not None:
-            self.after_cancel(self._debounce_timer)
-
-        self._debounce_timer = self.after(150, self._perform_add_search)
-
-    def _perform_add_search(self):
-        query = self.add_entry.get().strip().lower()
-
-        # Clear existing suggestion pills
-        for widget in self.suggestions_frame.winfo_children():
-            widget.destroy()
-
-        if not query:
-            self.suggestions_frame.pack_forget()
-            return
-
-        # Find matches — starts-with first, then substring
-        matches = []
-        for champ_lower, champ in self._search_cache:
-            if champ_lower.startswith(query):
-                matches.append(champ)
-            elif query in champ_lower:
-                matches.append(champ)
-
-        unique_matches = list(dict.fromkeys(matches))
-
-        if not unique_matches:
-            self.suggestions_frame.pack_forget()
-            return
-
-        # Show top 4 as clickable pills
-        self.suggestions_frame.pack(fill="x", pady=(4, 0))
-
-        _pill_bg = get_color("colors.background.card")
-        _pill_border = get_color("colors.accent.gold", "#C8AA6E")
-        _pill_hover = get_color("colors.state.hover")
-        _pill_text = get_color("colors.text.primary")
-
-        for champ in unique_matches[:4]:
-            pill = ctk.CTkButton(
-                self.suggestions_frame, text=champ, width=0, height=20,
-                corner_radius=10, font=get_font("caption"),
-                fg_color=_pill_bg,
-                border_width=1, border_color=_pill_border,
-                hover_color=_pill_hover,
-                text_color=_pill_text,
-                command=lambda c=champ: self._select_suggestion(c),
-                cursor="hand2",
-            )
-            pill.pack(side="left", padx=(0, 4))
-
-    def _select_suggestion(self, champ_name):
-        """Fill the entry and auto-commit after a brief flash."""
-        self.add_entry.delete(0, "end")
-        self.add_entry.insert(0, champ_name)
-        self.add_entry.configure(border_color=get_color("colors.accent.primary"))
-        self.suggestions_frame.pack_forget()
-
-        def finalize():
-            if self.add_entry.winfo_exists():
-                self.add_entry.configure(border_color=get_color("colors.border.subtle"))
-            self._commit_add_step()
-
-        self.after(200, finalize)
 
     def _flash_entry(self):
         """Red flash on invalid input."""

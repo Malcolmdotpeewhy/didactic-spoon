@@ -12,12 +12,12 @@
     "auto_random_skin": false,
     "accept_delay": 0.0,
     "polling_rate_champ_select": 0.5,
-    "pick_TOP_1": "",
-    "pick_TOP_2": "",
-    "pick_TOP_3": "",
-    "pick_JUNGLE_1": "",
-    "pick_JUNGLE_2": "",
-    "pick_JUNGLE_3": "",
+    "pick_TOP_1": "Akali",
+    "pick_TOP_2": "Fiddlesticks",
+    "pick_TOP_3": "Akshan",
+    "pick_JUNGLE_1": "Jarvaniv",
+    "pick_JUNGLE_2": "Galio",
+    "pick_JUNGLE_3": "Chogath",
     "pick_MIDDLE_1": "",
     "pick_MIDDLE_2": "",
     "pick_MIDDLE_3": "",
@@ -27,12 +27,12 @@
     "pick_UTILITY_1": "",
     "pick_UTILITY_2": "",
     "pick_UTILITY_3": "",
-    "ban_TOP_1": "",
-    "ban_TOP_2": "",
+    "ban_TOP_1": "Gwen",
+    "ban_TOP_2": "Gwen",
     "ban_TOP_3": "",
-    "ban_JUNGLE_1": "",
-    "ban_JUNGLE_2": "",
-    "ban_JUNGLE_3": "",
+    "ban_JUNGLE_1": "Janna",
+    "ban_JUNGLE_2": "Janna",
+    "ban_JUNGLE_3": "Chogath",
     "ban_MIDDLE_1": "",
     "ban_MIDDLE_2": "",
     "ban_MIDDLE_3": "",
@@ -51,17 +51,17 @@
     "hotkey_compact_mode": "alt+esc",
     "hotkey_omnibar": "ctrl+alt+a",
     "priority_picker": {
-        "enabled": false,
+        "enabled": true,
         "list": [
             "Fizz",
             "Singed",
             "Amumu",
             "TwistedFate",
             "Brand",
+            "AurelionSol",
             "Shaco",
             "Fiddlesticks",
             "Sion",
-            "AurelionSol",
             "Karthus",
             "Velkoz",
             "Zyra",
@@ -97,7 +97,7 @@
     "ban_BOTTOM": "",
     "ban_UTILITY": "",
     "auto_spells": true,
-    "aram_mode": "Arena",
+    "aram_mode": "ARAM Mayhem",
     "auto_join_friend_enabled": true,
     "auto_join_friend": "Palafu",
     "auto_join_list": [
@@ -111,7 +111,7 @@
         },
         {
             "name": "i am ston3d",
-            "enabled": false
+            "enabled": true
         },
         {
             "name": "palafu",
@@ -119,7 +119,7 @@
         },
         {
             "name": "zerb",
-            "enabled": false
+            "enabled": true
         },
         {
             "name": "i am richie89",
@@ -132,6 +132,14 @@
         {
             "name": "deardiaries",
             "enabled": false
+        },
+        {
+            "name": "letsgochromedome",
+            "enabled": true
+        },
+        {
+            "name": "reiemtroj",
+            "enabled": true
         }
     ],
     "hidden_friends": [

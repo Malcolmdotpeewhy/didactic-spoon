@@ -126,6 +126,7 @@ class SidebarWidget(ctk.CTkFrame):
                 "ARAM",
                 "ARAM Mayhem",
                 "Arena",
+                "Brawl",
                 "URF",
                 "ARURF",
                 "Nexus Blitz",
@@ -651,6 +652,7 @@ class SidebarWidget(ctk.CTkFrame):
             "ARAM": 450,
             "ARAM Mayhem": 2400,
             "Arena": 1700,
+            "Brawl": 2300,
             "URF": 900,
             "ARURF": 1010,
             "Nexus Blitz": 1300,
@@ -673,6 +675,14 @@ class SidebarWidget(ctk.CTkFrame):
                         name = q.get("name", "").lower()
                         desc = q.get("description", "").lower()
                         if "mayhem" in name or "mayhem" in desc:
+                            return int(q.get("id"))
+
+                if mode == "Brawl":
+                    for q in queues:
+                        if q.get("isCustom"): continue
+                        name = q.get("name", "").lower()
+                        desc = q.get("description", "").lower()
+                        if "brawl" in name or "brawl" in desc:
                             return int(q.get("id"))
 
                 # ⚡ Bolt: Hoist the target string's normalization outside the loop

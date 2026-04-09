@@ -256,9 +256,6 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
             else:
                 ctypes.windll.user32.SetWindowLongW(my_hwnd, GWLP_HWNDPARENT, parent_hwnd)
                 
-            # We are now an owned window. We stay precisely above the League Client,
-            # but NEVER above other apps like web browsers unless League itself is focused.
-            self.attributes("-topmost", False)
         except Exception as e:
             pass
 
@@ -350,7 +347,7 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
         # Inject dynamic queue modes
         modes = [
             "Quickplay", "Draft Pick", "Ranked Solo/Duo", "Ranked Flex",
-            "ARAM", "ARAM Mayhem", "Arena", "URF", "ARURF", "Nexus Blitz",
+            "ARAM", "ARAM Mayhem", "Arena", "Brawl", "URF", "ARURF", "Nexus Blitz",
             "One For All", "Ultimate Spellbook", "TFT Normal", "TFT Ranked"
         ]
 
@@ -390,7 +387,7 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
 
         modes = [
             "Quickplay", "Draft Pick", "Ranked Solo/Duo", "Ranked Flex",
-            "ARAM", "Arena", "TFT Normal"
+            "ARAM", "Arena", "Brawl", "TFT Normal"
         ]
 
         # 1. Cancel existing search
@@ -576,6 +573,7 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
         """Finds League of Legends client and clips to the right side of it."""
         last_hwnd = 0
         last_geom = (0, 0, 0, 0) # x, y, w, h
+        last_topmost = None
         
         while self.running and not self._stop_event.is_set():  # type: ignore
             try:
@@ -619,11 +617,25 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
                         if any(abs(curr_geom[i] - last_geom[i]) > GEOMETRY_THRESHOLD for i in range(4)):  # type: ignore
                             self.after(0, lambda x=target_x, y=target_y, h=my_h: self.geometry(f"{my_w}x{h}+{x}+{y}"))
                             last_geom = curr_geom
+                            
+                        # DYNAMIC TOPMOST LOGIC
+                        fg_hwnd = user32.GetForegroundWindow()
+                        my_id = user32.GetParent(self.winfo_id())
+                        if my_id == 0: 
+                            my_id = self.winfo_id()
+                            
+                        # Topmost only if Riot Client, or League Client, or LeagueLoop is active
+                        is_active = (fg_hwnd == hwnd) or (fg_hwnd == my_id)
+                        
+                        if is_active != last_topmost:
+                            last_topmost = is_active
+                            self.after(0, lambda a=is_active: self.attributes("-topmost", a))
                         
                     time.sleep(DOCKING_POLL_INTERVAL)
                 else:
                     last_hwnd = 0
                     last_geom = (0, 0, 0, 0)
+                    last_topmost = None
                     time.sleep(DOCKING_IDLE_INTERVAL)
             except Exception as e:
                 Logger.debug("SYS", f"Docking loop error: {e}")
