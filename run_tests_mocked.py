@@ -11,7 +11,8 @@ missing_modules = [
     'requests', 'requests.exceptions',
     'win32clipboard',
     'urllib3', 'urllib3.exceptions',
-    'watchdog', 'watchdog.observers', 'watchdog.events'
+    'watchdog', 'watchdog.observers', 'watchdog.events',
+    'psutil', 'tkinterdnd2'
 ]
 
 for mod in missing_modules:
@@ -22,4 +23,4 @@ if __name__ == '__main__':
     loader = unittest.TestLoader()
     suite = loader.discover('tests')
     runner = unittest.TextTestRunner(verbosity=2)
-    runner.run(suite)
+    sys.exit(not runner.run(suite).wasSuccessful())

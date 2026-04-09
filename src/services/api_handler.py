@@ -75,6 +75,7 @@ class LCUClient:
                         return False
                     self._last_scan_time = now
 
+                    # Optimization: retrieve only 'name' to avoid system-wide I/O performance regression
                     for p in psutil.process_iter(attrs=['name']):
                         try:
                             name = p.info['name']
