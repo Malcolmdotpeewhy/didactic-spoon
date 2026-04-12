@@ -51,7 +51,7 @@
     "hotkey_compact_mode": "alt+esc",
     "hotkey_omnibar": "ctrl+alt+a",
     "priority_picker": {
-        "enabled": true,
+        "enabled": false,
         "list": [
             "Fizz",
             "Singed",
@@ -87,7 +87,8 @@
             "Vex",
             "Morgana",
             "Ryze",
-            "Katarina"
+            "Katarina",
+            "Teemo"
         ]
     },
     "arena_pairs": [],
@@ -97,7 +98,7 @@
     "ban_BOTTOM": "",
     "ban_UTILITY": "",
     "auto_spells": true,
-    "aram_mode": "ARAM Mayhem",
+    "aram_mode": "Arena",
     "auto_join_friend_enabled": true,
     "auto_join_friend": "Palafu",
     "auto_join_list": [
@@ -107,11 +108,11 @@
         },
         {
             "name": "cheekycolossus",
-            "enabled": false
+            "enabled": true
         },
         {
             "name": "i am ston3d",
-            "enabled": true
+            "enabled": false
         },
         {
             "name": "palafu",
@@ -119,7 +120,7 @@
         },
         {
             "name": "zerb",
-            "enabled": true
+            "enabled": false
         },
         {
             "name": "i am richie89",
@@ -127,7 +128,7 @@
         },
         {
             "name": "cr\u00e8me de la crem",
-            "enabled": false
+            "enabled": true
         },
         {
             "name": "deardiaries",
@@ -139,7 +140,11 @@
         },
         {
             "name": "reiemtroj",
-            "enabled": true
+            "enabled": false
+        },
+        {
+            "name": "cort skul",
+            "enabled": false
         }
     ],
     "hidden_friends": [
@@ -250,7 +255,7 @@
         "Palafu#NA1",
         "NicholasLobo\u2069 #\u2066NA1\u2069"
     ],
-    "auto_join_enabled": true,
+    "auto_join_enabled": false,
     "auto_honor_enabled": true,
     "honor_strategy": "random",
     "vip_invite_list": "",
