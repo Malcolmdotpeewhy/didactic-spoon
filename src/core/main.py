@@ -610,8 +610,8 @@ def _kill_other_instances():
             
             # Reachable if it's LeagueLoop.exe OR the python core.main script
             Logger.info("SYS", f"Killing stale instance PID {proc.pid} ({pname})")
-                proc.kill()
-                killed += 1  # type: ignore
+            proc.kill()
+            killed += 1  # type: ignore
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             continue
     if killed:

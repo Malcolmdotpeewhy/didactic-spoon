@@ -1,13 +1,18 @@
 @echo off
+title LeagueLoop — Dev Mode
 cd /d "%~dp0"
 set PYTHONPATH=%CD%\src
 
-:: Initialize error log if it doesn't exist so the tail command doesn't fail
-if not exist error.log type nul > error.log
+echo.
+echo  ============================================
+echo   LeagueLoop — Development Mode
+echo  ============================================
+echo.
 
-".venv\Scripts\python.exe" -m core.main
+".venv\Scripts\python.exe" run.py
 if %ERRORLEVEL% NEQ 0 (
     echo.
-    echo === CRASHED - see error.log ===
+    echo  !! CRASHED — see output above for errors
+    echo.
     pause
 )
