@@ -25,6 +25,8 @@ if exist build rmdir /s /q build
 if exist dist\LeagueLoop rmdir /s /q dist\LeagueLoop
 if exist dist\LeagueLoop.exe del /f /q dist\LeagueLoop.exe
 if exist dist\LeagueLoop_Installer.exe del /f /q dist\LeagueLoop_Installer.exe
+:: Purge ALL __pycache__ dirs so PyInstaller recompiles from fresh .py sources
+for /d /r src %%d in (__pycache__) do @if exist "%%d" rmdir /s /q "%%d"
 echo        Done.
 echo.
 

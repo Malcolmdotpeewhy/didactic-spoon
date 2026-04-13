@@ -24,6 +24,13 @@ WizardStyle=modern
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
+[InstallDelete]
+; Remove stale runtime-generated files from previous installs that cause PermissionError
+Type: files; Name: "{app}\debug.log"
+Type: files; Name: "{app}\error.log"
+Type: files; Name: "{app}\debug.log.*"
+Type: files; Name: "{app}\error.log.*"
+
 [Files]
 Source: "dist\LeagueLoop\LeagueLoop.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "dist\LeagueLoop\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
