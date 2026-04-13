@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 import customtkinter
 import os
 
@@ -26,6 +26,7 @@ a = Analysis(
         'beautifulsoup4',
         'winreg',
         'tkinter',
+        *collect_submodules('tkinter'),
         'tkinterdnd2'
     ],
     hookspath=[],
