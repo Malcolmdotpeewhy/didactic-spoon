@@ -605,7 +605,7 @@ def _kill_other_instances():
                 except (psutil.AccessDenied, psutil.ZombieProcess):
                     continue
                 cmdline_str = " ".join(cmdline).lower()
-                if "core.main" not in cmdline_str and "core\\main" not in cmdline_str:
+                if "core.main" not in cmdline_str and "core\\main" not in cmdline_str and "run.py" not in cmdline_str:
                     continue
             
             # Reachable if it's LeagueLoop.exe OR the python core.main script
