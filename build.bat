@@ -24,7 +24,7 @@ echo  [1/4] Cleaning previous builds...
 if exist build rmdir /s /q build
 if exist dist\LeagueLoop rmdir /s /q dist\LeagueLoop
 if exist dist\LeagueLoop.exe del /f /q dist\LeagueLoop.exe
-if exist dist\LeagueLoop_Installer.exe del /f /q dist\LeagueLoop_Installer.exe
+if exist dist\LeagueLooop_Installer.exe del /f /q dist\LeagueLooop_Installer.exe
 :: Purge ALL __pycache__ dirs so PyInstaller recompiles from fresh .py sources
 for /d /r src %%d in (__pycache__) do @if exist "%%d" rmdir /s /q "%%d"
 echo        Done.
@@ -55,7 +55,7 @@ set "VER_FORMATTED=%VER:-=.%"
 "C:\InnoSetup\ISCC.exe" /DAppVersion="%VER%" /DVersionInfoVersion="%VER_FORMATTED%" installer.iss
 echo.
 
-if not exist dist\LeagueLoop_Installer.exe (
+if not exist dist\LeagueLooop_Installer.exe (
     color 0E
     echo  !!  Installer creation failed — check Inno Setup output
     echo.
@@ -63,18 +63,18 @@ if not exist dist\LeagueLoop_Installer.exe (
     exit /b 1
 )
 echo  [3/4] Installer created!
-echo        Output: dist\LeagueLoop_Installer.exe
+echo        Output: dist\LeagueLooop_Installer.exe
 echo.
 
 :: ── Step 5: Copy to Installer repo ──────────────
 echo  [4/4] Copying installer to LeagueLoop-Installer repo...
 set "INSTALLER_REPO=%USERPROFILE%\Desktop\LeagueLoop-Installer"
 if exist "%INSTALLER_REPO%" (
-    copy /Y "dist\LeagueLoop_Installer.exe" "%INSTALLER_REPO%\LeagueLoop_Installer.exe" >nul
+    copy /Y "dist\LeagueLooop_Installer.exe" "%INSTALLER_REPO%\LeagueLooop_Installer.exe" >nul
     echo        Copied to: %INSTALLER_REPO%\
 ) else (
     echo        WARNING: Installer repo not found at %INSTALLER_REPO%
-    echo        Skipping copy. The installer is at dist\LeagueLoop_Installer.exe
+    echo        Skipping copy. The installer is at dist\LeagueLooop_Installer.exe
 )
 echo.
 
@@ -83,7 +83,7 @@ echo  ============================================
 echo   BUILD COMPLETE
 echo   Version:   %VER%
 echo   Executable: dist\LeagueLoop\LeagueLoop.exe
-echo   Installer:  dist\LeagueLoop_Installer.exe
+echo   Installer:  dist\LeagueLooop_Installer.exe
 echo  ============================================
 echo.
 pause
