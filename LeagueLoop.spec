@@ -27,7 +27,10 @@ a = Analysis(
         'winreg',
         'tkinter',
         *collect_submodules('tkinter'),
-        'tkinterdnd2'
+        'tkinterdnd2',
+        'customtkinter',
+        'packaging',
+        'darkdetect'
     ],
     hookspath=[],
     hooksconfig={},
