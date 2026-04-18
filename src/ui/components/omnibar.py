@@ -233,48 +233,53 @@ class Omnibar(ctk.CTkFrame):
             row.pack_propagate(False)
 
             # Icon
-            ctk.CTkLabel(
+            icon_lbl = ctk.CTkLabel(
                 row,
                 text=cmd.get("icon", "⚡"),
                 font=_font_body,
                 text_color=text_color,
                 width=30,
                 cursor="hand2"
-            ).pack(side="left", padx=(_pad_sm, _pad_xs))
+            )
+            icon_lbl.pack(side="left", padx=(_pad_sm, _pad_xs))
 
             # Text Container
             text_cont = ctk.CTkFrame(row, fg_color="transparent", cursor="hand2")
             text_cont.pack(side="left", fill="both", expand=True)
 
-            ctk.CTkLabel(
+            title_lbl = ctk.CTkLabel(
                 text_cont,
                 text=cmd.get("title", ""),
                 font=_font_body_bold,
                 text_color=text_color,
                 anchor="w",
                 cursor="hand2"
-            ).pack(fill="x", side="top", pady=(4, 0))
+            )
+            title_lbl.pack(fill="x", side="top", pady=(4, 0))
 
+            subtitle_lbl = None
             if cmd.get("subtitle"):
-                ctk.CTkLabel(
+                subtitle_lbl = ctk.CTkLabel(
                     text_cont,
                     text=cmd.get("subtitle", ""),
                     font=_font_caption,
                     text_color=sub_color,
                     anchor="w",
                     cursor="hand2"
-                ).pack(fill="x", side="top")
+                )
+                subtitle_lbl.pack(fill="x", side="top")
 
             # Click binding
             def make_cmd(idx):
                 return lambda e: self._execute_command(idx)
 
-            row.bind("<Button-1>", make_cmd(i))
-            for child in row.winfo_children():
-                child.bind("<Button-1>", make_cmd(i))
-                if isinstance(child, ctk.CTkFrame):
-                    for grandchild in child.winfo_children():
-                        grandchild.bind("<Button-1>", make_cmd(i))
+            cmd_func = make_cmd(i)
+            row.bind("<Button-1>", cmd_func)
+            icon_lbl.bind("<Button-1>", cmd_func)
+            text_cont.bind("<Button-1>", cmd_func)
+            title_lbl.bind("<Button-1>", cmd_func)
+            if subtitle_lbl:
+                subtitle_lbl.bind("<Button-1>", cmd_func)
 
             self._result_widgets.append(row)
 
