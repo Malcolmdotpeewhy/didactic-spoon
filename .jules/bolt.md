@@ -45,3 +45,7 @@
 ## 2026-03-31 - Pseudo-Async Asset Loading in Tkinter
 **Learning:** Using `self.after()` to stagger synchronous file I/O operations (like `Image.open()`) in Tkinter/CustomTkinter still blocks the main UI thread during execution, causing severe micro-stutters and rendering stalls when processing lists.
 **Action:** Replace pseudo-async staggered calls with truly asynchronous loaders (like `AssetManager.get_icon_async`) that offload I/O to background threads and safely update the widget via a callback, while being careful to pass default arguments (`def cb(img, w=widget)`) to avoid loop-closure bugs.
+
+## 2024-06-25 - LICM for String Normalization in Automation Loops
+**Learning:** Performing string normalizations like `.lower()` on a constant target string inside high-frequency automation loops (such as `_perform_arena_synergy` traversing all synergy pairs) causes repetitive O(N) string allocation overhead.
+**Action:** Apply Loop Invariant Code Motion (LICM) to hoist the static target string's normalization outside the loop.
