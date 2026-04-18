@@ -234,7 +234,7 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
             else:
                 ctypes.windll.user32.SetWindowLongW(my_hwnd, GWLP_HWNDPARENT, parent_hwnd)
                 
-        except Exception as e:
+        except Exception:
             pass
 
     def _hotkey_launch_client(self):
