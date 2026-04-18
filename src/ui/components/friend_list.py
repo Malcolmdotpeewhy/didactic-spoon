@@ -302,7 +302,6 @@ class FriendPriorityList(ctk.CTkFrame):
         root = self.winfo_toplevel()
         engine = getattr(root, "automation", None)
         if engine:
-            import threading
             threading.Thread(target=engine.mass_invite_friends, daemon=True).start()
         else:
             try:
