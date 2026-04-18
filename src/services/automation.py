@@ -438,10 +438,14 @@ class AutomationEngine:
         # Find matching pair (respect enabled flag, default True for backwards compat)
         mapped_me_list = []
         matched_pair_idx = -1
+
+        # ⚡ Bolt: Hoist static string normalization outside the loop to prevent repetitive O(N) allocations
+        teammate_champ_name_lower = teammate_champ_name.lower()
+
         for idx, pair in enumerate(pairs):
             if not pair.get("enabled", True):
                 continue
-            if pair.get("teammate", "").lower() == teammate_champ_name.lower():
+            if pair.get("teammate", "").lower() == teammate_champ_name_lower:
                 val = pair.get("me", [])
                 mapped_me_list = val if isinstance(val, list) else [val]
                 matched_pair_idx = idx
@@ -553,7 +557,8 @@ class AutomationEngine:
         if not hasattr(self, "_last_draft_action_time"): self._last_draft_action_time = 0
 
         if action_type == "ban":
-            teammate_hovers = set(p.get("championPickIntent", 0) for p in my_team if p.get("cellId") != me.get("cellId") and p.get("championPickIntent", 0) > 0)
+            my_cell_id = me.get("cellId")
+            teammate_hovers = {intent for p in my_team if p.get("cellId") != my_cell_id and (intent := p.get("championPickIntent", 0)) > 0}
             
             for i in range(1, 4):
                 ban_str = self.config.get(f"ban_{assigned}_{i}", "")

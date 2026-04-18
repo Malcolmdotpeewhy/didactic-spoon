@@ -707,25 +707,28 @@ class SettingsModal(ctk.CTkToplevel):
 
     def _save_settings(self):
         # Save hotkeys
-        for config_key, recorder in self.recorders.items():
-            val = recorder.get().strip().lower()
-            if val:
-                self.config.set(config_key, val)
+        updates = {
+            config_key: val
+            for config_key, recorder in self.recorders.items()
+            if (val := recorder.get().strip().lower())
+        }
 
         # Save game mode
-        self.config.set("aram_mode", self.mode_var.get())
+        updates["aram_mode"] = self.mode_var.get()
 
         # Save accept delay
-        self.config.set("accept_delay", round(self.delay_var.get(), 1))
+        updates["accept_delay"] = round(self.delay_var.get(), 1)
 
         # Save honor strategy
-        self.config.set("auto_honor_enabled", bool(self.honor_enabled_var.get()))
-        self.config.set("honor_strategy", self.honor_var.get())
+        updates["auto_honor_enabled"] = bool(self.honor_enabled_var.get())
+        updates["honor_strategy"] = self.honor_var.get()
 
         # Save social
-        self.config.set("auto_join_enabled", bool(self.join_enabled_var.get()))
-        self.config.set("custom_status", self.status_var.get().strip())
-        self.config.set("vip_invite_list", self.vip_var.get().strip())
+        updates["auto_join_enabled"] = bool(self.join_enabled_var.get())
+        updates["custom_status"] = self.status_var.get().strip()
+        updates["vip_invite_list"] = self.vip_var.get().strip()
+
+        self.config.set_batch(updates)
 
         if self.on_save_callback:
             try:

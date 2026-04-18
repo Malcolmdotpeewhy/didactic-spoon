@@ -196,7 +196,6 @@ class LCUClient:
                 response = self.session.request(
                     method=method,
                     url=url,
-                    # headers=self.headers, # Already in session
                     json=data,
                     verify=False,
                     timeout=2,  # Prevent blocking UI

@@ -35,6 +35,10 @@ from ui.ui_shared import CTkTooltip  # type: ignore
 from ui.components.omnibar import Omnibar  # type: ignore
 from tkinterdnd2 import TkinterDnD  # type: ignore
 
+_SET_WINDOW_LONG = None
+if hasattr(ctypes, "windll"):
+    _SET_WINDOW_LONG = getattr(ctypes.windll.user32, "SetWindowLongPtrW", getattr(ctypes.windll.user32, "SetWindowLongW", None))
+
 if TYPE_CHECKING:
     import ctypes.wintypes
 
@@ -229,12 +233,10 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
                 my_hwnd = self.winfo_id()
                 
             # For 64-bit windows, SetWindowLongPtr is required.
-            if hasattr(ctypes.windll.user32, "SetWindowLongPtrW"):
-                ctypes.windll.user32.SetWindowLongPtrW(my_hwnd, GWLP_HWNDPARENT, parent_hwnd)
-            else:
-                ctypes.windll.user32.SetWindowLongW(my_hwnd, GWLP_HWNDPARENT, parent_hwnd)
+            if _SET_WINDOW_LONG:
+                _SET_WINDOW_LONG(my_hwnd, GWLP_HWNDPARENT, parent_hwnd)
                 
-        except Exception as e:
+        except Exception:
             pass
 
     def _hotkey_launch_client(self):

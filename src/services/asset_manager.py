@@ -106,6 +106,8 @@ DEFAULT_CONFIG = {
 
 DDRAGON_VER = "14.1.1"
 
+_cached_ddragon_ver = None
+
 
 class ConfigManager:
     """Manages application configuration."""
@@ -181,14 +183,19 @@ class AssetManager:
         self.session = requests.Session()
 
         # Initialize version from cache if available, otherwise use default
-        self.ddragon_ver = DDRAGON_VER
-        v_path = os.path.join(CACHE_DIR, "version.txt")
-        if os.path.exists(v_path):
-            try:
-                with open(v_path, "r", encoding="utf-8") as f:
-                    self.ddragon_ver = f.read().strip()
-            except Exception as e:
-                Logger.error("asset_manager.py", f"Handled exception: {type(e).__name__}: {e}")
+        global _cached_ddragon_ver
+        if _cached_ddragon_ver:
+            self.ddragon_ver = _cached_ddragon_ver
+        else:
+            self.ddragon_ver = DDRAGON_VER
+            v_path = os.path.join(CACHE_DIR, "version.txt")
+            if os.path.exists(v_path):
+                try:
+                    with open(v_path, "r", encoding="utf-8") as f:
+                        self.ddragon_ver = f.read().strip()
+                        _cached_ddragon_ver = self.ddragon_ver
+                except Exception as e:
+                    Logger.error("asset_manager.py", f"Handled exception: {type(e).__name__}: {e}")
 
     def _download_worker(self):
         """Worker thread for background downloads."""
@@ -222,8 +229,10 @@ class AssetManager:
                 if versions and isinstance(versions, list):
                     latest = versions[0]
                     if latest != self.ddragon_ver:
+                        global _cached_ddragon_ver
                         self.log(f"Updated Data Dragon version to {latest}")
                         self.ddragon_ver = latest
+                        _cached_ddragon_ver = latest
                         v_path = os.path.join(CACHE_DIR, "version.txt")
                         with open(v_path, "w", encoding="utf-8") as f:
                             f.write(self.ddragon_ver)

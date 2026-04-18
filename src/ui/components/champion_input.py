@@ -45,7 +45,7 @@ class ChampionInput(ctk.CTkFrame):
         self._load_from_dir(app_cache_dir)
         
         self._search_cache = sorted(
-            [(v.lower(), v) for v in self._known_champions.values()], key=lambda x: x[1]
+            [(v.lower(), v, string.capwords(v.replace("'", "' "), " ").replace("' ", "'")) for v in self._known_champions.values()], key=lambda x: x[1]
         )
 
     def _load_from_dir(self, d):
@@ -86,11 +86,11 @@ class ChampionInput(ctk.CTkFrame):
             return
 
         matches = []
-        for champ_lower, champ in self._search_cache:
+        for champ_lower, champ, display_name in self._search_cache:
             if champ_lower.startswith(query):
-                matches.append(champ)
+                matches.append((champ, display_name))
             elif query in champ_lower:
-                matches.append(champ)
+                matches.append((champ, display_name))
 
         unique_matches = list(dict.fromkeys(matches))
 
@@ -100,8 +100,7 @@ class ChampionInput(ctk.CTkFrame):
 
         self.suggestions_frame.pack(fill="x", pady=(2, 0))
 
-        for i, champ in enumerate(unique_matches[:3]):
-            display_name = string.capwords(champ.replace("'", "' "), " ").replace("' ", "'")
+        for i, (champ, display_name) in enumerate(unique_matches[:3]):
             pill = ctk.CTkButton(
                 self.suggestions_frame, text=display_name, width=0, height=20,
                 corner_radius=10, font=get_font("caption"),

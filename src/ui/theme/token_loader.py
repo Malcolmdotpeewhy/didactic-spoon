@@ -49,32 +49,25 @@ class DesignTokens:
             self.tokens = DEFAULT_TOKENS
 
 
+    @staticmethod
+    @functools.lru_cache(maxsize=1024)
+    def _parse_keys(keys):
+        """Helper to parse and flatten dot-separated string keys."""
+        parsed = []
+        for k in keys:
+            if isinstance(k, str) and "." in k:
+                parsed.extend(k.split("."))
+            else:
+                parsed.append(k)
+        return tuple(parsed)
+
     @functools.lru_cache(maxsize=1024)
     def _get_memoized(self, keys):
         """Memoized helper to avoid repeated dict traversal and string splitting overhead."""
         data = self.tokens
         try:
-            # ⚡ Bolt: Fast path execution for single string keys (e.g. "spacing")
-            # to avoid the overhead of falling through to the general loop
-            # and repeated type/string-matching checks.
-            if len(keys) == 1 and type(keys[0]) is str:
-                try:
-                    return data[keys[0]]
-                except (KeyError, TypeError):
-                    if "." in keys[0]:
-                        for part in keys[0].split("."):
-                            data = data[part]
-                        return data
-                    raise
-
-            # ⚡ Bolt: Optimize general loop performance by replacing isinstance with direct type check.
-            for k in keys:
-                if type(k) is str and "." in k:
-                    # Slow path fallback for mixed dot-separated string formats
-                    for part in k.split("."):
-                        data = data[part]
-                else:
-                    data = data[k]
+            for k in self._parse_keys(keys):
+                data = data[k]
             return data
         except (KeyError, TypeError, IndexError):
             return None
