@@ -10,6 +10,7 @@ import customtkinter as ctk
 from utils.path_utils import get_asset_path
 from ui.components.factory import get_color, get_font, get_radius, TOKENS, make_input
 from ui.ui_shared import CTkTooltip
+from ui.components.toast import ToastManager
 from core.constants import SPACING_XS, SPACING_SM, SPACING_MD, SPACING_LG, SPACING_XL
 
 ICON_SIZE = 40
@@ -436,7 +437,6 @@ class PriorityIconGrid(ctk.CTkFrame):
                 
                 # Show toast
                 try:
-                    from ui.components.toast import ToastManager
                     ToastManager.get_instance().show(f"Added {self._hovered_champ_name}", icon="✅", theme="success")
                 except Exception:
                     pass
@@ -811,7 +811,6 @@ class PriorityIconGrid(ctk.CTkFrame):
             self._selected_indices.clear()
             self._render_grid()
 
-            from ui.components.toast import ToastManager
             ToastManager.get_instance().show(
                 "ARAM List Cleared",
                 icon="💥",
@@ -901,7 +900,6 @@ class PriorityIconGrid(ctk.CTkFrame):
         self.btn_undo.configure(text_color=pulse_color)
         self.after(200, lambda: self.btn_undo.winfo_exists() and self.btn_undo.configure(text_color=orig_color))
 
-        from ui.components.toast import ToastManager
         ToastManager.get_instance().show(
             "Undid last action",
             icon="↶",
@@ -911,7 +909,6 @@ class PriorityIconGrid(ctk.CTkFrame):
     def _export_list(self):
         names = self._get_priority_list()
         if not names:
-            from ui.components.toast import ToastManager
             ToastManager.get_instance().show("ARAM List is empty!", icon="⚠️", theme="error")
             return
 
@@ -920,7 +917,6 @@ class PriorityIconGrid(ctk.CTkFrame):
         self.clipboard_append(export_str)
         self.update() # necessary to keep clipboard after window closes
 
-        from ui.components.toast import ToastManager
         ToastManager.get_instance().show(
             "ARAM List Copied!",
             icon="📋",
@@ -932,12 +928,10 @@ class PriorityIconGrid(ctk.CTkFrame):
         try:
             raw = self.clipboard_get()
         except Exception:
-            from ui.components.toast import ToastManager
             ToastManager.get_instance().show("Clipboard is empty!", icon="⚠️", theme="error")
             return
 
         if not raw.strip():
-            from ui.components.toast import ToastManager
             ToastManager.get_instance().show("Clipboard is empty!", icon="⚠️", theme="error")
             return
 
@@ -952,7 +946,6 @@ class PriorityIconGrid(ctk.CTkFrame):
         self._parsed_import = list(dict.fromkeys(resolved_names))
 
         if not self._parsed_import:
-            from ui.components.toast import ToastManager
             ToastManager.get_instance().show("No valid champions found in clipboard.", icon="❌", theme="error")
             return
 
@@ -1000,7 +993,6 @@ class PriorityIconGrid(ctk.CTkFrame):
         self.import_container.pack_forget()
         self._render_grid()
 
-        from ui.components.toast import ToastManager
         ToastManager.get_instance().show(
             f"Imported {len(self._parsed_import)} champions!",
             icon="🎉",
