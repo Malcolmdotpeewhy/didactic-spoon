@@ -9,6 +9,7 @@ import psutil
 
 from .api_handler import LCUClient  # type: ignore
 from .asset_manager import AssetManager, ConfigManager  # type: ignore
+from .discord_rpc import DiscordPresenceManager  # type: ignore
 from utils.logger import Logger  # type: ignore
 from core.constants import (
     QUEUE_ARENA, QUEUE_DRAFT, QUEUE_RANKED_SOLO, QUEUE_RANKED_FLEX,
@@ -40,11 +41,15 @@ class AutomationEngine:
         self.paused: bool = False
         self.thread: Optional[threading.Thread] = None
         self._stop_event = threading.Event()
+        self._wake_event = threading.Event()
         self.executor = ThreadPoolExecutor(max_workers=5)
         self._last_error_times: dict = {}
         self.setup_done: bool = False
         self.last_phase: str = "None"
         self.current_queue_id: Optional[int] = None
+        self._blacklist = [name.strip().lower() for name in self.config.get("dodge_blacklist", "").split(",") if name.strip()]
+        self._toxic_keywords = ["kys", "int", "troll", "run it down", "nword", "f slur"]
+        self._chat_warden_warned = False
 
         self.ready_check_start: Optional[float] = None
         self.ready_check_delay: Optional[float] = None
@@ -64,18 +69,44 @@ class AutomationEngine:
         # InProgress phase awareness even when the LCU API connection drops.
         self._game_pid: Optional[int] = None
         self._last_game_scan: float = 0.0
+        
+        # External Integrations
+        self.discord_rpc = DiscordPresenceManager(self.config)
 
     def start(self, start_paused: bool = False) -> None:
         if self.running: return
         self.running = True
         self.paused = start_paused
         self._stop_event.clear()
+        self._wake_event.clear()
+        
+        # Subscribe to LCU WebSocket events to wake the loop instantly on state changes
+        try:
+            self.lcu.start_websocket()
+            self.lcu.subscribe("OnJsonApiEvent_lol-gameflow_v1_gameflow-phase", self._on_ws_event)
+            self.lcu.subscribe("OnJsonApiEvent_lol-champ-select_v1_session", self._on_ws_event)
+            self.lcu.subscribe("OnJsonApiEvent_lol-lobby_v2_lobby", self._on_ws_event)
+            self.lcu.subscribe("OnJsonApiEvent_lol-matchmaking_v1_search", self._on_ws_event)
+        except Exception as e:
+            Logger.debug("Auto", f"WebSocket init error: {e}")
+
+        self.discord_rpc.connect()
+
         self.thread = threading.Thread(target=self._loop, daemon=True)
         self.thread.start()  # type: ignore
 
-    def stop(self) -> None:
+    def _on_ws_event(self, event_name, payload):
+        """Called whenever the LCU pushes a state change we care about."""
+        self._wake_event.set()
+
         self.running = False
         self._stop_event.set()
+        self._wake_event.set()
+        try:
+            self.lcu.stop_websocket()
+        except:
+            pass
+        self.discord_rpc.disconnect()
 
     def pause(self) -> None:
         self.paused = True
@@ -162,7 +193,8 @@ class AutomationEngine:
                         qf(inferred_phase, None)
 
                     self.last_phase = inferred_phase
-                    self._stop_event.wait(2)
+                    if self._stop_event.wait(2.0):
+                        break
                 continue
 
             try:
@@ -176,7 +208,8 @@ class AutomationEngine:
                     tb = traceback.format_exc()
                     Logger.error("AutoLoop", f"Critical Error: {e}\n{tb}")
                     self._last_error_times[err_key] = now
-                self._stop_event.wait(3)
+                if self._stop_event.wait(3.0):
+                    break
 
     def _tick(self):
         f_phase = self.executor.submit(self.lcu.request, "GET", "/lol-gameflow/v1/gameflow-phase", None, True)
@@ -230,10 +263,10 @@ class AutomationEngine:
                     wf("restore_quiet")
                 else:
                     wf("restore")
-                # Clear stale game PID now that the game has ended
                 self._game_pid = None
 
         self.last_phase = phase
+        self._update_discord_rpc(phase)
 
         lobby_data = None
         if f_lobby:
@@ -260,16 +293,31 @@ class AutomationEngine:
         self._handle_auto_honor(phase)
         self._check_friend_lobby(phase)
 
+        # Optimization: Websockets will wake us instantly on updates. 
+        # These sleep times act as long-polling safety fallbacks.
         sleep_time = TICK_SLEEP_DEFAULT
-        if phase == "ChampSelect": sleep_time = TICK_SLEEP_CHAMPSELECT
-        elif phase == "ReadyCheck": sleep_time = TICK_SLEEP_READYCHECK
-        elif phase in ["Lobby", "Matchmaking"]: sleep_time = TICK_SLEEP_LOBBY
-        elif phase == "InProgress": sleep_time = TICK_SLEEP_INGAME
+        if phase == "ChampSelect": sleep_time = max(2.0, TICK_SLEEP_CHAMPSELECT)
+        elif phase == "ReadyCheck": sleep_time = max(2.0, TICK_SLEEP_READYCHECK)
+        elif phase in ["Lobby", "Matchmaking"]: sleep_time = max(5.0, TICK_SLEEP_LOBBY)
+        elif phase == "InProgress": sleep_time = max(10.0, TICK_SLEEP_INGAME)
 
-        self._stop_event.wait(sleep_time)
+        # Wait for either stop event, wake event (websocket ping), or timeout
+        # We check both to exit cleanly on stop()
+        timeout_time = time.time() + sleep_time
+        while time.time() < timeout_time:
+            if self._stop_event.is_set():
+                break
+            if self._wake_event.wait(0.1):
+                self._wake_event.clear()
+                # Throttled wake: avoid slamming if websocket sends 10 events a second
+                time.sleep(0.1) 
+                break
 
     def _handle_ready_check(self, phase):
         if phase != "ReadyCheck":
+            if getattr(self, "_accept_timer", None):
+                self._accept_timer.cancel()
+                self._accept_timer = None
             self.ready_check_start = None
             self.ready_check_delay = None
             self.ready_check_accepted = False
@@ -277,25 +325,21 @@ class AutomationEngine:
             return
 
         if not self.config.get("auto_accept"): return
-        if self.ready_check_accepted: return
+        if getattr(self, "_accept_timer", None) or self.ready_check_accepted: return
 
-        if self.ready_check_start is None:
-            self.ready_check_start = time.time()
-            base_delay = self.config.get("accept_delay", 2.0)
-            self.ready_check_delay = base_delay + random.uniform(0.0, 1.5) if base_delay > 0 else 0.0
-            return
-
-        target_delay = self.ready_check_delay if self.ready_check_delay is not None else 2.0
+        self.ready_check_start = time.time()
+        base_delay = self.config.get("accept_delay", 2.0)
+        delay = base_delay + random.uniform(0.0, 1.5) if base_delay > 0 else 0.0
+        self.ready_check_delay = delay
         
-        if self.ready_check_start is None:
-            return
-            
-        elapsed = time.time() - self.ready_check_start  # type: ignore
-
-        if elapsed >= target_delay:  # type: ignore
+        def _do_accept():
             self.lcu.request("POST", "/lol-matchmaking/v1/ready-check/accept")
             self.ready_check_accepted = True
             self._log("Ready Check Accepted!")
+            
+        self._accept_timer = threading.Timer(delay, _do_accept)
+        self._accept_timer.daemon = True
+        self._accept_timer.start()
 
     def _handle_dodge_requeue(self, phase):
         # Auto requeue is stripped out, but we still ensure we re-enter matchmaking
@@ -331,6 +375,11 @@ class AutomationEngine:
                 sf([], [])
             return
 
+        # 2.2 Blacklist Dodging
+        self._handle_auto_dodge(session)
+        # 2.3 Chat Warden
+        self._handle_chat_warden(session)
+
         my_team = session.get("myTeam", [])
         bench = session.get("benchChampions", [])
         
@@ -358,6 +407,10 @@ class AutomationEngine:
         # Auto-equip a non-default skin
         if not getattr(self, "_skin_equipped", False):
             self._equip_random_skin(session)
+
+        # 2.1 Auto-Equip Runes
+        if not getattr(self, "_runes_equipped", False):
+            self._auto_equip_runes(session)
 
     def _get_local_player(self, session):
         local_cell_id = session.get("localPlayerCellId")
@@ -407,6 +460,81 @@ class AutomationEngine:
 
         except Exception as e:
             Logger.error("Auto", f"Skin equip error: {e}")
+
+    def _auto_equip_runes(self, session):
+        """Inject baseline recommended runes via LCU."""
+        if not self.config.get("auto_runes_enabled", False):
+            self._runes_equipped = True
+            return
+
+        try:
+            me = self._get_local_player(session)
+            if not me: return
+            champ_id = me.get("championId", 0)
+            if not champ_id: return
+
+            # Get recommended pages
+            pos = me.get("assignedPosition", "UTILITY") if me.get("assignedPosition") else "UTILITY"
+            req = self.lcu.request("GET", f"/lol-perks/v1/recommended-pages/{champ_id}?position={pos}", silent=True)
+            if not req or req.status_code != 200: return
+            
+            recs = req.json()
+            if not recs: return
+
+            best_page = recs[0] # Usually the most popular
+            
+            apply_res = self.lcu.request("POST", f"/lol-perks/v1/recommended-pages/{champ_id}/apply", data={"pageId": best_page.get("id")}, silent=True)
+            if apply_res and apply_res.status_code in [200, 204]:
+                self._runes_equipped = True
+                self._log("Auto-Equipped Recommended Runes!")
+        except Exception as e:
+            Logger.debug("Auto", f"Rune equip error: {e}")
+
+    def _handle_auto_dodge(self, session):
+        if not getattr(self, "_blacklist", []): return
+        
+        my_cell = session.get("localPlayerCellId")
+        my_team = session.get("myTeam", [])
+        
+        for p in my_team:
+            if p.get("cellId") == my_cell: continue
+            
+            su_id = p.get("summonerId", 0)
+            if not su_id: continue
+            
+            req = self.lcu.request("GET", f"/lol-summoner/v1/summoners/{su_id}", silent=True)
+            if req and req.status_code == 200:
+                name = req.json().get("gameName", "").lower()
+                tag = req.json().get("tagLine", "").lower()
+                full_name = f"{name}#{tag}"
+                
+                if name in self._blacklist or full_name in self._blacklist:
+                    self._log(f"BLACKLIST MATCH: {full_name}. Dodging immediately.")
+                    import subprocess
+                    subprocess.run(["taskkill", "/IM", "LeagueClient.exe", "/F"], creationflags=subprocess.CREATE_NO_WINDOW)
+                    return
+
+    def _handle_chat_warden(self, session):
+        chat_room = session.get("chatDetails", {}).get("chatRoomName")
+        if not chat_room: return
+        
+        if getattr(self, "_chat_warden_warned", False): return
+
+        req = self.lcu.request("GET", f"/lol-chat/v1/conversations/{chat_room}/messages", silent=True)
+        if not req or req.status_code != 200: return
+        
+        msgs = req.json()
+        for m in msgs:
+            text = m.get("body", "").lower()
+            for kw in getattr(self, "_toxic_keywords", []):
+                if kw in text:
+                    self._chat_warden_warned = True
+                    self._log(f"Toxicity detected in lobby: '{kw}'")
+                    try:
+                        from ui.components.toast import ToastManager
+                        ToastManager.get_instance().show(f"Toxicity Warning: A teammate typed '{kw}'", theme="error")
+                    except: pass
+                    return
 
     def _perform_arena_synergy(self, session):
         pairs = self.config.get("arena_pairs", [])
@@ -894,3 +1022,44 @@ class AutomationEngine:
                 self._log("Status update failed.")
         except Exception as e:
             Logger.debug("Auto", f"Set status error: {e}")
+
+    def _update_discord_rpc(self, phase: str):
+        """Background method to calculate and push Discord Rich Presence States based on LCU Queue State."""
+        if not self.config.get("discord_rpc_enabled", True):
+            self.discord_rpc.disconnect()
+            return
+
+        self.discord_rpc.connect()
+
+        state_text = self.config.get("custom_status", "LeagueLoop API").strip()
+        custom_status = f"Phase: {phase}" if not state_text else state_text
+
+        if phase == "None":
+            self.discord_rpc.update_presence("Idle", custom_status)
+        elif phase == "Lobby":
+            lobby = self.lcu.request("GET", "/lol-lobby/v2/lobby")
+            details = "In Lobby"
+            party_size = None
+            if lobby and hasattr(lobby, "json"):
+                resp = lobby.json()
+                members = resp.get("members", [])
+                max_party = resp.get("gameConfig", {}).get("maxLobbySize", 5)
+                # Ensure it defaults gracefully
+                if type(max_party) is not int: max_party = 5
+                
+                party_size = [len(members), max_party]
+                queue_name = resp.get("gameConfig", {}).get("showPositionSelector", False)
+                details = f"Lobby - {'Draft/Ranked' if queue_name else 'Blind/ARAM'}"
+            self.discord_rpc.update_presence(details, custom_status, party_size=party_size)
+        elif phase == "Matchmaking":
+            self.discord_rpc.update_presence("In Queue", custom_status, start_time=int(time.time()))
+        elif phase == "ReadyCheck":
+            self.discord_rpc.update_presence("Match Found!", custom_status)
+        elif phase == "ChampSelect":
+            self.discord_rpc.update_presence("In Champ Select", custom_status)
+        elif phase == "InProgress":
+            self.discord_rpc.update_presence("In Game", custom_status, start_time=int(time.time()))
+        elif phase == "PreEndOfGame":
+            self.discord_rpc.update_presence("Game Ended", custom_status)
+        elif phase == "EndOfGame":
+            self.discord_rpc.update_presence("Post-Game Lobby", custom_status)

@@ -5,6 +5,7 @@ import threading
 import queue
 import time
 from typing import Any, Dict, Optional
+from collections import OrderedDict
 
 import customtkinter as ctk
 import requests
@@ -98,7 +99,9 @@ DEFAULT_CONFIG = {
     },
     "arena_pairs": [],
     "arena_auto_lock": False,
-    "arena_synergy_enabled": True
+    "arena_synergy_enabled": True,
+    "run_in_tray": True,
+    "discord_rpc_enabled": True
 }
 
 
@@ -169,7 +172,7 @@ class AssetManager:
         self.id_to_tags: Dict[int, list] = {}  # ID (int) -> List[Tags]
         self.name_to_id: Dict[str, int] = {}  # Name/Key (lower) -> ID (int)
         self.champ_roles: Dict[int, list] = {}  # ID -> List[Positions]
-        self.icons: Dict[str, ctk.CTkImage] = {}
+        self.icons: OrderedDict[str, ctk.CTkImage] = OrderedDict()
 
         self._pending_downloads = set()
         self._lock = threading.Lock()
@@ -401,7 +404,10 @@ class AssetManager:
 
     def _download_and_cache_image(self, url, path, cache_key, size=None, opacity=1.0):
         if cache_key in self.icons:
-            return self.icons[cache_key]
+            # LRU Cache Hit: move to end
+            img = self.icons.pop(cache_key)
+            self.icons[cache_key] = img
+            return img
 
         # Check for pre-processed image on disk
         # We replace spaces and invalid characters in cache_key to be safe
@@ -416,6 +422,8 @@ class AssetManager:
                 disp_size = size if size and size[1] is not None else pil_img.size
                 img = ctk.CTkImage(pil_img, size=disp_size)
                 self.icons[cache_key] = img
+                if len(self.icons) > 300:
+                    self.icons.popitem(last=False)
                 return img
             except Exception:
                 pass  # Fall back to regenerating if the cached file is corrupt
@@ -453,6 +461,8 @@ class AssetManager:
                 img_size = size if size and size[1] is not None else pil_img.size
                 img = ctk.CTkImage(pil_img, size=img_size)
                 self.icons[cache_key] = img
+                if len(self.icons) > 300:
+                    self.icons.popitem(last=False)
                 return img
             except Exception as e:
                 Logger.error("asset_manager.py", f"Image load error: {e}")
@@ -517,7 +527,9 @@ class AssetManager:
         cache_key = f"splash_{skin_id}_{width}_{opacity}"
         
         if cache_key in self.icons:
-            return self.icons[cache_key]
+            img = self.icons.pop(cache_key)
+            self.icons[cache_key] = img
+            return img
 
         try:
             champ_id = skin_id // 1000

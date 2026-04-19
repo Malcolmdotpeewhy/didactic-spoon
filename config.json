@@ -51,7 +51,7 @@
     "hotkey_compact_mode": "alt+esc",
     "hotkey_omnibar": "ctrl+alt+a",
     "priority_picker": {
-        "enabled": false,
+        "enabled": true,
         "list": [
             "Fizz",
             "Singed",

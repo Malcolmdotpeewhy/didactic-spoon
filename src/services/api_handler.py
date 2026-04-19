@@ -13,6 +13,10 @@ import psutil
 import requests
 import urllib3
 import warnings
+import json
+import ssl
+from websockets.sync.client import connect as ws_connect
+from websockets.exceptions import ConnectionClosed
 
 from utils.logger import Logger
 
@@ -33,7 +37,32 @@ class LCUClient:
         self.headers: Dict[str, str] = {}
         self.session = requests.Session()
         self.session.verify = False
+        
+        # 3.2 Connection pooling
+        adapter = requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=10, max_retries=1)
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
+        
         self._client_pid: Optional[int] = None
+        
+        # 3.1 & 3.3 State
+        self._backoff = 1.0
+        self._last_scan_time = 0.0
+        
+        self._tokens = 20.0
+        self._token_capacity = 20.0
+        self._token_rate = 5.0
+        self._last_token_update = time.time()
+        self._rate_lock = threading.Lock()
+        
+        # 3.5 Offline Retry Queue
+        self._offline_queue = []
+        
+        # WebSocket internals
+        self._subscriptions = {}  # event_name -> list of callbacks
+        self._ws_thread = None
+        self._ws_should_run = False
+        self._ws_connection = None
 
         # Do NOT connect immediately to avoid blocking UI startup.
         # Connection is handled by the background loop in main.py.
@@ -69,9 +98,9 @@ class LCUClient:
                         self._client_pid = None
 
                 if not process:
-                    # Throttle process scans to once every 5 seconds to save CPU
+                    # Throttle heavily using Exponential Backoff (3.1)
                     now = time.time()
-                    if now - getattr(self, "_last_scan_time", 0) < 5.0:
+                    if now - getattr(self, "_last_scan_time", 0) < getattr(self, "_backoff", 1.0):
                         return False
                     self._last_scan_time = now
 
@@ -104,6 +133,7 @@ class LCUClient:
                     if not silent:
                         Logger.debug("LCU", "Client not found. Ensure League of Legends is running.")
                     self.is_connected = False
+                    self._backoff = min(getattr(self, "_backoff", 1.0) * 1.5, 30.0)
                     return False
 
                 # Try to read lockfile from process info
@@ -155,6 +185,7 @@ class LCUClient:
                     self.session.headers.update(self.headers)
                     self.base_url = f"https://127.0.0.1:{self.port}"
                     self.is_connected = True
+                    self._backoff = 1.0  # Reset backoff on success
                     Logger.debug("LCU", f"Connected to port {self.port}")
                     return True
 
@@ -178,8 +209,31 @@ class LCUClient:
     ) -> Optional[requests.Response]:
         """Generic wrapper for LCU requests."""
         if not self.is_connected:
-            if not self.connect():
+            if not self.connect(silent=silent):
+                if method in ["POST", "PUT", "PATCH", "DELETE"]:
+                    # 3.5 Offline Retry Queue: save state mutations for when we reconnect
+                    self._offline_queue.append((method, endpoint, data))
                 return None
+
+        # Flush 3.5 Offline Retry Queue on successful connection
+        if getattr(self, "_offline_queue", []):
+            oq = self._offline_queue.copy()
+            self._offline_queue.clear()
+            for m, e, d in oq:
+                threading.Thread(target=self.request, args=(m, e, d, True), daemon=True).start()
+
+        # 3.3 Strict Token Bucket Rate-Limiter
+        with getattr(self, "_rate_lock", threading.Lock()):
+            now = time.time()
+            if hasattr(self, "_tokens"):
+                self._tokens = min(self._token_capacity, self._tokens + (now - self._last_token_update) * self._token_rate)
+                self._last_token_update = now
+                if self._tokens < 1.0:
+                    time.sleep((1.0 - self._tokens) / self._token_rate)
+                    self._tokens = 0.0
+                    self._last_token_update = time.time()
+                else:
+                    self._tokens -= 1.0
 
         url = f"{self.base_url}{endpoint}"
         t_start = time.time()
@@ -221,3 +275,116 @@ class LCUClient:
             self.is_connected = False
             return None
 
+    # ─────────── WEBSOCKET PUBLISH / SUBSCRIBE ───────────
+
+    def start_websocket(self):
+        """Starts the persistent websocket thread if not running."""
+        if self._ws_thread and self._ws_thread.is_alive():
+            return
+        
+        self._ws_should_run = True
+        self._ws_thread = threading.Thread(target=self._ws_loop, daemon=True)
+        self._ws_thread.start()
+
+    def stop_websocket(self):
+        """Stops the websocket thread."""
+        self._ws_should_run = False
+        if self._ws_connection:
+            try:
+                self._ws_connection.close()
+            except Exception:
+                pass
+
+    def subscribe(self, event_name: str, callback):
+        """Subscribes an event callback to the LCU WAMP WebSocket."""
+        with self._lock:
+            if event_name not in self._subscriptions:
+                self._subscriptions[event_name] = []
+                self._server_subscribe(event_name)
+            if callback not in self._subscriptions[event_name]:
+                self._subscriptions[event_name].append(callback)
+
+    def _server_subscribe(self, event_name: str):
+        if self._ws_connection:
+            try:
+                msg = [5, event_name]
+                self._ws_connection.send(json.dumps(msg))
+            except Exception as e:
+                Logger.error("LCU_WS", f"Subscribe error: {e}")
+
+    def _ws_loop(self):
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+
+        while self._ws_should_run:
+            if not self.is_connected or not self.port or not self.auth_token:
+                time.sleep(2)
+                continue
+            
+            auth_str = f"riot:{self.auth_token}"
+            b64_auth = base64.b64encode(auth_str.encode()).decode()
+            headers = {"Authorization": f"Basic {b64_auth}"}
+
+            uri = f"wss://127.0.0.1:{self.port}"
+            try:
+                with ws_connect(uri, ssl=ctx, additional_headers=headers) as ws:
+                    self._ws_connection = ws
+                    Logger.debug("LCU_WS", "WebSocket connected.")
+                    
+                    # Re-subscribe to all existing subscriptions
+                    with self._lock:
+                        for ev in self._subscriptions:
+                            try:
+                                msg = [5, ev]
+                                ws.send(json.dumps(msg))
+                            except Exception:
+                                pass
+
+                    while self._ws_should_run:
+                        message = ws.recv()
+                        if not message:
+                            continue
+                            
+                        # WAMP v1 is JSON array
+                        try:
+                            # [8, "OnJsonApiEvent...", payload]
+                            data = json.loads(message)
+                            if isinstance(data, list) and len(data) >= 3 and data[0] == 8:
+                                event_name = data[1]
+                                payload = data[2]
+                                
+                                # 3.4 WAMP auto-normalization
+                                try:
+                                    if isinstance(payload, dict) and 'data' in payload and 'eventType' in payload:
+                                        payload = payload['data']  # Normalize nested WAMP payload to flat data
+                                except Exception:
+                                    pass
+
+                                # Find callbacks
+                                callbacks = []
+                                with self._lock:
+                                    if event_name in self._subscriptions:
+                                        callbacks = self._subscriptions[event_name].copy()
+                                    if "OnJsonApiEvent" in self._subscriptions:
+                                        callbacks.extend(self._subscriptions["OnJsonApiEvent"])
+                                
+                                for cb in callbacks:
+                                    try:
+                                        # Run callback in background so we don't stall the websocket
+                                        threading.Thread(target=cb, args=(event_name, payload), daemon=True).start()
+                                    except Exception as e:
+                                        Logger.error("LCU_WS", f"Callback error in {event_name}: {e}")
+
+                        except json.JSONDecodeError:
+                            pass
+                        except Exception as e:
+                            Logger.error("LCU_WS", f"Message parse error: {e}")
+
+            except ConnectionClosed:
+                Logger.debug("LCU_WS", "WebSocket closed normally or by server.")
+            except Exception as e:
+                Logger.debug("LCU_WS", f"WebSocket connection failed: {e}")
+            
+            self._ws_connection = None
+            time.sleep(3)  # Reconnect delay

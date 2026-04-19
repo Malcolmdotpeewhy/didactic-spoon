@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>LeagueLoop Mobile</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <!-- Ambient Animated Background -->
+    <div class="ambient-bg"></div>
+
+    <div id="app">
+      <!-- Connection Screen -->
+      <div id="connect-screen" class="screen full-center">
+        <div class="glass-card fade-in">
+          <h2>🔗 Sync Device</h2>
+          <p class="subtitle">Enter the Local IP Address shown<br/>on LeagueLoop Desktop.</p>
+          <div class="input-group">
+            <input type="text" id="ip-input" placeholder="192.168.1.50" value="" />
+            <span class="port-suffix">:8337</span>
+          </div>
+          <button id="btn-connect" class="btn-primary glow">Initialize Link</button>
+          <p id="connect-error" class="error-text hidden">Connection Failed. Verify IP & Firewall.</p>
+        </div>
+      </div>
+
+      <!-- Dashboard Screen -->
+      <div id="dashboard-screen" class="screen hidden">
+        <header class="header glass-bar">
+          <div>
+            <h1>LEAGUELOOP</h1>
+            <span id="connection-status" class="status-indicator">● LINKED</span>
+          </div>
+          <button id="btn-disconnect" class="btn-icon">🚪</button>
+        </header>
+
+        <main class="dashboard-content">
+          <!-- Status Card -->
+          <section class="glass-card">
+            <div class="card-header">
+              <h3>System Phase</h3>
+              <div class="pulse-ring"></div>
+            </div>
+            <div id="phase-display" class="large-value">Scanning...</div>
+          </section>
+
+          <!-- Control Grid -->
+          <section class="control-grid">
+            <div class="glass-card stat-box" id="btn-launch">
+              <span class="icon">🚀</span>
+              <h4>Boot Client</h4>
+            </div>
+            
+            <div class="glass-card stat-box highlight" id="btn-queue">
+              <span class="icon">🎯</span>
+              <h4>Enter Queue</h4>
+              <small id="queue-mode-display">Mode: None</small>
+            </div>
+          </section>
+
+          <!-- Automation Toggle Card -->
+          <section class="glass-card flex-row">
+            <div>
+              <h3>AI Automation</h3>
+              <p class="subtitle" style="margin-bottom: 0;">Auto-Accept & Pick</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="auto-toggle">
+              <span class="slider round"></span>
+            </label>
+          </section>
+        </main>
+      </div>
+    </div>
+    
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

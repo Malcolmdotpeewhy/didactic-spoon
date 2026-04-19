@@ -266,7 +266,21 @@ class AccountManager:
         self._accounts: List[Dict[str, Any]] = []
         self._active_idx: int = -1
         self._lock = threading.Lock()
+        
+        # Migration: Ensure existing accounts have new fields
         self._load()
+        self._migrate_accounts()
+
+    def _migrate_accounts(self):
+        """Ensure all loaded accounts have required fields for new features."""
+        dirty = False
+        for acct in self._accounts:
+            if "wallet" not in acct: acct["wallet"] = {"be": 0, "rp": 0}
+            if "region" not in acct: acct["region"] = "NA1"
+            if "last_used" not in acct: acct["last_used"] = None
+            dirty = True
+        if dirty:
+            self._save()
 
     # ─────────── Encryption (DPAPI) ───────────
     @staticmethod
@@ -329,7 +343,25 @@ class AccountManager:
 
     # ─────────── CRUD ───────────
     def get_accounts(self) -> List[Dict[str, Any]]:
-        """Return all accounts (with passwords still encrypted)."""
+        """Return all accounts sorted by most recently used (last_used)."""
+        def parse_date(date_str):
+            if not date_str: return datetime.min
+            try: return datetime.fromisoformat(date_str)
+            except: return datetime.min
+
+        with self._lock:
+            # Sort a copy so we don't scramble index maps permanently,
+            # or actually, just return them as-is but UI will sort?
+            # Wait, if we sort the underlying array, indices change!
+            # We must maintain stable indices. The UI will just use the returned list.
+            # actually it's better to just sort the underlying array and update _active_idx.
+            if len(self._accounts) > 1:
+                active_acct = self._accounts[self._active_idx] if self._active_idx >= 0 else None
+                self._accounts.sort(key=lambda a: parse_date(a.get("last_used")), reverse=True)
+                if active_acct:
+                    self._active_idx = self._accounts.index(active_acct)
+                self._save()
+
         return list(self._accounts)
 
     def get_account_count(self) -> int:
@@ -338,7 +370,7 @@ class AccountManager:
     def get_active_index(self) -> int:
         return self._active_idx
 
-    def add_account(self, label: str, username: str, password: str, tagline: str = "") -> int:
+    def add_account(self, label: str, username: str, password: str, tagline: str = "", region: str = "NA1") -> int:
         """Add a new account. Returns the index of the new account.
         
         Args:
@@ -346,6 +378,7 @@ class AccountManager:
             username: Riot login username (NOT the in-game name)
             password: Riot login password
             tagline: In-game Riot ID (e.g. 'IntrusiveThots#NTRSV'), optional
+            region: The server shard region (e.g. 'NA1', 'EUW')
         """
         with self._lock:
             account = {
@@ -353,7 +386,9 @@ class AccountManager:
                 "username": username.strip(),
                 "password_enc": self._encrypt(password),
                 "tagline": tagline.strip(),
+                "region": region.strip(),
                 "last_used": None,
+                "wallet": {"be": 0, "rp": 0}
             }
             self._accounts.append(account)
             idx = len(self._accounts) - 1
@@ -361,7 +396,7 @@ class AccountManager:
             return idx
 
     def edit_account(self, idx: int, label: str = None, username: str = None,
-                     password: str = None, tagline: str = None):
+                     password: str = None, tagline: str = None, region: str = None):
         """Update fields of an existing account. Only non-None fields are changed."""
         with self._lock:
             if not (0 <= idx < len(self._accounts)):
@@ -375,6 +410,8 @@ class AccountManager:
                 acct["password_enc"] = self._encrypt(password)
             if tagline is not None:
                 acct["tagline"] = tagline.strip()
+            if region is not None:
+                acct["region"] = region.strip()
             self._save()
 
     def delete_account(self, idx: int):
@@ -499,7 +536,6 @@ class AccountManager:
                             self._active_idx = i
                             self._save()
                             return i
-                        # Match label against game name
                         if acct_label and game_name and acct_label == game_name:
                             self._active_idx = i
                             self._save()
@@ -507,7 +543,28 @@ class AccountManager:
             except Exception as e:
                 Logger.debug("AccountManager", f"LCU detection failed: {e}")
 
+        # Post-detection: Update Wallet if connected
+        self._update_wallet()
+
         return self._active_idx
+
+    def _update_wallet(self):
+        """Fetch and cache Blue Essence and RP for the active account."""
+        if self._active_idx < 0 or not self.lcu or not self.lcu.is_connected:
+            return
+            
+        try:
+            res = self.lcu.request("GET", "/lol-inventory/v1/wallet", silent=True)
+            if res and res.status_code == 200:
+                wallet_data = res.json()
+                rp = wallet_data.get("RP", 0)
+                be = wallet_data.get("lol_blue_essence", 0)
+                
+                with self._lock:
+                    self._accounts[self._active_idx]["wallet"] = {"be": be, "rp": rp}
+                    self._save()
+        except Exception as e:
+            Logger.debug("AccountManager", f"Wallet update failed: {e}")
 
     # ─────────── Helper: Kill Game Processes ───────────
     @staticmethod
@@ -745,6 +802,22 @@ class AccountManager:
 
             # Submit
             kb.press_and_release("enter")
+
+            # ── Native Fault Detection ──
+            # Riot Client will instantly update the local REST endpoint if login fails
+            fault_deadline = time.time() + 5
+            self.riot_client.connect()
+            while time.time() < fault_deadline:
+                time.sleep(0.5)
+                session = self.riot_client.get_session()
+                if session:
+                    err = session.get("error", "")
+                    if err:
+                        if log_func: log_func(f"Login fault: {err}")
+                        if completion_func: completion_func(False)
+                        return
+                    if session.get("type", "") == "authenticated":
+                        break
 
             # Record success
             with self._lock:

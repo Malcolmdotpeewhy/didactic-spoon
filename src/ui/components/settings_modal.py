@@ -426,6 +426,32 @@ class SettingsModal(ctk.CTkToplevel):
         # ━━━━━━━━ BEHAVIOR ━━━━━━━━
         _section_header(body, "BEHAVIOR")
 
+        # Run in System Tray
+        row_tray = ctk.CTkFrame(body, fg_color="transparent")
+        row_tray.pack(fill="x", pady=4)
+        ctk.CTkLabel(
+            row_tray, text="Run in System Tray",
+            font=get_font("body"), text_color=get_color("colors.text.primary"),
+        ).pack(side="left")
+
+        self.tray_var = ctk.BooleanVar(value=bool(self.config.get("run_in_tray", True)))
+        self.tray_switch = LolToggle(row_tray, variable=self.tray_var)
+        self.tray_switch.pack(side="right")
+        CTkTooltip(self.tray_switch, "Minimize the application to the system tray instead of closing")
+
+        # Discord Rich Presence
+        row_discord = ctk.CTkFrame(body, fg_color="transparent")
+        row_discord.pack(fill="x", pady=4)
+        ctk.CTkLabel(
+            row_discord, text="Discord Rich Presence",
+            font=get_font("body"), text_color=get_color("colors.text.primary"),
+        ).pack(side="left")
+
+        self.discord_var = ctk.BooleanVar(value=bool(self.config.get("discord_rpc_enabled", True)))
+        self.discord_switch = LolToggle(row_discord, variable=self.discord_var)
+        self.discord_switch.pack(side="right")
+        CTkTooltip(self.discord_switch, "Broadcast your current League queue/champion to Discord")
+
         _divider(body)
 
         # ━━━━━━━━ AUTOMATION ━━━━━━━━
@@ -727,6 +753,8 @@ class SettingsModal(ctk.CTkToplevel):
         updates["auto_join_enabled"] = bool(self.join_enabled_var.get())
         updates["custom_status"] = self.status_var.get().strip()
         updates["vip_invite_list"] = self.vip_var.get().strip()
+        updates["run_in_tray"] = bool(self.tray_var.get())
+        updates["discord_rpc_enabled"] = bool(self.discord_var.get())
 
         self.config.set_batch(updates)
 

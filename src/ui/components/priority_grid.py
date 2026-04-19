@@ -417,8 +417,11 @@ class PriorityIconGrid(ctk.CTkFrame):
         self.assets.get_icon_async("champion", champ_name, _update_hover_icon, size=(ICON_SIZE, ICON_SIZE), widget=self.hover_icon)
             
         if not self.hover_frame.winfo_viewable():
-            # Show it above the scroll area
-            self.hover_frame.pack(fill="x", pady=(0, 8), before=self.scroll)
+            # Show it above the scroll area (only if body is visible)
+            try:
+                self.hover_frame.pack(fill="x", pady=(0, 8), before=self.scroll)
+            except Exception:
+                pass  # body may be collapsed / not packed
 
     def _add_hovered_champion(self):
         if getattr(self, "_hovered_champ_name", None):

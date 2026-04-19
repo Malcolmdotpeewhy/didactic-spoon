@@ -85,6 +85,62 @@ class SidebarWidget(ctk.CTkFrame):
         self.power_state = True
         self.var_power = ctk.BooleanVar(value=True)
 
+        # ── 5.1 Tab Navigation ──
+        self.tab_frame = ctk.CTkFrame(self.main_body, fg_color="transparent", height=30)
+        self.tab_frame.pack(fill="x", pady=(0, 10))
+        
+        self._current_tab = "Play"
+        
+        def _switch_tab(tab_name):
+            self._current_tab = tab_name
+            # Update button colors for pseudo-animation
+            btn_play.configure(fg_color=get_color("colors.accent.primary") if tab_name == "Play" else "transparent",
+                               text_color=get_color("colors.background.app") if tab_name == "Play" else get_color("colors.text.muted"))
+            btn_cfg.configure(fg_color=get_color("colors.accent.primary") if tab_name == "Configure" else "transparent",
+                              text_color=get_color("colors.background.app") if tab_name == "Configure" else get_color("colors.text.muted"))
+            btn_adv.configure(fg_color=get_color("colors.accent.primary") if tab_name == "Advanced" else "transparent",
+                              text_color=get_color("colors.background.app") if tab_name == "Advanced" else get_color("colors.text.muted"))
+            
+            # Hide everything
+            status_frame.pack_forget()
+            self.session_frame.pack_forget()
+            self.action_container.pack_forget()
+            self.game_tool_container.pack_forget()
+            if self.accounts_tool: self.accounts_tool.pack_forget()
+            
+            self.auto_container.pack_forget()
+            self.friend_list.pack_forget()
+            
+            self.profile_container.pack_forget()
+            self.stats_frame.pack_forget()
+            
+            # Pack based on tab
+            if tab_name == "Play":
+                status_frame.pack(fill="x", pady=(0, 8))
+                self.session_frame.pack(fill="x", pady=(0, 8))
+                self.action_container.pack(fill="x", pady=(0, 8))
+                if getattr(self, "_game_tool_visible", False):
+                    self.game_tool_container.pack(fill="x", pady=(0, 8))
+                if getattr(self, "_accounts_tool_visible", False) and self.accounts_tool:
+                    self.accounts_tool.pack(fill="x", pady=(0, 8))
+            elif tab_name == "Configure":
+                self.auto_container.pack(fill="x", pady=(0, 8))
+                self.friend_list.pack(fill="x", pady=(0, 8))
+            elif tab_name == "Advanced":
+                self.profile_container.pack(fill="x", pady=(0, 8))
+                if getattr(self, "_stats_visible", False):
+                    self.stats_frame.pack(fill="x", pady=(0, 8))
+                    
+        self.switch_tab = _switch_tab
+        
+        btn_play = ctk.CTkButton(self.tab_frame, text="Play", width=60, height=24, fg_color=get_color("colors.accent.primary"), text_color=get_color("colors.background.app"), hover_color=get_color("colors.state.hover"), font=("Arial", 11, "bold"), command=lambda: self.switch_tab("Play"))
+        btn_cfg = ctk.CTkButton(self.tab_frame, text="Configure", width=70, height=24, fg_color="transparent", text_color=get_color("colors.text.muted"), hover_color=get_color("colors.state.hover"), font=("Arial", 11, "bold"), command=lambda: self.switch_tab("Configure"))
+        btn_adv = ctk.CTkButton(self.tab_frame, text="Advanced", width=70, height=24, fg_color="transparent", text_color=get_color("colors.text.muted"), hover_color=get_color("colors.state.hover"), font=("Arial", 11, "bold"), command=lambda: self.switch_tab("Advanced"))
+        
+        btn_play.pack(side="left", padx=2)
+        btn_cfg.pack(side="left", padx=2)
+        btn_adv.pack(side="left", padx=2)
+
         # ── Status & Mode Selection ──
         status_frame = ctk.CTkFrame(self.main_body, fg_color="transparent")
         status_frame.pack(fill="x", pady=(0, SPACING_MD))
@@ -143,7 +199,7 @@ class SidebarWidget(ctk.CTkFrame):
         self.session_frame = ctk.CTkFrame(
             self.main_body,
             height=64,
-            fg_color="#0F1A24",
+            fg_color=get_color("colors.background.panel"),
             corner_radius=get_radius("md")
         )
         self.session_frame.pack(fill="x", pady=(0, SPACING_MD))
@@ -170,14 +226,14 @@ class SidebarWidget(ctk.CTkFrame):
             self.session_frame,
             text="● Connected",
             font=("Segoe UI", 11),
-            text_color="#00C853"
+            text_color=get_color("colors.state.success", "#00C853")
         )
         self.estimate_label.grid(row=1, column=1, padx=8, pady=(0, 10), sticky="e")
 
         self.session_separator = ctk.CTkFrame(
             self.session_frame,
             height=1,
-            fg_color="#1F2A36"
+            fg_color=get_color("colors.border.subtle", "#1F2A36")
         )
         self.session_separator.place(relx=0, rely=1.0, relwidth=1.0, anchor="sw")
 
@@ -191,7 +247,7 @@ class SidebarWidget(ctk.CTkFrame):
         self.progress_bar.place(relx=0, rely=0.98, relwidth=1.0, anchor="sw")
 
         # ── Action Buttons ──
-        self.action_container = ctk.CTkFrame(self.main_body, fg_color="#0F1A24", corner_radius=get_radius("md"))
+        self.action_container = ctk.CTkFrame(self.main_body, fg_color=get_color("colors.background.panel"), corner_radius=get_radius("md"))
         self.action_container.pack(fill="x", pady=(0, SPACING_LG))
 
         self.btn_frame = ctk.CTkFrame(self.action_container, fg_color="transparent")
@@ -211,7 +267,7 @@ class SidebarWidget(ctk.CTkFrame):
             font=("Arial", 13, "bold"), 
             height=32,
             border_width=1,
-            border_color="#F0E6D2",
+            border_color=get_color("colors.accent.primary", "#F0E6D2"),
             command=self._find_match
         )
         self.btn_find_match.pack(fill="x", pady=0)
@@ -235,7 +291,7 @@ class SidebarWidget(ctk.CTkFrame):
             font=("Arial", 12, "bold"),
             height=32,
             border_width=1,
-            border_color="#F0E6D2",
+            border_color=get_color("colors.accent.primary", "#F0E6D2"),
             command=self._force_requeue,
         )
         CTkTooltip(self.requeue_button, "Cancel and re-enter matchmaking queue")
@@ -247,7 +303,7 @@ class SidebarWidget(ctk.CTkFrame):
             font=("Arial", 12, "bold"),
             height=32,
             border_width=1,
-            border_color="#F0E6D2",
+            border_color=get_color("colors.accent.primary", "#F0E6D2"),
             command=self._force_dodge,
         )
         CTkTooltip(self.dodge_button, "Force quit the client to dodge the lobby")
@@ -266,11 +322,11 @@ class SidebarWidget(ctk.CTkFrame):
         CTkTooltip(self.btn_launch_client, f"Open the Riot Client and start League ({hk_launch})")
 
         # Divider after button
-        self.divider_btn = ctk.CTkFrame(self.main_body, height=1, fg_color="#1E2328")
+        self.divider_btn = ctk.CTkFrame(self.main_body, height=1, fg_color=get_color("colors.border.subtle", "#1E2328"))
         self.divider_btn.pack(fill="x", pady=SPACING_MD)
 
         # ── Toggles Section ──
-        self.auto_container = ctk.CTkFrame(self.main_body, fg_color="#0F1A24", corner_radius=get_radius("md"))
+        self.auto_container = ctk.CTkFrame(self.main_body, fg_color=get_color("colors.background.panel"), corner_radius=get_radius("md"))
         self.auto_container.pack(fill="x", pady=(0, SPACING_LG))
 
         self.auto_expanded = False
@@ -317,7 +373,7 @@ class SidebarWidget(ctk.CTkFrame):
         self.icon_accept.pack(side="left")
         if self.assets:
             self.assets.get_icon_async("item", "2420", lambda img, l=self.icon_accept: l.configure(image=img) if l.winfo_exists() else None, size=(24, 24), widget=self.icon_accept)
-        lbl_accept = ctk.CTkLabel(row1, text="Auto Accept", font=get_font("body"), width=90, anchor="w", text_color="#F0E6D2")
+        lbl_accept = ctk.CTkLabel(row1, text="Auto Accept", font=get_font("body"), width=90, anchor="w", text_color=get_color("colors.text.primary", "#F0E6D2"))
         lbl_accept.pack(side="left", padx=(6,0))
         CTkTooltip(lbl_accept, "Automatically accepts match queue pops")
         self.sw_accept = LolToggle(row1, variable=self.var_accept, command=self._on_toggle_accept)
@@ -333,7 +389,7 @@ class SidebarWidget(ctk.CTkFrame):
         self.icon_priority.pack(side="left")
         if self.assets:
             self.assets.get_icon_async("item", "2052", lambda img, l=self.icon_priority: l.configure(image=img) if l.winfo_exists() else None, size=(24, 24), widget=self.icon_priority)
-        lbl_priority = ctk.CTkLabel(row3, text="ARAM Picker", font=get_font("body"), width=90, anchor="w", text_color="#F0E6D2")
+        lbl_priority = ctk.CTkLabel(row3, text="ARAM Picker", font=get_font("body"), width=90, anchor="w", text_color=get_color("colors.text.primary", "#F0E6D2"))
         lbl_priority.pack(side="left", padx=(6,0))
         CTkTooltip(lbl_priority, "Attempts to pick highest available champion from ARAM List")
         self.sw_priority = LolToggle(row3, variable=self.var_priority, command=self._on_toggle_priority)
@@ -349,7 +405,7 @@ class SidebarWidget(ctk.CTkFrame):
         self.icon_auto_join.pack(side="left")
         if self.assets:
             self.assets.get_icon_async("item", "3109", lambda img, l=self.icon_auto_join: l.configure(image=img) if l.winfo_exists() else None, size=(24, 24), widget=self.icon_auto_join)
-        lbl_auto_join = ctk.CTkLabel(row4, text="Friend Auto-Join", font=get_font("body"), width=90, anchor="w", text_color="#F0E6D2")
+        lbl_auto_join = ctk.CTkLabel(row4, text="Friend Auto-Join", font=get_font("body"), width=90, anchor="w", text_color=get_color("colors.text.primary", "#F0E6D2"))
         lbl_auto_join.pack(side="left", padx=(6,0))
         CTkTooltip(lbl_auto_join, "Automatically joins available friend lobbies")
         self.sw_auto_join = LolToggle(row4, variable=self.var_auto_join, command=self._on_toggle_auto_join)
@@ -365,7 +421,7 @@ class SidebarWidget(ctk.CTkFrame):
         self.icon_auto_honor.pack(side="left")
         if self.assets:
             self.assets.get_icon_async("item", "3105", lambda img, l=self.icon_auto_honor: l.configure(image=img) if l.winfo_exists() else None, size=(24, 24), widget=self.icon_auto_honor)
-        lbl_honor = ctk.CTkLabel(row5, text="Auto Honor", font=get_font("body"), width=90, anchor="w", text_color="#F0E6D2")
+        lbl_honor = ctk.CTkLabel(row5, text="Auto Honor", font=get_font("body"), width=90, anchor="w", text_color=get_color("colors.text.primary", "#F0E6D2"))
         lbl_honor.pack(side="left", padx=(6,0))
         CTkTooltip(lbl_honor, "Automatically honors a teammate after each game")
         self.sw_auto_honor = LolToggle(row5, variable=self.var_auto_honor, command=self._on_toggle_auto_honor)
@@ -374,7 +430,7 @@ class SidebarWidget(ctk.CTkFrame):
         self._update_auto_header()
         
         # Divider after automation
-        self.divider_auto = ctk.CTkFrame(self.main_body, height=1, fg_color="#1E2328")
+        self.divider_auto = ctk.CTkFrame(self.main_body, height=1, fg_color=get_color("colors.border.subtle", "#1E2328"))
         self.divider_auto.pack(fill="x", pady=SPACING_MD)
 
         # ── Game Tool Module Container ──
@@ -404,7 +460,7 @@ class SidebarWidget(ctk.CTkFrame):
         # UI status and dummy stats stripped for cleaner layout
 
         # ── Profile Section ──
-        self.profile_container = ctk.CTkFrame(self.main_body, fg_color="#0F1A24", corner_radius=get_radius("md"))
+        self.profile_container = ctk.CTkFrame(self.main_body, fg_color=get_color("colors.background.panel"), corner_radius=get_radius("md"))
         self.profile_container.pack(fill="x", pady=(0, SPACING_MD))
 
         self.profile_expanded = False
@@ -534,18 +590,9 @@ class SidebarWidget(ctk.CTkFrame):
 
         should_show = riot_running and not lcu_connected
 
-        if should_show and not self._accounts_tool_visible:
-            # Show — pack between friend list and profile section
-            if hasattr(self, "profile_container"):
-                self.accounts_tool.pack(fill="x", pady=(0, SPACING_MD), padx=0,
-                                        before=self.profile_container)
-            else:
-                self.accounts_tool.pack(fill="x", pady=(0, SPACING_MD), padx=0)
-            self._accounts_tool_visible = True
-        elif not should_show and self._accounts_tool_visible:
-            # Hide
-            self.accounts_tool.pack_forget()
-            self._accounts_tool_visible = False
+        self._accounts_tool_visible = should_show
+        if hasattr(self, "switch_tab"):
+            self.switch_tab(self._current_tab)
 
     # ── Callbacks ──
     def _load_icons_async(self):
@@ -1085,10 +1132,10 @@ class SidebarWidget(ctk.CTkFrame):
         elif phase == "ReadyCheck":
             if prev_ui_phase != "ReadyCheck":
                 self._stop_local_queue_timer()
-                self.time_label.configure(text="Match Found!", text_color=get_color("colors.state.success", "#00C853"))
-                self.estimate_label.configure(text="● Ready", text_color="#00C853")
+                self.time_label.configure(text="Match Found!", text_color=get_color("colors.state.success", get_color("colors.state.success", "#00C853")))
+                self.estimate_label.configure(text="● Ready", text_color=get_color("colors.state.success", "#00C853"))
                 self.progress_bar.set(1.0)
-                self.progress_bar.configure(progress_color="#00C853")
+                self.progress_bar.configure(progress_color=get_color("colors.state.success", "#00C853"))
                 self._hide_quick_actions(show_find_match=False)
 
                 try:
@@ -1141,7 +1188,7 @@ class SidebarWidget(ctk.CTkFrame):
                 self._stop_local_queue_timer()
                 if getattr(self.master, "lcu", None) and self.master.lcu.is_connected:
                     self.time_label.configure(text="Queue: Idle", text_color=get_color("colors.text.primary"))
-                    self.estimate_label.configure(text="● Connected", text_color="#00C853")
+                    self.estimate_label.configure(text="● Connected", text_color=get_color("colors.state.success", "#00C853"))
                 else:
                     self.time_label.configure(text="Disconnected", text_color="#ff4444")
                     self.estimate_label.configure(text="● Offline", text_color="#ff4444")
