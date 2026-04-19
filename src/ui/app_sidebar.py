@@ -9,6 +9,7 @@ from ui.components.factory import get_color, get_font, get_radius, TOKENS, make_
 from ui.ui_shared import CTkTooltip  # type: ignore
 from ui.components.priority_grid import PriorityIconGrid  # type: ignore
 from ui.components.game_tools.arena_tool import ArenaTool  # type: ignore
+from ui.components.game_tools.accounts_tool import AccountsTool  # type: ignore
 from ui.components.game_tools.draft_tool import DraftTool  # type: ignore
 from ui.components.settings_modal import SettingsModal  # type: ignore
 from ui.components.lol_toggle import LolToggle  # type: ignore
@@ -17,6 +18,7 @@ from core.constants import SPACING_XS, SPACING_SM, SPACING_MD, SPACING_LG, SPACI
 
 class SidebarWidget(ctk.CTkFrame):
     def __init__(self, master, toggle_callback, config, lcu=None, assets=None, scraper=None):
+        self._account_manager = None  # Set externally by main.py
         super().__init__(  # type: ignore
             master, 
             corner_radius=0,  # type: ignore
@@ -395,6 +397,10 @@ class SidebarWidget(ctk.CTkFrame):
         # Show game tool if mode warrants it on startup
         self._update_game_tool_visibility()
 
+        # ── Accounts Tool ──
+        # Placeholder — instantiated properly once account_manager is injected from main.py
+        self.accounts_tool = None
+
         # UI status and dummy stats stripped for cleaner layout
 
         # ── Profile Section ──
@@ -500,6 +506,47 @@ class SidebarWidget(ctk.CTkFrame):
         self.btn_clear_log.pack(side="right", padx=(4, 0))
         CTkTooltip(self.btn_clear_log, "Clear Log")
 
+    # ── Account Manager Injection ──
+    def set_account_manager(self, account_manager):
+        """Called from main.py after sidebar is built to inject the AccountManager."""
+        self._account_manager = account_manager
+        if self.accounts_tool is not None:
+            self.accounts_tool.destroy()
+        self.accounts_tool = AccountsTool(
+            self.main_body, account_manager, lcu=self.lcu
+        )
+        # Start hidden — visibility controlled by update_accounts_tool_visibility()
+        self._accounts_tool_visible = False
+
+    def update_accounts_tool_visibility(self, lcu_connected: bool = False):
+        """Show accounts tool only when Riot Client is running but user is NOT logged in.
+        
+        Visible when: Riot Client running AND LCU disconnected (login screen).
+        Hidden when:  LCU connected (logged in) OR Riot Client not running.
+        """
+        if self.accounts_tool is None or not self.winfo_exists():
+            return
+
+        # Check if Riot Client is actually running
+        riot_running = False
+        if self._account_manager:
+            riot_running = self._account_manager.riot_client.is_riot_client_running()
+
+        should_show = riot_running and not lcu_connected
+
+        if should_show and not self._accounts_tool_visible:
+            # Show — pack between friend list and profile section
+            if hasattr(self, "profile_container"):
+                self.accounts_tool.pack(fill="x", pady=(0, SPACING_MD), padx=0,
+                                        before=self.profile_container)
+            else:
+                self.accounts_tool.pack(fill="x", pady=(0, SPACING_MD), padx=0)
+            self._accounts_tool_visible = True
+        elif not should_show and self._accounts_tool_visible:
+            # Hide
+            self.accounts_tool.pack_forget()
+            self._accounts_tool_visible = False
+
     # ── Callbacks ──
     def _load_icons_async(self):
         if not self.winfo_exists(): return  # type: ignore
@@ -588,6 +635,9 @@ class SidebarWidget(ctk.CTkFrame):
                     self.divider_btn.pack(fill="x", pady=SPACING_MD, before=self.auto_container)
             self.time_label.configure(text="Disconnected", text_color="#ff4444")
             self.estimate_label.configure(text="● Offline", text_color="#ff4444")
+
+        # Show/hide accounts tool based on login state
+        self.update_accounts_tool_visibility(lcu_connected=connected)
 
     def set_power_state(self, state: bool):
         """Pure visual/logical toggle without user-cancel side effects."""
