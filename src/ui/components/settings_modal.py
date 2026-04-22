@@ -10,8 +10,10 @@ from ui.components.hover import apply_click_animation  # type: ignore
 from utils.logger import Logger  # type: ignore
 from utils.path_utils import get_asset_path  # type: ignore
 from core.version import __version__  # type: ignore
-
-
+from core.constants import (  # type: ignore
+    SECTION_GAP, CARD_PAD, INNER_GAP, CARD_RADIUS, ROW_HEIGHT,
+    BTN_HEIGHT, HEADER_HEIGHT, FOOTER_HEIGHT
+)
 
 class HotkeyRecorder(ctk.CTkButton):
     """A button that records keyboard shortcuts when clicked.
@@ -219,26 +221,20 @@ class HotkeyRecorder(ctk.CTkButton):
                 pass
 
 
-# ────────────────────────────────────────────────────────────
-#  Section Builder — Creates a collapsible group with a header
-# ────────────────────────────────────────────────────────────
-def _section_header(parent, title):
-    """Create a styled section header label."""
+def _create_card(parent, title):
+    """Create a styled section card with a header."""
+    card = ctk.CTkFrame(parent, fg_color=get_color("colors.background.panel"), corner_radius=CARD_RADIUS)
+    card.pack(fill="x", pady=(0, SECTION_GAP))
+    
     hdr = ctk.CTkLabel(
-        parent, text=title,
+        card, text=title,
         font=get_font("caption", "bold"),
         text_color=get_color("colors.accent.gold", "#C8AA6E"),
         anchor="w",
     )
-    hdr.pack(fill="x", pady=(12, 4))
-    return hdr
-
-
-def _divider(parent):
-    """Create a subtle horizontal rule."""
-    ctk.CTkFrame(parent, height=1, fg_color=get_color("colors.border.subtle")).pack(
-        fill="x", pady=8
-    )
+    hdr.pack(fill="x", padx=CARD_PAD, pady=(CARD_PAD, INNER_GAP))
+    
+    return card
 
 
 class SettingsModal(ctk.CTkToplevel):
@@ -314,14 +310,15 @@ class SettingsModal(ctk.CTkToplevel):
     # ──────────────────────────────────────────────
     def _setup_ui(self):
         # ── Header ──
-        header = ctk.CTkFrame(self, fg_color=get_color("colors.background.app", "#0A1428"), corner_radius=0)
+        header = ctk.CTkFrame(self, fg_color=get_color("colors.background.app", "#0A1428"), height=HEADER_HEIGHT, corner_radius=0)
         header.pack(fill="x")
+        header.pack_propagate(False)
 
         ctk.CTkLabel(
             header, text="⚙  SETTINGS",
             font=("Beaufort for LOL", 16, "bold"),
-            text_color=get_color("colors.accent.gold", "#C8AA6E"),
-        ).pack(side="left", padx=16, pady=12)
+            text_color=get_color("colors.text.primary"),
+        ).pack(side="left", padx=16, pady=CARD_PAD)
 
         ctk.CTkLabel(
             header, text=f"v{__version__}",
@@ -341,21 +338,22 @@ class SettingsModal(ctk.CTkToplevel):
         btn_info.pack(side="right", padx=(8, 0), pady=12)
 
         # ── Scrollable body ──
+        # ── Scrollable body ──
         body = ctk.CTkScrollableFrame(
             self,
             fg_color="transparent",
             scrollbar_button_color=get_color("colors.background.card"),
             scrollbar_button_hover_color=get_color("colors.state.hover"),
         )
-        body.pack(fill="both", expand=True, padx=16, pady=(8, 0))
+        body.pack(fill="both", expand=True, padx=CARD_PAD, pady=(CARD_PAD, 0))
 
         self.recorders = {}
 
-        # ━━━━━━━━ GENERAL ━━━━━━━━
-        _section_header(body, "GENERAL")
+        # ━━━━━━━━ LOBBY & QUEUE ━━━━━━━━
+        card_lobby = _create_card(body, "LOBBY & QUEUE")
 
-        row_mode = ctk.CTkFrame(body, fg_color="transparent")
-        row_mode.pack(fill="x", pady=4)
+        row_mode = ctk.CTkFrame(card_lobby, fg_color="transparent")
+        row_mode.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
         ctk.CTkLabel(
             row_mode, text="Game Mode",
             font=get_font("body"),
@@ -385,9 +383,8 @@ class SettingsModal(ctk.CTkToplevel):
         self.mode_select.pack(side="right")
         CTkTooltip(self.mode_select, "Select the game mode for lobby creation")
 
-        # Accept Delay
-        row_delay = ctk.CTkFrame(body, fg_color="transparent")
-        row_delay.pack(fill="x", pady=4)
+        row_delay = ctk.CTkFrame(card_lobby, fg_color="transparent")
+        row_delay.pack(fill="x", padx=CARD_PAD, pady=(0, CARD_PAD))
         ctk.CTkLabel(
             row_delay, text="Accept Delay",
             font=get_font("body"),
@@ -421,45 +418,11 @@ class SettingsModal(ctk.CTkToplevel):
         self.slider_delay.pack(side="right", padx=(8, 4))
         CTkTooltip(self.slider_delay, "Delay before auto-accepting a match (0 = instant)")
 
-        _divider(body)
+        # ━━━━━━━━ AUTOMATION & BEHAVIOR ━━━━━━━━
+        card_auto = _create_card(body, "AUTOMATION & BEHAVIOR")
 
-        # ━━━━━━━━ BEHAVIOR ━━━━━━━━
-        _section_header(body, "BEHAVIOR")
-
-        # Run in System Tray
-        row_tray = ctk.CTkFrame(body, fg_color="transparent")
-        row_tray.pack(fill="x", pady=4)
-        ctk.CTkLabel(
-            row_tray, text="Run in System Tray",
-            font=get_font("body"), text_color=get_color("colors.text.primary"),
-        ).pack(side="left")
-
-        self.tray_var = ctk.BooleanVar(value=bool(self.config.get("run_in_tray", True)))
-        self.tray_switch = LolToggle(row_tray, variable=self.tray_var)
-        self.tray_switch.pack(side="right")
-        CTkTooltip(self.tray_switch, "Minimize the application to the system tray instead of closing")
-
-        # Discord Rich Presence
-        row_discord = ctk.CTkFrame(body, fg_color="transparent")
-        row_discord.pack(fill="x", pady=4)
-        ctk.CTkLabel(
-            row_discord, text="Discord Rich Presence",
-            font=get_font("body"), text_color=get_color("colors.text.primary"),
-        ).pack(side="left")
-
-        self.discord_var = ctk.BooleanVar(value=bool(self.config.get("discord_rpc_enabled", True)))
-        self.discord_switch = LolToggle(row_discord, variable=self.discord_var)
-        self.discord_switch.pack(side="right")
-        CTkTooltip(self.discord_switch, "Broadcast your current League queue/champion to Discord")
-
-        _divider(body)
-
-        # ━━━━━━━━ AUTOMATION ━━━━━━━━
-        _section_header(body, "AUTOMATION")
-
-        # Auto Honor
-        row_honor_toggle = ctk.CTkFrame(body, fg_color="transparent")
-        row_honor_toggle.pack(fill="x", pady=4)
+        row_honor_toggle = ctk.CTkFrame(card_auto, fg_color="transparent")
+        row_honor_toggle.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
         ctk.CTkLabel(
             row_honor_toggle, text="Auto-Honor Teammate",
             font=get_font("body"), text_color=get_color("colors.text.primary"),
@@ -470,9 +433,8 @@ class SettingsModal(ctk.CTkToplevel):
         self.honor_enabled_switch.pack(side="right")
         CTkTooltip(self.honor_enabled_switch, "Automatically honor a teammate at end-of-game")
 
-        # Honor Strategy
-        row_honor = ctk.CTkFrame(body, fg_color="transparent")
-        row_honor.pack(fill="x", pady=4)
+        row_honor = ctk.CTkFrame(card_auto, fg_color="transparent")
+        row_honor.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
         ctk.CTkLabel(
             row_honor, text="Honor Strategy",
             font=get_font("body"),
@@ -497,14 +459,35 @@ class SettingsModal(ctk.CTkToplevel):
         self.honor_select.pack(side="right")
         CTkTooltip(self.honor_select, "Strategy used by Auto Honor\nrandom = random teammate\nbest_kda = highest KDA\nmvp = most kills+assists")
 
-        _divider(body)
+        row_tray = ctk.CTkFrame(card_auto, fg_color="transparent")
+        row_tray.pack(fill="x", padx=CARD_PAD, pady=(0, CARD_PAD))
+        ctk.CTkLabel(
+            row_tray, text="Run in System Tray",
+            font=get_font("body"), text_color=get_color("colors.text.primary"),
+        ).pack(side="left")
 
-        # ━━━━━━━━ SOCIAL ━━━━━━━━
-        _section_header(body, "SOCIAL")
+        self.tray_var = ctk.BooleanVar(value=bool(self.config.get("run_in_tray", True)))
+        self.tray_switch = LolToggle(row_tray, variable=self.tray_var)
+        self.tray_switch.pack(side="right")
+        CTkTooltip(self.tray_switch, "Minimize the application to the system tray instead of closing")
 
-        # Auto Join
-        row_join_toggle = ctk.CTkFrame(body, fg_color="transparent")
-        row_join_toggle.pack(fill="x", pady=4)
+        # ━━━━━━━━ SOCIAL & IDENTITY ━━━━━━━━
+        card_social = _create_card(body, "SOCIAL & IDENTITY")
+
+        row_discord = ctk.CTkFrame(card_social, fg_color="transparent")
+        row_discord.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
+        ctk.CTkLabel(
+            row_discord, text="Discord Rich Presence",
+            font=get_font("body"), text_color=get_color("colors.text.primary"),
+        ).pack(side="left")
+
+        self.discord_var = ctk.BooleanVar(value=bool(self.config.get("discord_rpc_enabled", True)))
+        self.discord_switch = LolToggle(row_discord, variable=self.discord_var)
+        self.discord_switch.pack(side="right")
+        CTkTooltip(self.discord_switch, "Broadcast your current League queue/champion to Discord")
+
+        row_join_toggle = ctk.CTkFrame(card_social, fg_color="transparent")
+        row_join_toggle.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
         ctk.CTkLabel(
             row_join_toggle, text="Auto-Join VIP Lobbies",
             font=get_font("body"), text_color=get_color("colors.text.primary"),
@@ -515,35 +498,15 @@ class SettingsModal(ctk.CTkToplevel):
         self.join_enabled_switch.pack(side="right")
         CTkTooltip(self.join_enabled_switch, "Automatically accept lobby invites from VIP friends")
 
-        # Custom Status
         ctk.CTkLabel(
-            body, text="Custom Status Message",
-            font=get_font("caption"), text_color=get_color("colors.text.muted"),
-        ).pack(anchor="w", pady=(0, 2))
-
-        self.status_var = ctk.StringVar(value=self.config.get("custom_status", ""))
-        self.entry_status = ctk.CTkEntry(
-            body, textvariable=self.status_var,
-            placeholder_text="e.g. Powered by LeagueLoop",
-            font=get_font("body"),
-            fg_color=get_color("colors.background.card"),
-            text_color=get_color("colors.text.primary"),
-            border_color=get_color("colors.border.subtle"),
-            height=30,
-        )
-        self.entry_status.pack(fill="x", pady=(0, 10))
-        CTkTooltip(self.entry_status, "Automatically sets your League status text.")
-        
-        # VIP Invite List
-        ctk.CTkLabel(
-            body, text="VIP Invite List (comma-separated)",
+            card_social, text="VIP Invite List (comma-separated)",
             font=get_font("caption"),
             text_color=get_color("colors.text.muted"),
-        ).pack(anchor="w", pady=(0, 2))
+        ).pack(anchor="w", padx=CARD_PAD, pady=(0, 2))
 
         self.vip_var = ctk.StringVar(value=self.config.get("vip_invite_list", ""))
         self.entry_vip = ctk.CTkEntry(
-            body,
+            card_social,
             textvariable=self.vip_var,
             placeholder_text="Friend1, Friend2, ...",
             font=get_font("body"),
@@ -552,13 +515,29 @@ class SettingsModal(ctk.CTkToplevel):
             border_color=get_color("colors.border.subtle"),
             height=30,
         )
-        self.entry_vip.pack(fill="x", pady=(0, 6))
+        self.entry_vip.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
         CTkTooltip(self.entry_vip, "Leave blank to invite ALL online friends")
 
+        ctk.CTkLabel(
+            card_social, text="Custom Status Message",
+            font=get_font("caption"), text_color=get_color("colors.text.muted"),
+        ).pack(anchor="w", padx=CARD_PAD, pady=(0, 2))
 
+        self.status_var = ctk.StringVar(value=self.config.get("custom_status", ""))
+        self.entry_status = ctk.CTkEntry(
+            card_social, textvariable=self.status_var,
+            placeholder_text="e.g. Powered by LeagueLoop",
+            font=get_font("body"),
+            fg_color=get_color("colors.background.card"),
+            text_color=get_color("colors.text.primary"),
+            border_color=get_color("colors.border.subtle"),
+            height=30,
+        )
+        self.entry_status.pack(fill="x", padx=CARD_PAD, pady=(0, CARD_PAD))
+        CTkTooltip(self.entry_status, "Automatically sets your League status text.")
 
         # ━━━━━━━━ HOTKEYS ━━━━━━━━
-        _section_header(body, "HOTKEYS")
+        card_hotkeys = _create_card(body, "HOTKEYS")
 
         hotkeys = [
             ("Client Launch", "hotkey_launch_client", "ctrl+shift+l"),
@@ -567,9 +546,12 @@ class SettingsModal(ctk.CTkToplevel):
             ("Omnibar", "hotkey_omnibar", "ctrl+k"),
         ]
 
-        for label_text, config_key, default_val in hotkeys:
-            row = ctk.CTkFrame(body, fg_color="transparent")
-            row.pack(fill="x", pady=3)
+        for i, (label_text, config_key, default_val) in enumerate(hotkeys):
+            row = ctk.CTkFrame(card_hotkeys, fg_color="transparent")
+            # Extra padding for the last element
+            pad_bottom = CARD_PAD if i == len(hotkeys) - 1 else INNER_GAP
+            row.pack(fill="x", padx=CARD_PAD, pady=(0, pad_bottom))
+            
             ctk.CTkLabel(
                 row, text=label_text,
                 font=get_font("body"),
@@ -581,27 +563,25 @@ class SettingsModal(ctk.CTkToplevel):
             recorder.pack(side="right")
             self.recorders[config_key] = recorder
 
-        _divider(body)
-
         # ━━━━━━━━ ABOUT ━━━━━━━━
-        _section_header(body, "ABOUT")
-
+        card_about = _create_card(body, "ABOUT")
+        
         ctk.CTkLabel(
-            body, text="League Loop",
+            card_about, text="League Loop",
             font=("Beaufort for LOL", 13, "bold"),
             text_color=get_color("colors.text.primary"),
-        ).pack(anchor="w")
+        ).pack(anchor="w", padx=CARD_PAD)
         ctk.CTkLabel(
-            body, text="Companion overlay for League of Legends",
+            card_about, text="Companion overlay for League of Legends",
             font=get_font("caption"),
             text_color=get_color("colors.text.muted"),
-        ).pack(anchor="w", pady=(0, 4))
+        ).pack(anchor="w", padx=CARD_PAD, pady=(0, 2))
         ctk.CTkLabel(
-            body,
+            card_about,
             text="Built with CustomTkinter • LCU API • Python",
             font=get_font("caption"),
             text_color=get_color("colors.text.muted"),
-        ).pack(anchor="w", pady=(0, 8))
+        ).pack(anchor="w", padx=CARD_PAD, pady=(0, CARD_PAD))
 
         # ── Footer buttons ──
         btn_frame = ctk.CTkFrame(self, fg_color=get_color("colors.background.app", "#0A1428"), corner_radius=0)

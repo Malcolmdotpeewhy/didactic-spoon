@@ -99,6 +99,22 @@
                 "Leona"
             ],
             "enabled": true
+        },
+        {
+            "teammate": "Bravery",
+            "me": [
+                "Bravery",
+                "Yuumi"
+            ],
+            "enabled": true
+        },
+        {
+            "teammate": "Bravery",
+            "me": [
+                "Bravery",
+                "Yuumi"
+            ],
+            "enabled": true
         }
     ],
     "arena_auto_lock": true,
