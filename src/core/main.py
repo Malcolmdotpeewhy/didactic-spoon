@@ -38,6 +38,8 @@ from ui.ui_shared import CTkTooltip  # type: ignore
 from ui.components.omnibar import Omnibar  # type: ignore
 from ui.components.mini_player import MiniPlayer
 from ui.components.tray_icon import SystemTrayApp
+from utils.acrylic_blur import apply_acrylic_blur
+from utils.focus_states import apply_focus_states_recursive
 from tkinterdnd2 import TkinterDnD  # type: ignore
 
 _SET_WINDOW_LONG = None
@@ -91,6 +93,9 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
         self.attributes("-topmost", True) # Keep visible until docked
         
         self.configure(fg_color=get_color("colors.background.app"))
+
+        # Apply acrylic blur after window is mapped (deferred to ensure HWND is ready)
+        self.after(100, lambda: apply_acrylic_blur(self, tint_color=0x50101820))
 
         try:
             ToastManager.get_instance(self)
@@ -146,6 +151,9 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
             self.sidebar.set_account_manager(self.account_manager)
 
         self._setup_window_dragging()
+
+        # Apply keyboard focus rings to all interactive elements (deferred to ensure all children exist)
+        self.after(500, lambda: apply_focus_states_recursive(self.sidebar))
 
         # Keyboard shortcuts
         self._launch_hotkey = None

@@ -13,6 +13,7 @@ from ui.components.factory import get_color, get_font, get_radius, TOKENS, make_
 from ui.ui_shared import CTkTooltip
 from ui.components.toast import ToastManager
 from core.constants import SPACING_XS, SPACING_SM, SPACING_MD, SPACING_LG, SPACING_XL
+from utils.smooth_scroll import apply_smooth_scroll
 
 ICON_SIZE = 40
 ICONS_PER_ROW = 4
@@ -240,6 +241,7 @@ class PriorityIconGrid(ctk.CTkFrame):
         except Exception:
             pass
         self.scroll.pack(fill="x")
+        apply_smooth_scroll(self.scroll)
 
         # Grid container enforcing 4 columns
         self.grid_parent = ctk.CTkFrame(self.scroll, fg_color="transparent")

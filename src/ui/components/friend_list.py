@@ -22,6 +22,7 @@ from ui.components.factory import get_color, get_font, get_radius
 from ui.ui_shared import CTkTooltip
 from core.constants import SPACING_SM, SPACING_MD, ROW_HEIGHT, ICON_SIZE, PADDING_X
 from utils.logger import Logger
+from utils.smooth_scroll import apply_smooth_scroll
 
 
 class FriendRow(ctk.CTkFrame):
@@ -211,6 +212,7 @@ class FriendPriorityList(ctk.CTkFrame):
         except Exception:
             pass
         self.scroll.pack(fill="both", expand=True)
+        apply_smooth_scroll(self.scroll)
 
         # The list_parent lives inside the scroll frame
         self.list_parent = ctk.CTkFrame(self.scroll, fg_color="transparent")
