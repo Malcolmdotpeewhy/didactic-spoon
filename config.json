@@ -103,16 +103,8 @@
         {
             "teammate": "Bravery",
             "me": [
-                "Bravery",
-                "Yuumi"
-            ],
-            "enabled": true
-        },
-        {
-            "teammate": "Bravery",
-            "me": [
-                "Bravery",
-                "Yuumi"
+                "Yuumi",
+                "Bravery"
             ],
             "enabled": true
         }

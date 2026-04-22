@@ -570,114 +570,141 @@ class AutomationEngine:
                     return
 
     def _perform_arena_synergy(self, session):
-        pairs = self.config.get("arena_pairs", [])
-        if not pairs:
-            return
-
-        my_team = session.get("myTeam", [])
         me = self._get_local_player(session)
         if not me:
             return
 
-        # Teammate in Arena is the OTHER person on myTeam
-        teammate = next((p for p in my_team if p.get("cellId") != me.get("cellId")), None)
-        if not teammate:
+        actions = session.get("actions", [])
+        my_action = None
+        for row in actions:
+            for action in row:
+                if action.get("actorCellId") == me.get("cellId") and action.get("isInProgress"):
+                    my_action = action
+                    break
+            if my_action:
+                break
+
+        if not my_action:
             return
 
-        teammate_champ_id = teammate.get("championId", 0)
-        teammate_champ_intent = teammate.get("championPickIntent", 0)
+        action_type = my_action.get("type", "")
+        action_id = my_action.get("id", 0)
 
-        # Check intent or lock
-        target_id = teammate_champ_id if teammate_champ_id != 0 else teammate_champ_intent
-        if target_id == 0:
-            return
+        now = time.time()
+        
+        # ── BAN PHASE ──
+        if action_type == "ban":
+            arena_ban = self.config.get("arena_ban", "")
+            if not arena_ban:
+                return
+            ban_id = self.assets.name_to_id.get(arena_ban.lower(), 0)
+            if not ban_id:
+                return
+
+            banned_ids = []
+            for b in session.get("bannedChampions", []):
+                if isinstance(b, dict):
+                    banned_ids.append(b.get("championId", 0))
+                else:
+                    banned_ids.append(b)
+                    
+            if ban_id in banned_ids:
+                return
+
+            my_current_hover = my_action.get("championId", 0)
             
-        teammate_champ_name = self.assets.get_champ_name(target_id)
-        if not teammate_champ_name:
+            if my_current_hover != ban_id and (now - getattr(self, "_last_draft_action_time", 0) > 0.5):
+                self._log(f"Arena: Hovering Ban {arena_ban}")
+                self.lcu.request("PATCH", f"/lol-champ-select/v1/session/actions/{action_id}", data={"championId": ban_id})
+                self._last_draft_action_time = now
+            elif my_current_hover == ban_id and self.config.get("auto_lock_in", False):
+                if now - getattr(self, "_last_draft_action_time", 0) > 0.5:
+                    self._log(f"Arena: Locking Ban {arena_ban}")
+                    self.lcu.request("POST", f"/lol-champ-select/v1/session/actions/{action_id}/complete")
+                    self._last_draft_action_time = now
             return
 
-        # Find matching pair (respect enabled flag, default True for backwards compat)
-        mapped_me_list = []
-        matched_pair_idx = -1
+        # ── PICK PHASE ──
+        if action_type == "pick":
+            pairs = self.config.get("arena_pairs", [])
+            if not pairs:
+                return
 
-        # ⚡ Bolt: Hoist static string normalization outside the loop to prevent repetitive O(N) allocations
-        teammate_champ_name_lower = teammate_champ_name.lower()
+            my_team = session.get("myTeam", [])
+            # Teammate in Arena is the OTHER person on myTeam
+            teammate = next((p for p in my_team if p.get("cellId") != me.get("cellId")), None)
+            if not teammate:
+                return
 
-        for idx, pair in enumerate(pairs):
-            if not pair.get("enabled", True):
-                continue
-            if pair.get("teammate", "").lower() == teammate_champ_name_lower:
-                val = pair.get("me", [])
-                mapped_me_list = val if isinstance(val, list) else [val]
-                matched_pair_idx = idx
-                break
+            teammate_champ_id = teammate.get("championId", 0)
+            teammate_champ_intent = teammate.get("championPickIntent", 0)
 
-        if not mapped_me_list:
-            return
-
-        # Track which pair is active (for UI live-status indicator)
-        self._active_arena_pair_idx = matched_pair_idx
-
-        banned_ids = []
-        for b in session.get("bannedChampions", []):
-            if isinstance(b, dict):
-                banned_ids.append(b.get("championId", 0))
-            else:
-                banned_ids.append(b)
-
-        # Iterate over fallbacks to find the highest priority available champion
-        mapped_my_id = 0
-        mapped_me_champ = ""
-        for champ_name in mapped_me_list:
-            if not champ_name:
-                continue
-            cid = self.assets.name_to_id.get(champ_name.lower())
-            if cid and cid not in banned_ids:
-                mapped_my_id = cid
-                mapped_me_champ = champ_name
-                break
+            # Check intent or lock
+            target_id = teammate_champ_id if teammate_champ_id != 0 else teammate_champ_intent
+            if target_id == 0:
+                return
                 
-        if not mapped_my_id:
-            return
+            teammate_champ_name = self.assets.get_champ_name(target_id)
+            if not teammate_champ_name:
+                return
 
-        my_current_pick = me.get("championId", 0)
-        my_current_intent = me.get("championPickIntent", 0)
+            mapped_me_list = []
+            matched_pair_idx = -1
+            teammate_champ_name_lower = teammate_champ_name.lower()
 
-        # If already set correctly and locked (or we already hovered it and teammate hasn't locked), do nothing
-        if my_current_pick == mapped_my_id or (my_current_intent == mapped_my_id and teammate_champ_id == 0):
-            return
-            
-        # We need to change our intent/pick
-        try:
-            # Find the pick action for our cellId
-            actions = session.get("actions", [])
-            my_action_id = 0
-            for row in actions:
-                for action in row:
-                    if action.get("actorCellId") == me.get("cellId"):
-                        my_action_id = action.get("id", 0)
-                        break
-                if my_action_id:
+            for idx, pair in enumerate(pairs):
+                if not pair.get("enabled", True):
+                    continue
+                if pair.get("teammate", "").lower() == teammate_champ_name_lower:
+                    val = pair.get("me", [])
+                    mapped_me_list = val if isinstance(val, list) else [val]
+                    matched_pair_idx = idx
                     break
 
-            if my_action_id:
-                # Patch hover
-                now = time.time()
+            if not mapped_me_list:
+                return
+
+            self._active_arena_pair_idx = matched_pair_idx
+
+            banned_ids = []
+            for b in session.get("bannedChampions", []):
+                if isinstance(b, dict):
+                    banned_ids.append(b.get("championId", 0))
+                else:
+                    banned_ids.append(b)
+
+            mapped_my_id = 0
+            mapped_me_champ = ""
+            for champ_name in mapped_me_list:
+                if not champ_name:
+                    continue
+                cid = self.assets.name_to_id.get(champ_name.lower())
+                if cid and cid not in banned_ids:
+                    mapped_my_id = cid
+                    mapped_me_champ = champ_name
+                    break
+                    
+            if not mapped_my_id:
+                return
+
+            my_current_pick = me.get("championId", 0)
+            my_current_intent = me.get("championPickIntent", 0)
+
+            if my_current_pick == mapped_my_id or (my_current_intent == mapped_my_id and teammate_champ_id == 0):
+                return
                 
-                # Prevent spamming PATCH on every tick if already attempting
+            try:
                 if now - self._last_synergy_patch > 0.5:
                     self._log(f"Synergy: Teammate wants {teammate_champ_name}, selecting {mapped_me_champ}...")
-                    self.lcu.request("PATCH", f"/lol-champ-select/v1/session/actions/{my_action_id}", data={"championId": mapped_my_id})
+                    self.lcu.request("PATCH", f"/lol-champ-select/v1/session/actions/{action_id}", data={"championId": mapped_my_id})
                     self._last_synergy_patch = now
                 
-                # Auto-lock: only if config allows AND teammate has LOCKED their pick
                 auto_lock = self.config.get("arena_auto_lock", False)
                 if auto_lock and teammate_champ_id != 0 and my_current_intent == mapped_my_id:
                     self._log(f"Synergy: Teammate locked {teammate_champ_name}, locking {mapped_me_champ}!")
-                    self.lcu.request("POST", f"/lol-champ-select/v1/session/actions/{my_action_id}/complete")
-                    
-        except Exception as e:
-            Logger.error("Auto", f"Arena synergy error: {e}")
+                    self.lcu.request("POST", f"/lol-champ-select/v1/session/actions/{action_id}/complete")
+            except Exception as e:
+                Logger.error("Auto", f"Arena synergy error: {e}")
 
     def _perform_draft_assistant(self, session):
         me = self._get_local_player(session)

@@ -228,6 +228,31 @@ class ArenaTool(ctk.CTkFrame):
         self.sw_auto_lock.pack(side="right")
         CTkTooltip(self.sw_auto_lock, "When ON, auto-locks your pick when teammate locks theirs")
 
+        # ── Auto-Ban input ──
+        self.ban_row = ctk.CTkFrame(self.body, fg_color="transparent", height=26)
+        self.ban_row.pack(fill="x", padx=4, pady=(2, 0))
+        self.ban_row.pack_propagate(False)
+
+        ctk.CTkLabel(
+            self.ban_row, text="🚫 Auto Ban",
+            font=get_font("caption"), text_color=get_color("colors.text.muted"),
+            anchor="w"
+        ).pack(side="left", padx=(2, 0))
+
+        self.var_arena_ban = ctk.StringVar(value=self.config.get("arena_ban", ""))
+        self.entry_ban = ChampionInput(
+            self.ban_row,
+            placeholder="None",
+            width=90,
+            height=24,
+            textvariable=self.var_arena_ban,
+            known_champions=self._search_cache,
+        )
+        self.entry_ban.pack(side="right")
+        self.entry_ban.bind("<FocusOut>", self._on_ban_updated)
+        self.entry_ban.bind("<Return>", self._on_ban_updated)
+        CTkTooltip(self.entry_ban, "Champion to automatically ban in Arena")
+
         # ── Add-champion input (hidden initially) ──
         self.add_container = ctk.CTkFrame(self.body, fg_color="transparent")
 
@@ -293,6 +318,20 @@ class ArenaTool(ctk.CTkFrame):
 
     def _on_toggle_auto_lock(self):
         self.config.set("arena_auto_lock", self.var_auto_lock.get())
+
+    def _on_ban_updated(self, event=None):
+        val = self.var_arena_ban.get().strip()
+        if not val:
+            self.config.set("arena_ban", "")
+            return
+        resolved = self._resolve_champion_name(val)
+        if resolved:
+            self.var_arena_ban.set(resolved)
+            self.config.set("arena_ban", resolved)
+        else:
+            # Revert to whatever was saved if invalid
+            saved = self.config.get("arena_ban", "")
+            self.var_arena_ban.set(saved)
 
     # ───────────── collapse ─────────────
     def _toggle_collapse(self):
