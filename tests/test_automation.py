@@ -18,7 +18,10 @@ class TestAutomationEngineReadyCheck(unittest.TestCase):
         self.logic.ready_check_accepted = False
         self.logic.toast_func = MagicMock()
         self.logic.ready_check_start = None
+        self.logic.ready_check_delay = 2.0
         self.logic.poro_snack_func = None
+        self.logic._accept_timer = None
+        self.logic.queue_func = MagicMock()
 
     def test_handle_ready_check_not_in_progress(self):
         # Call with a phase that is not "ReadyCheck"
@@ -28,18 +31,21 @@ class TestAutomationEngineReadyCheck(unittest.TestCase):
         self.logic.lcu.request.assert_not_called()
         self.logic._log.assert_not_called()
 
+    @patch("threading.Timer")
     @patch("time.time", return_value=100)
-    def test_handle_ready_check_in_progress_status_200(self, mock_time):
+    def test_handle_ready_check_in_progress_status_200(self, mock_time, mock_timer):
         self.logic.config.get.return_value = True # auto_accept
+        mock_timer_instance = MagicMock()
+        mock_timer.return_value = mock_timer_instance
 
-        # Call with "ReadyCheck" - first tick sets start time
+        # Call with "ReadyCheck" - starts timer
         self.logic._handle_ready_check("ReadyCheck")
 
-        # Advance time to pass the delay
-        mock_time.return_value = 105
+        # Get the callback function passed to Timer
+        callback = mock_timer.call_args[0][1]
 
-        # Second tick accepts
-        self.logic._handle_ready_check("ReadyCheck")
+        # Execute the callback directly to simulate timer firing
+        callback()
 
         # Verify the api request was made with correct arguments
         self.logic.lcu.request.assert_called_once_with("POST", "/lol-matchmaking/v1/ready-check/accept")
@@ -47,18 +53,21 @@ class TestAutomationEngineReadyCheck(unittest.TestCase):
         # Verify logging was triggered
         self.logic._log.assert_called_once_with("Ready Check Accepted!")
 
+    @patch("threading.Timer")
     @patch("time.time", return_value=100)
-    def test_handle_ready_check_in_progress_status_204(self, mock_time):
+    def test_handle_ready_check_in_progress_status_204(self, mock_time, mock_timer):
         self.logic.config.get.return_value = True # auto_accept
+        mock_timer_instance = MagicMock()
+        mock_timer.return_value = mock_timer_instance
 
-        # Call with "ReadyCheck" - first tick sets start time
+        # Call with "ReadyCheck" - starts timer
         self.logic._handle_ready_check("ReadyCheck")
 
-        # Advance time to pass the delay
-        mock_time.return_value = 105
+        # Get the callback function passed to Timer
+        callback = mock_timer.call_args[0][1]
 
-        # Second tick accepts
-        self.logic._handle_ready_check("ReadyCheck")
+        # Execute the callback directly to simulate timer firing
+        callback()
 
         # Verify the api request was made
         self.logic.lcu.request.assert_called_once_with("POST", "/lol-matchmaking/v1/ready-check/accept")
@@ -109,6 +118,8 @@ class TestAutomationEngineWindowState(unittest.TestCase):
         engine._last_error_times = {}
         engine.last_phase = "None"
         engine.current_queue_id = None
+        engine.queue_func = MagicMock()
+        engine.discord_rpc = MagicMock()
         engine.ready_check_start = None
         engine.ready_check_delay = None
         engine.ready_check_accepted = False
@@ -117,6 +128,7 @@ class TestAutomationEngineWindowState(unittest.TestCase):
         engine._last_priority_swap = 0.0
         engine._last_search_state_time = 0.0
         engine._cached_search_state = None
+        engine._accept_timer = None
         return engine
 
     def test_stealth_off_sends_restore(self):

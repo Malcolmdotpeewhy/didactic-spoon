@@ -44,7 +44,7 @@ class TestConfigManager(unittest.TestCase):
             config.set("auto_accept", True)
             self.assertEqual(config.get("auto_accept"), True)
 
-            mocked_file.assert_called_with(CONFIG_FILE, "w", encoding="utf-8")
+            mocked_file.assert_called_with(CONFIG_FILE + ".tmp", "w", encoding="utf-8")
             # We can't easily assert the exact JSON written because of the formatting,
             # but we can check if it was called.
 
@@ -57,7 +57,7 @@ class TestConfigManager(unittest.TestCase):
 
             self.assertEqual(config.get("auto_accept"), True)
             self.assertEqual(config.get("auto_requeue"), True)
-            mocked_file.assert_called_with(CONFIG_FILE, "w", encoding="utf-8")
+            mocked_file.assert_called_with(CONFIG_FILE + ".tmp", "w", encoding="utf-8")
 
 if __name__ == '__main__':
     unittest.main()
