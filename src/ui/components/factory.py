@@ -73,20 +73,20 @@ class RiotButton(ctk.CTkFrame):
         text_color = kwargs.pop("text_color", None)
         
         if style == "primary" or style == "success":
-            outer_color = "#C8AA6E"
+            outer_color = get_color("colors.accent.gold", "#C8AA6E")
             inner_color = "#A98A48"
-            hover_color = "#C8AA6E" # Brighten on hover
-            base_text_color = text_color or "#091428"
+            hover_color = get_color("colors.accent.gold", "#C8AA6E")  # Brighten on hover
+            base_text_color = text_color or get_color("colors.background.app", "#091428")
         elif style == "ghost" or style == "danger":
-            outer_color = "#1E2328" if style == "danger" else "transparent"
+            outer_color = get_color("colors.background.card", "#1E2328") if style == "danger" else "transparent"
             inner_color = "transparent"
-            hover_color = "#1C2630" if style == "ghost" else "#4d1111"
-            base_text_color = text_color or ("#E74C3C" if style == "danger" else "#F0E6D2")
+            hover_color = "#1C2630" if style == "ghost" else get_color("colors.state.danger.muted", "#4d1111")
+            base_text_color = text_color or (get_color("colors.state.danger", "#E74C3C") if style == "danger" else get_color("colors.text.primary", "#F0E6D2"))
         else: # secondary
-            outer_color = "#1E2328"
-            inner_color = "#0A1428"
-            hover_color = "#1E2328"
-            base_text_color = text_color or "#C8AA6E"
+            outer_color = get_color("colors.background.card", "#1E2328")
+            inner_color = get_color("colors.background.app", "#0A1428")
+            hover_color = get_color("colors.background.card", "#1E2328")
+            base_text_color = text_color or get_color("colors.accent.gold", "#C8AA6E")
 
         super().__init__(master, width=width, height=height, fg_color=outer_color, corner_radius=2, **kwargs)
         self.pack_propagate(False)

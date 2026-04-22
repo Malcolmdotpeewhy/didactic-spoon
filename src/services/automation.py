@@ -56,7 +56,9 @@ class AutomationEngine:
         self.ready_check_start: Optional[float] = None
         self.ready_check_delay: Optional[float] = None
         self.ready_check_accepted: bool = False
+        self._accept_timer = None  # Item #46: Init in __init__ instead of getattr guard
         self._last_countdown_log: Optional[float] = None
+        self._last_mass_invite: float = 0.0  # Item #170: Init rate-limit timer
 
         self._last_disconnect_log: float = 0.0
         self._requeue_handled: bool = False
@@ -275,7 +277,7 @@ class AutomationEngine:
             if search_req and search_req.status_code == 200:
                 search_state = search_req.json()
 
-        qf = getattr(self, "queue_func", None)
+        qf = self.queue_func
         if qf is not None:
             qf(phase, search_state)
 
@@ -341,7 +343,7 @@ class AutomationEngine:
 
     def _handle_ready_check(self, phase):
         if phase != "ReadyCheck":
-            if getattr(self, "_accept_timer", None):
+            if self._accept_timer:
                 self._accept_timer.cancel()
                 self._accept_timer = None
             self.ready_check_start = None
@@ -351,7 +353,7 @@ class AutomationEngine:
             return
 
         if not self.config.get("auto_accept"): return
-        if getattr(self, "_accept_timer", None) or self.ready_check_accepted: return
+        if self._accept_timer or self.ready_check_accepted: return
 
         self.ready_check_start = time.time()
         base_delay = self.config.get("accept_delay", 2.0)
@@ -433,11 +435,11 @@ class AutomationEngine:
             self._perform_draft_assistant(session)
 
         # Auto-equip a non-default skin
-        if not getattr(self, "_skin_equipped", False):
+        if not self._skin_equipped:
             self._equip_random_skin(session)
 
         # 2.1 Auto-Equip Runes
-        if not getattr(self, "_runes_equipped", False):
+        if not self._runes_equipped:
             self._auto_equip_runes(session)
 
     def _get_local_player(self, session):
@@ -521,7 +523,7 @@ class AutomationEngine:
             Logger.debug("Auto", f"Rune equip error: {e}")
 
     def _handle_auto_dodge(self, session):
-        if not getattr(self, "_blacklist", []): return
+        if not self._blacklist: return
         
         my_cell = session.get("localPlayerCellId")
         my_team = session.get("myTeam", [])
@@ -548,7 +550,7 @@ class AutomationEngine:
         chat_room = session.get("chatDetails", {}).get("chatRoomName")
         if not chat_room: return
         
-        if getattr(self, "_chat_warden_warned", False): return
+        if self._chat_warden_warned: return
 
         req = self.lcu.request("GET", f"/lol-chat/v1/conversations/{chat_room}/messages", silent=True)
         if not req or req.status_code != 200: return
@@ -556,7 +558,7 @@ class AutomationEngine:
         msgs = req.json()
         for m in msgs:
             text = m.get("body", "").lower()
-            for kw in getattr(self, "_toxic_keywords", []):
+            for kw in self._toxic_keywords:
                 if kw in text:
                     self._chat_warden_warned = True
                     self._log(f"Toxicity detected in lobby: '{kw}'")
@@ -995,7 +997,7 @@ class AutomationEngine:
         # Item #170: Rate-limit mass invites to prevent API spam
         import time as _time
         now = _time.time()
-        if now - getattr(self, '_last_mass_invite', 0) < 10:
+        if now - self._last_mass_invite < 10:
             self._log("Mass invite on cooldown (10s).")
             return 0
         self._last_mass_invite = now

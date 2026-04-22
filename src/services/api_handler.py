@@ -103,7 +103,7 @@ class LCUClient:
                 if not process:
                     # Throttle heavily using Exponential Backoff (3.1)
                     now = time.time()
-                    if now - getattr(self, "_last_scan_time", 0) < getattr(self, "_backoff", 1.0):
+                    if now - self._last_scan_time < self._backoff:
                         return False
                     self._last_scan_time = now
 
@@ -136,7 +136,7 @@ class LCUClient:
                     if not silent:
                         Logger.debug("LCU", "Client not found. Ensure League of Legends is running.")
                     self.is_connected = False
-                    self._backoff = min(getattr(self, "_backoff", 1.0) * 1.5, 30.0)
+                    self._backoff = min(self._backoff * 1.5, 30.0)
                     return False
 
                 # Try to read lockfile from process info

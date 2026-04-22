@@ -16,6 +16,7 @@ class FriendPriorityList(ctk.CTkFrame):
         self._expanded = True
         self._friends_data = []  # Stores LCU friend objects
         self._auto_join_names = {f.get("name", "").lower(): f.get("enabled", True) for f in self.config.get("auto_join_list", [])}
+        self._last_render_sig = None  # Dedup signature to avoid redundant re-renders
         
         self._build_header()
         self._build_body()
@@ -198,7 +199,7 @@ class FriendPriorityList(ctk.CTkFrame):
         if not self.winfo_exists(): return
         
         sig = self._get_render_signature()
-        if getattr(self, "_last_render_sig", None) == sig:
+        if self._last_render_sig == sig:
             return
         self._last_render_sig = sig
         

@@ -19,10 +19,10 @@ ICONS_PER_ROW = 4
 GRID_GAP = SPACING_SM
 
 # Selection colours
-SEL_BORDER = "#C8AA6E"      # gold ring for single-select in edit mode
-SEL_BG     = "#141E28"      # dark blue tint
-DEL_BORDER = "#E74C3C"      # red for delete-marked
-DEL_BG     = "#4d1111"
+SEL_BORDER = get_color("colors.accent.gold", "#C8AA6E")  # gold ring for single-select in edit mode
+SEL_BG     = get_color("colors.background.card", "#141E28")  # dark blue tint
+DEL_BORDER = get_color("colors.state.danger", "#E74C3C")    # red for delete-marked
+DEL_BG     = get_color("colors.state.danger.muted", "#4d1111")
 
 _CLEAN_TRANS = str.maketrans("", "", " '.")
 
@@ -43,6 +43,10 @@ class PriorityIconGrid(ctk.CTkFrame):
         self._undo_stack = []            # stack of previous priority lists for undo
         self._tip = None                 # Item #133: Initialize tooltip ref in __init__
         self._debounce_timer = None      # Item #23: Initialize debounce timer in __init__
+        self._hovered_champ_name = None  # Currently hovered champion for hover preview
+        self._clear_confirm = False      # Whether clear-all is in confirmation mode
+        self._shake_phase = 0            # Edit-mode shake animation phase counter
+        self._parsed_import = None       # Cached parsed import data
 
         self._build_header()
         self._build_body()
@@ -427,7 +431,7 @@ class PriorityIconGrid(ctk.CTkFrame):
                 pass  # body may be collapsed / not packed
 
     def _add_hovered_champion(self):
-        if getattr(self, "_hovered_champ_name", None):
+        if self._hovered_champ_name:
             plist = self._get_priority_list()
             # ⚡ Bolt: Fast-path priority check with O(1) early-return
             champ_lower = self._hovered_champ_name.lower()
@@ -658,9 +662,9 @@ class PriorityIconGrid(ctk.CTkFrame):
 
     def _shake_tick(self):
         """iOS-style wiggle using smooth sinusoidal motion while in edit mode."""
-        if not getattr(self, "_edit_mode", False):
+        if not self._edit_mode:
             # Reset all coordinates
-            for cell, lbl, idx in getattr(self, "_icon_widgets", []):
+            for cell, lbl, idx in self._icon_widgets:
                 try:
                     if lbl.winfo_exists():
                         lbl.place_configure(relx=0.5, rely=0.5, x=0, y=0)
@@ -669,8 +673,8 @@ class PriorityIconGrid(ctk.CTkFrame):
             return
 
 
-        phase = getattr(self, "_shake_phase", 0)
-        for i, (cell, lbl, idx) in enumerate(getattr(self, "_icon_widgets", [])):
+        phase = self._shake_phase
+        for i, (cell, lbl, idx) in enumerate(self._icon_widgets):
             try:
                 if lbl.winfo_exists():
                     # Each icon gets a unique phase offset for organic feel
@@ -799,7 +803,7 @@ class PriorityIconGrid(ctk.CTkFrame):
 
     def _request_clear_all(self):
         """Require double-click confirmation to clear the entire list."""
-        if not getattr(self, "_clear_confirm", False):
+        if not self._clear_confirm:
             self._clear_confirm = True
             orig_text = self.btn_clear_all.cget("text")
             orig_color = self.btn_clear_all.cget("text_color")
@@ -807,7 +811,7 @@ class PriorityIconGrid(ctk.CTkFrame):
             self.btn_clear_all.configure(text="Sure?", text_color="#e81123")
 
             def reset():
-                if self.winfo_exists() and getattr(self, "_clear_confirm", False):
+                if self.winfo_exists() and self._clear_confirm:
                     self._clear_confirm = False
                     self.btn_clear_all.configure(text=orig_text, text_color=orig_color)
 
@@ -1001,7 +1005,7 @@ class PriorityIconGrid(ctk.CTkFrame):
             ).pack(padx=8, pady=2)
 
     def _commit_import(self):
-        if not hasattr(self, "_parsed_import") or not self._parsed_import:
+        if not self._parsed_import:
             return
 
         self._save_priority_list(self._parsed_import)
