@@ -239,18 +239,16 @@ class ArenaTool(ctk.CTkFrame):
             anchor="w"
         ).pack(side="left", padx=(2, 0))
 
-        self.var_arena_ban = ctk.StringVar(value=self.config.get("arena_ban", ""))
         self.entry_ban = ChampionInput(
             self.ban_row,
             placeholder="None",
             width=90,
             height=24,
-            textvariable=self.var_arena_ban,
-            known_champions=self._search_cache,
+            on_commit=self._on_ban_updated
         )
         self.entry_ban.pack(side="right")
-        self.entry_ban.bind("<FocusOut>", self._on_ban_updated)
-        self.entry_ban.bind("<Return>", self._on_ban_updated)
+        self.entry_ban.insert(0, self.config.get("arena_ban", ""))
+        self.entry_ban.bind("<FocusOut>", lambda e: self._on_ban_updated())
         CTkTooltip(self.entry_ban, "Champion to automatically ban in Arena")
 
         # ── Add-champion input (hidden initially) ──
@@ -319,19 +317,24 @@ class ArenaTool(ctk.CTkFrame):
     def _on_toggle_auto_lock(self):
         self.config.set("arena_auto_lock", self.var_auto_lock.get())
 
-    def _on_ban_updated(self, event=None):
-        val = self.var_arena_ban.get().strip()
-        if not val:
-            self.config.set("arena_ban", "")
-            return
-        resolved = self._resolve_champion_name(val)
+    def _on_ban_updated(self, resolved=None):
+        if not resolved:
+            val = self.entry_ban.get().strip()
+            if not val:
+                self.config.set("arena_ban", "")
+                self.entry_ban.delete(0, "end")
+                return
+            resolved = self._resolve_champion_name(val)
+            
         if resolved:
-            self.var_arena_ban.set(resolved)
+            self.entry_ban.delete(0, "end")
+            self.entry_ban.insert(0, resolved)
             self.config.set("arena_ban", resolved)
         else:
             # Revert to whatever was saved if invalid
             saved = self.config.get("arena_ban", "")
-            self.var_arena_ban.set(saved)
+            self.entry_ban.delete(0, "end")
+            self.entry_ban.insert(0, saved)
 
     # ───────────── collapse ─────────────
     def _toggle_collapse(self):

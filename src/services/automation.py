@@ -587,126 +587,102 @@ class AutomationEngine:
         if not my_action:
             return
 
+        # Cache banned IDs once for both phases
+        banned_ids = []
+        for b in session.get("bannedChampions", []):
+            if isinstance(b, dict):
+                banned_ids.append(b.get("championId", 0))
+            else:
+                banned_ids.append(b)
+
         action_type = my_action.get("type", "")
-        action_id = my_action.get("id", 0)
-
-        now = time.time()
-        
-        # ── BAN PHASE ──
         if action_type == "ban":
-            arena_ban = self.config.get("arena_ban", "")
-            if not arena_ban:
-                return
-            ban_id = self.assets.name_to_id.get(arena_ban.lower(), 0)
-            if not ban_id:
-                return
+            self._handle_arena_ban(session, my_action, banned_ids)
+        elif action_type == "pick":
+            self._handle_arena_pick(session, me, my_action, banned_ids)
 
-            banned_ids = []
-            for b in session.get("bannedChampions", []):
-                if isinstance(b, dict):
-                    banned_ids.append(b.get("championId", 0))
-                else:
-                    banned_ids.append(b)
-                    
-            if ban_id in banned_ids:
-                return
-
-            my_current_hover = my_action.get("championId", 0)
+    def _handle_arena_ban(self, session, action, banned_ids):
+        arena_ban = self.config.get("arena_ban", "")
+        if not arena_ban:
+            return
             
-            if my_current_hover != ban_id and (now - getattr(self, "_last_draft_action_time", 0) > 0.5):
-                self._log(f"Arena: Hovering Ban {arena_ban}")
-                self.lcu.request("PATCH", f"/lol-champ-select/v1/session/actions/{action_id}", data={"championId": ban_id})
-                self._last_draft_action_time = now
-            elif my_current_hover == ban_id and self.config.get("auto_lock_in", False):
-                if now - getattr(self, "_last_draft_action_time", 0) > 0.5:
-                    self._log(f"Arena: Locking Ban {arena_ban}")
-                    self.lcu.request("POST", f"/lol-champ-select/v1/session/actions/{action_id}/complete")
-                    self._last_draft_action_time = now
+        ban_id = self.assets.name_to_id.get(arena_ban.lower(), 0)
+        if not ban_id or ban_id in banned_ids:
             return
 
-        # ── PICK PHASE ──
-        if action_type == "pick":
-            pairs = self.config.get("arena_pairs", [])
-            if not pairs:
-                return
+        now = time.time()
+        action_id = action.get("id", 0)
+        current_hover = action.get("championId", 0)
+        
+        if current_hover != ban_id and (now - getattr(self, "_last_synergy_patch", 0) > 0.5):
+            self._log(f"Arena: Hovering Ban {arena_ban}")
+            self.lcu.request("PATCH", f"/lol-champ-select/v1/session/actions/{action_id}", data={"championId": ban_id})
+            self._last_synergy_patch = now
+        elif current_hover == ban_id and self.config.get("auto_lock_in", False):
+            if now - getattr(self, "_last_synergy_patch", 0) > 0.5:
+                self._log(f"Arena: Locking Ban {arena_ban}")
+                self.lcu.request("POST", f"/lol-champ-select/v1/session/actions/{action_id}/complete")
+                self._last_synergy_patch = now
 
-            my_team = session.get("myTeam", [])
-            # Teammate in Arena is the OTHER person on myTeam
-            teammate = next((p for p in my_team if p.get("cellId") != me.get("cellId")), None)
-            if not teammate:
-                return
+    def _handle_arena_pick(self, session, me, action, banned_ids):
+        pairs = self.config.get("arena_pairs", [])
+        if not pairs:
+            return
 
-            teammate_champ_id = teammate.get("championId", 0)
-            teammate_champ_intent = teammate.get("championPickIntent", 0)
+        my_team = session.get("myTeam", [])
+        teammate = next((p for p in my_team if p.get("cellId") != me.get("cellId")), None)
+        if not teammate:
+            return
 
-            # Check intent or lock
-            target_id = teammate_champ_id if teammate_champ_id != 0 else teammate_champ_intent
-            if target_id == 0:
-                return
+        teammate_champ_id = teammate.get("championId", 0)
+        target_id = teammate_champ_id if teammate_champ_id != 0 else teammate.get("championPickIntent", 0)
+        if target_id == 0:
+            return
+            
+        teammate_champ_name = self.assets.get_champ_name(target_id)
+        if not teammate_champ_name:
+            return
+
+        teammate_champ_name_lower = teammate_champ_name.lower()
+        mapped_me_list = []
+        
+        for idx, pair in enumerate(pairs):
+            if pair.get("enabled", True) and pair.get("teammate", "").lower() == teammate_champ_name_lower:
+                val = pair.get("me", [])
+                mapped_me_list = val if isinstance(val, list) else [val]
+                self._active_arena_pair_idx = idx
+                break
+
+        if not mapped_me_list:
+            return
+
+        mapped_my_id, mapped_me_champ = 0, ""
+        for champ_name in mapped_me_list:
+            cid = self.assets.name_to_id.get(champ_name.lower())
+            if cid and cid not in banned_ids:
+                mapped_my_id = cid
+                mapped_me_champ = champ_name
+                break
                 
-            teammate_champ_name = self.assets.get_champ_name(target_id)
-            if not teammate_champ_name:
-                return
+        if not mapped_my_id or me.get("championId", 0) == mapped_my_id:
+            return
 
-            mapped_me_list = []
-            matched_pair_idx = -1
-            teammate_champ_name_lower = teammate_champ_name.lower()
+        now = time.time()
+        action_id = action.get("id", 0)
+        current_hover = action.get("championId", 0)
 
-            for idx, pair in enumerate(pairs):
-                if not pair.get("enabled", True):
-                    continue
-                if pair.get("teammate", "").lower() == teammate_champ_name_lower:
-                    val = pair.get("me", [])
-                    mapped_me_list = val if isinstance(val, list) else [val]
-                    matched_pair_idx = idx
-                    break
-
-            if not mapped_me_list:
-                return
-
-            self._active_arena_pair_idx = matched_pair_idx
-
-            banned_ids = []
-            for b in session.get("bannedChampions", []):
-                if isinstance(b, dict):
-                    banned_ids.append(b.get("championId", 0))
-                else:
-                    banned_ids.append(b)
-
-            mapped_my_id = 0
-            mapped_me_champ = ""
-            for champ_name in mapped_me_list:
-                if not champ_name:
-                    continue
-                cid = self.assets.name_to_id.get(champ_name.lower())
-                if cid and cid not in banned_ids:
-                    mapped_my_id = cid
-                    mapped_me_champ = champ_name
-                    break
-                    
-            if not mapped_my_id:
-                return
-
-            my_current_hover = my_action.get("championId", 0)
-            my_current_pick = me.get("championId", 0)
-
-            if my_current_pick == mapped_my_id:
-                return
-
-            try:
-                if my_current_hover != mapped_my_id and (now - getattr(self, "_last_synergy_patch", 0) > 0.5):
-                    self._log(f"Arena: Teammate hovering/locked {teammate_champ_name}, selecting {mapped_me_champ}...")
-                    self.lcu.request("PATCH", f"/lol-champ-select/v1/session/actions/{action_id}", data={"championId": mapped_my_id})
+        try:
+            if current_hover != mapped_my_id and (now - getattr(self, "_last_synergy_patch", 0) > 0.5):
+                self._log(f"Arena: Teammate hovering/locked {teammate_champ_name}, selecting {mapped_me_champ}...")
+                self.lcu.request("PATCH", f"/lol-champ-select/v1/session/actions/{action_id}", data={"championId": mapped_my_id})
+                self._last_synergy_patch = now
+            elif current_hover == mapped_my_id and self.config.get("arena_auto_lock", False) and teammate_champ_id != 0:
+                if now - getattr(self, "_last_synergy_patch", 0) > 0.5:
+                    self._log(f"Arena: Teammate locked {teammate_champ_name}, locking {mapped_me_champ}!")
+                    self.lcu.request("POST", f"/lol-champ-select/v1/session/actions/{action_id}/complete")
                     self._last_synergy_patch = now
-                elif my_current_hover == mapped_my_id:
-                    auto_lock = self.config.get("arena_auto_lock", False)
-                    if auto_lock and teammate_champ_id != 0:
-                        if now - getattr(self, "_last_synergy_patch", 0) > 0.5:
-                            self._log(f"Arena: Teammate locked {teammate_champ_name}, locking {mapped_me_champ}!")
-                            self.lcu.request("POST", f"/lol-champ-select/v1/session/actions/{action_id}/complete")
-                            self._last_synergy_patch = now
-            except Exception as e:
-                Logger.error("Auto", f"Arena synergy error: {e}")
+        except Exception as e:
+            Logger.error("Auto", f"Arena synergy error: {e}")
 
     def _perform_draft_assistant(self, session):
         me = self._get_local_player(session)
