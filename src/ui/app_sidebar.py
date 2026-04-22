@@ -698,16 +698,16 @@ class SidebarWidget(ctk.CTkFrame):
         self.set_power_state(new_state)
 
         if self.toggle_callback:
-            state_req = self.lcu.request("GET", "/lol-lobby/v2/lobby/matchmaking/search-state")
-            state_data = state_req.json() if state_req and state_req.status_code == 200 else {}
-            
-            if state_data.get("searchState") == "Searching":
-                # Cancel search if already searching
-                self.lcu.request("DELETE", "/lol-lobby/v2/lobby/matchmaking/search")
-                self.update_action_log("Matchmaking Cancelled.")
-                if getattr(self, "power_state", False):
-                    self.set_power_state(False)
-                return
+            def _check_and_cancel():
+                state_req = self.lcu.request("GET", "/lol-lobby/v2/lobby/matchmaking/search-state")
+                state_data = state_req.json() if state_req and state_req.status_code == 200 else {}
+                
+                if state_data.get("searchState") == "Searching":
+                    self.lcu.request("DELETE", "/lol-lobby/v2/lobby/matchmaking/search")
+                    self.after(0, lambda: self.update_action_log("Matchmaking Cancelled."))
+                    if getattr(self, "power_state", False):
+                        self.after(0, lambda: self.set_power_state(False))
+            threading.Thread(target=_check_and_cancel, daemon=True).start()
 
     def _get_queue_id_for_mode(self, mode: str):
         """Dynamically resolve the queue ID from the client."""
@@ -926,23 +926,24 @@ class SidebarWidget(ctk.CTkFrame):
 
     def _force_requeue(self):
         if self.lcu:
-            try:
-                # Cancel current queue if active, then restart it
-                self.lcu.request("DELETE", "/lol-lobby/v2/lobby/matchmaking/search")
-                time.sleep(0.5)
-                self.lcu.request("POST", "/lol-lobby/v2/lobby/matchmaking/search")
-                self.update_action_log("Re-queued Matchmaking.")
-            except Exception as e:
-                self.update_action_log(f"Requeue error: {e}")
+            def _execute():
+                try:
+                    self.lcu.request("DELETE", "/lol-lobby/v2/lobby/matchmaking/search")
+                    self.lcu.request("POST", "/lol-lobby/v2/lobby/matchmaking/search")
+                    self.after(0, lambda: self.update_action_log("Re-queued Matchmaking."))
+                except Exception as e:
+                    self.after(0, lambda: self.update_action_log(f"Requeue error: {e}"))
+            threading.Thread(target=_execute, daemon=True).start()
 
     def _force_dodge(self):
         if self.lcu:
-            try:
-                # Most reliable way to dodge is terminating the client UX
-                self.lcu.request("POST", "/process-control/v1/process/quit")
-                self.update_action_log("Client exiting (Dodging)...")
-            except Exception as e:
-                self.update_action_log(f"Dodge error: {e}")
+            self.update_action_log("Client exiting (Dodging)...")
+            def _execute():
+                try:
+                    self.lcu.request("POST", "/process-control/v1/process/quit")
+                except Exception as e:
+                    self.after(0, lambda: self.update_action_log(f"Dodge error: {e}"))
+            threading.Thread(target=_execute, daemon=True).start()
 
 
     def _show_quick_actions(self):
