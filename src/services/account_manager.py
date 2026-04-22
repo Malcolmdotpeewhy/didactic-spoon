@@ -200,7 +200,8 @@ class RiotClientAPI:
                 else:
                     Logger.info("RiotClientAPI", f"Sign-in response type: {auth_type}")
                     return body
-            except Exception:
+            except Exception as e:
+                Logger.debug("RiotClientAPI", f"Failed to parse sign-in response: {e}")
                 return {"type": "error", "error": "unparseable_response"}
 
         status = res.status_code if res else "no response"
@@ -213,8 +214,8 @@ class RiotClientAPI:
         if res and res.status_code == 200:
             try:
                 return res.json()
-            except Exception:
-                pass
+            except Exception as e:
+                Logger.debug("RiotClientAPI", f"Failed to parse session response: {e}")
         return None
 
     def get_current_user(self) -> Optional[dict]:
@@ -223,8 +224,8 @@ class RiotClientAPI:
         if res and res.status_code == 200:
             try:
                 return res.json()
-            except Exception:
-                pass
+            except Exception as e:
+                Logger.debug("RiotClientAPI", f"Failed to parse userinfo response: {e}")
         return None
 
     def get_auth_status(self) -> Optional[dict]:
@@ -233,8 +234,8 @@ class RiotClientAPI:
         if res and res.status_code == 200:
             try:
                 return res.json()
-            except Exception:
-                pass
+            except Exception as e:
+                Logger.debug("RiotClientAPI", f"Failed to parse auth response: {e}")
         return None
 
     def is_signed_in(self) -> bool:
@@ -251,8 +252,8 @@ class RiotClientAPI:
                 name = proc.info.get("name", "")
                 if name in ("RiotClientServices.exe", "RiotClientUx.exe"):
                     return True
-        except Exception:
-            pass
+        except Exception as e:
+            Logger.debug("RiotClientAPI", f"Process scan error: {e}")
         return False
 
 

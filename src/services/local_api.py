@@ -3,11 +3,17 @@ import threading
 import socket
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from utils.logger import Logger
+
 class LeagueLoopAPIHandler(BaseHTTPRequestHandler):
     # Pass the app instance via the server object
     @property
     def app_instance(self):
         return self.server.app_instance
+
+    def log_message(self, format, *args):
+        """Suppress default stderr logging for API requests."""
+        pass
 
     def _set_cors_headers(self):
         self.send_header('Access-Control-Allow-Origin', 'http://127.0.0.1')
@@ -132,10 +138,8 @@ def start_api_server(app_instance, port=8337):
         server_thread.start()
         
         local_ip = get_local_ip()
-        from utils.logger import Logger
         Logger.info("API", f"Remote Link API started on http://{local_ip}:{port}")
         return local_ip, port
     except Exception as e:
-        from utils.logger import Logger
         Logger.error("API", f"Failed to start API server: {e}")
         return None, None
