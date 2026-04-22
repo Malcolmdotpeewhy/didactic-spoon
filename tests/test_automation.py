@@ -182,5 +182,359 @@ class TestAutomationEngineWindowState(unittest.TestCase):
             engine.window_func.assert_called_with("minimize")
 
 
+class TestAutomationEnginePrioritySniper(unittest.TestCase):
+    def _make_engine(self):
+        engine = AutomationEngine.__new__(AutomationEngine)
+        engine.lcu = MagicMock()
+        engine.config = MagicMock()
+        engine.assets = MagicMock()
+        engine.log = MagicMock()
+        engine._log = MagicMock()
+        engine._last_priority_swap = 0.0
+        engine._skin_equipped = True
+        return engine
+
+    @patch("time.time", return_value=100)
+    def test_priority_sniper_no_list(self, mock_time):
+        engine = self._make_engine()
+        session = {"benchChampions": [{"championId": 1}]}
+        engine._perform_priority_sniper(session, [])
+        engine.lcu.request.assert_not_called()
+
+    @patch("time.time", return_value=100)
+    def test_priority_sniper_no_bench(self, mock_time):
+        engine = self._make_engine()
+        session = {"benchChampions": []}
+        engine._perform_priority_sniper(session, ["Teemo"])
+        engine.lcu.request.assert_not_called()
+
+    @patch("time.time", return_value=100)
+    def test_priority_sniper_swap_better_champ(self, mock_time):
+        engine = self._make_engine()
+        session = {
+            "localPlayerCellId": 1,
+            "myTeam": [{"cellId": 1, "championId": 10}],
+            "benchChampions": [{"championId": 20}, {"championId": 30}]
+        }
+        engine.assets.get_champ_name.side_effect = lambda cid: {10: "Garen", 20: "Teemo", 30: "Yasuo"}.get(cid, "")
+
+        # Yasuo is higher priority than Teemo, and Teemo is higher than Garen
+        priority_list = ["Yasuo", "Teemo", "Garen"]
+
+        engine._perform_priority_sniper(session, priority_list)
+
+        # Should swap to Yasuo (30)
+        engine.lcu.request.assert_called_once_with("POST", "/lol-champ-select/v1/session/bench/swap/30")
+        self.assertEqual(engine._last_priority_swap, 100)
+        self.assertFalse(engine._skin_equipped)
+
+    @patch("time.time", return_value=100)
+    def test_priority_sniper_no_better_champ(self, mock_time):
+        engine = self._make_engine()
+        session = {
+            "localPlayerCellId": 1,
+            "myTeam": [{"cellId": 1, "championId": 10}],
+            "benchChampions": [{"championId": 20}, {"championId": 30}]
+        }
+        engine.assets.get_champ_name.side_effect = lambda cid: {10: "Garen", 20: "Teemo", 30: "Yasuo"}.get(cid, "")
+
+        # Garen is the highest priority, no need to swap
+        priority_list = ["Garen", "Teemo", "Yasuo"]
+
+        engine._perform_priority_sniper(session, priority_list)
+        engine.lcu.request.assert_not_called()
+
+    @patch("time.time", return_value=100)
+    def test_priority_sniper_cooldown(self, mock_time):
+        engine = self._make_engine()
+        from core.constants import PRIORITY_SWAP_COOLDOWN
+        engine._last_priority_swap = 100 - (PRIORITY_SWAP_COOLDOWN - 0.5) # Still in cooldown
+        session = {
+            "localPlayerCellId": 1,
+            "myTeam": [{"cellId": 1, "championId": 10}],
+            "benchChampions": [{"championId": 30}]
+        }
+        engine.assets.get_champ_name.side_effect = lambda cid: {10: "Garen", 30: "Yasuo"}.get(cid, "")
+        priority_list = ["Yasuo", "Garen"]
+
+        engine._perform_priority_sniper(session, priority_list)
+        engine.lcu.request.assert_not_called()
+
+
+class TestAutomationEngineDraftAssistant(unittest.TestCase):
+    def _make_engine(self):
+        engine = AutomationEngine.__new__(AutomationEngine)
+        engine.lcu = MagicMock()
+        engine.config = MagicMock()
+        engine.assets = MagicMock()
+        engine.assets.name_to_id = {"yasuo": 30, "teemo": 20, "garen": 10}
+        engine.log = MagicMock()
+        engine._log = MagicMock()
+        engine._last_draft_action_time = 0.0
+        return engine
+
+    @patch("time.time", return_value=100)
+    def test_draft_assistant_teammate_respect_ban(self, mock_time):
+        engine = self._make_engine()
+        engine.config.get.side_effect = lambda key, default="": {"ban_MIDDLE_1": "yasuo", "ban_MIDDLE_2": "teemo", "auto_lock_in": False}.get(key, default)
+
+        session = {
+            "localPlayerCellId": 1,
+            "myTeam": [{"cellId": 1, "assignedPosition": "middle"}, {"cellId": 2, "championPickIntent": 30}], # Teammate hovering Yasuo
+            "bannedChampions": [],
+            "actions": [[{"actorCellId": 1, "isInProgress": True, "type": "ban", "id": 5, "championId": 0}]]
+        }
+
+        engine._perform_draft_assistant(session)
+
+        # Yasuo is hovered, so it should skip Yasuo and hover Teemo
+        engine.lcu.request.assert_called_once_with("PATCH", "/lol-champ-select/v1/session/actions/5", data={"championId": 20})
+        self.assertEqual(engine._last_draft_action_time, 100)
+
+    @patch("time.time", return_value=100)
+    def test_draft_assistant_fallback_pick(self, mock_time):
+        engine = self._make_engine()
+        engine.config.get.side_effect = lambda key, default="": {"pick_MIDDLE_1": "garen", "pick_MIDDLE_2": "yasuo", "auto_lock_in": False}.get(key, default)
+
+        session = {
+            "localPlayerCellId": 1,
+            "myTeam": [{"cellId": 1, "assignedPosition": "middle"}],
+            "bannedChampions": [10], # Garen is banned
+            "theirTeam": [],
+            "actions": [[{"actorCellId": 1, "isInProgress": True, "type": "pick", "id": 5, "championId": 0}]]
+        }
+
+        engine._perform_draft_assistant(session)
+
+        # Garen is banned, should pick Yasuo
+        engine.lcu.request.assert_called_once_with("PATCH", "/lol-champ-select/v1/session/actions/5", data={"championId": 30})
+        self.assertEqual(engine._last_draft_action_time, 100)
+
+    @patch("time.time", return_value=100)
+    def test_draft_assistant_auto_lock_pick(self, mock_time):
+        engine = self._make_engine()
+        # Ensure sufficient time has passed since last action
+        engine._last_draft_action_time = 0.0
+        engine.config.get.side_effect = lambda key, default="": {"pick_MIDDLE_1": "yasuo", "auto_lock_in": True}.get(key, default)
+
+        session = {
+            "localPlayerCellId": 1,
+            "myTeam": [{"cellId": 1, "assignedPosition": "middle"}],
+            "bannedChampions": [],
+            "theirTeam": [],
+            "actions": [[{"actorCellId": 1, "isInProgress": True, "type": "pick", "id": 5, "championId": 30}]] # Already hovering Yasuo
+        }
+
+        engine._perform_draft_assistant(session)
+
+        # Should lock in Yasuo
+        engine.lcu.request.assert_called_once_with("POST", "/lol-champ-select/v1/session/actions/5/complete")
+        self.assertEqual(engine._last_draft_action_time, 100)
+
+
+class TestAutomationEngineArenaSynergy(unittest.TestCase):
+    def _make_engine(self):
+        engine = AutomationEngine.__new__(AutomationEngine)
+        engine.lcu = MagicMock()
+        engine.config = MagicMock()
+        engine.assets = MagicMock()
+        engine.assets.name_to_id = {"yasuo": 30, "teemo": 20, "garen": 10, "yone": 40}
+        engine.assets.get_champ_name = lambda cid: {30: "Yasuo", 20: "Teemo", 10: "Garen", 40: "Yone"}.get(cid, "")
+        engine.log = MagicMock()
+        engine._log = MagicMock()
+        engine._last_synergy_patch = 0.0
+        return engine
+
+    @patch("time.time", return_value=100)
+    def test_arena_synergy_ban(self, mock_time):
+        engine = self._make_engine()
+        engine.config.get.side_effect = lambda key, default="": {"arena_ban": "teemo", "auto_lock_in": False}.get(key, default)
+
+        session = {
+            "localPlayerCellId": 1,
+            "myTeam": [{"cellId": 1}],
+            "bannedChampions": [],
+            "actions": [[{"actorCellId": 1, "isInProgress": True, "type": "ban", "id": 5, "championId": 0}]]
+        }
+
+        engine._perform_arena_synergy(session)
+
+        engine.lcu.request.assert_called_once_with("PATCH", "/lol-champ-select/v1/session/actions/5", data={"championId": 20})
+        self.assertEqual(engine._last_synergy_patch, 100)
+
+    @patch("time.time", return_value=100)
+    def test_arena_synergy_ban_already_banned(self, mock_time):
+        engine = self._make_engine()
+        engine.config.get.side_effect = lambda key, default="": {"arena_ban": "teemo", "auto_lock_in": False}.get(key, default)
+
+        session = {
+            "localPlayerCellId": 1,
+            "myTeam": [{"cellId": 1}],
+            "bannedChampions": [20], # Teemo is already banned
+            "actions": [[{"actorCellId": 1, "isInProgress": True, "type": "ban", "id": 5, "championId": 0}]]
+        }
+
+        engine._perform_arena_synergy(session)
+
+        engine.lcu.request.assert_not_called()
+
+    @patch("time.time", return_value=100)
+    def test_arena_synergy_pick_fallback(self, mock_time):
+        engine = self._make_engine()
+        engine.config.get.side_effect = lambda key, default="": {"arena_pairs": [{"enabled": True, "teammate": "yasuo", "me": ["garen", "teemo"]}], "arena_auto_lock": False}.get(key, default)
+
+        session = {
+            "localPlayerCellId": 1,
+            "myTeam": [{"cellId": 1}, {"cellId": 2, "championId": 30}], # Teammate picked Yasuo
+            "bannedChampions": [10], # Garen is banned
+            "actions": [[{"actorCellId": 1, "isInProgress": True, "type": "pick", "id": 5, "championId": 0}]]
+        }
+
+        engine._perform_arena_synergy(session)
+
+        # Garen is banned, so should hover Teemo
+        engine.lcu.request.assert_called_once_with("PATCH", "/lol-champ-select/v1/session/actions/5", data={"championId": 20})
+        self.assertEqual(engine._last_synergy_patch, 100)
+
+    @patch("time.time", return_value=100)
+    def test_arena_synergy_pick_auto_lock(self, mock_time):
+        engine = self._make_engine()
+        engine.config.get.side_effect = lambda key, default="": {"arena_pairs": [{"enabled": True, "teammate": "yasuo", "me": ["yone"]}], "arena_auto_lock": True}.get(key, default)
+        engine._last_synergy_patch = 0.0
+
+        session = {
+            "localPlayerCellId": 1,
+            "myTeam": [{"cellId": 1}, {"cellId": 2, "championId": 30}], # Teammate picked Yasuo
+            "bannedChampions": [],
+            "actions": [[{"actorCellId": 1, "isInProgress": True, "type": "pick", "id": 5, "championId": 40}]] # Already hovering Yone
+        }
+
+        engine._perform_arena_synergy(session)
+
+        # Should auto lock Yone
+        engine.lcu.request.assert_called_once_with("POST", "/lol-champ-select/v1/session/actions/5/complete")
+        self.assertEqual(engine._last_synergy_patch, 100)
+
+
+class TestAutomationEngineAutoHonor(unittest.TestCase):
+    def _make_engine(self):
+        engine = AutomationEngine.__new__(AutomationEngine)
+        engine.lcu = MagicMock()
+        engine.config = MagicMock()
+        engine.log = MagicMock()
+        engine._log = MagicMock()
+        engine._honor_handled = False
+        return engine
+
+    def test_auto_honor_disabled(self):
+        engine = self._make_engine()
+        engine.config.get.return_value = False
+        engine._handle_auto_honor("EndOfGame")
+        engine.lcu.request.assert_not_called()
+
+    def test_auto_honor_handled(self):
+        engine = self._make_engine()
+        engine.config.get.return_value = True
+        engine._honor_handled = True
+        engine._handle_auto_honor("EndOfGame")
+        engine.lcu.request.assert_not_called()
+
+    def test_auto_honor_no_teammates(self):
+        engine = self._make_engine()
+        engine.config.get.side_effect = lambda key, default=False: {"auto_honor_enabled": True}.get(key, default)
+
+        # Mock API responses
+        mock_eog = MagicMock()
+        mock_eog.status_code = 200
+        mock_eog.json.return_value = {
+            "gameId": 1234,
+            "localPlayer": {"puuid": "player-1"},
+            "teams": [
+                {"isPlayerTeam": True, "players": [{"puuid": "player-1"}]} # Only me on team
+            ]
+        }
+        engine.lcu.request.return_value = mock_eog
+
+        engine._handle_auto_honor("EndOfGame")
+        self.assertTrue(engine._honor_handled)
+
+        # Only EOG fetched, no honor posted
+        engine.lcu.request.assert_called_once_with("GET", "/lol-end-of-game/v1/eog-stats-block", silent=True)
+
+    def test_auto_honor_success_best_kda(self):
+        engine = self._make_engine()
+        engine.config.get.side_effect = lambda key, default=False: {"auto_honor_enabled": True, "honor_strategy": "best_kda"}.get(key, default)
+
+        def mock_request(method, endpoint, *args, **kwargs):
+            mock = MagicMock()
+            mock.status_code = 200
+            if endpoint == "/lol-end-of-game/v1/eog-stats-block":
+                mock.json.return_value = {
+                    "gameId": 1234,
+                    "localPlayer": {"puuid": "player-1"},
+                    "teams": [
+                        {"isPlayerTeam": True, "players": [
+                            {"puuid": "player-1"},
+                            {"puuid": "player-2", "summonerId": 2, "stats": {"CHAMPIONS_KILLED": 1, "ASSISTS": 1, "NUM_DEATHS": 2}}, # KDA: 1.0
+                            {"puuid": "player-3", "summonerId": 3, "stats": {"CHAMPIONS_KILLED": 5, "ASSISTS": 5, "NUM_DEATHS": 1}}  # KDA: 10.0 (Best)
+                        ]}
+                    ]
+                }
+            elif endpoint == "/lol-chat/v1/friends":
+                mock.json.return_value = [] # No friends
+            elif endpoint == "/lol-honor-v2/v1/honor-player":
+                # POST request to honor player
+                pass
+            return mock
+
+        engine.lcu.request.side_effect = mock_request
+
+        engine._handle_auto_honor("EndOfGame")
+
+        engine.lcu.request.assert_any_call("POST", "/lol-honor-v2/v1/honor-player", {
+            "gameId": 1234,
+            "honorCategory": "HEART",
+            "honorType": "HEART",
+            "summonerId": 3,
+            "puuid": "player-3"
+        })
+
+    def test_auto_honor_friend_priority(self):
+        engine = self._make_engine()
+        engine.config.get.side_effect = lambda key, default=False: {"auto_honor_enabled": True, "honor_strategy": "mvp"}.get(key, default)
+
+        def mock_request(method, endpoint, *args, **kwargs):
+            mock = MagicMock()
+            mock.status_code = 200
+            if endpoint == "/lol-end-of-game/v1/eog-stats-block":
+                mock.json.return_value = {
+                    "gameId": 1234,
+                    "localPlayer": {"puuid": "player-1"},
+                    "teams": [
+                        {"isPlayerTeam": True, "players": [
+                            {"puuid": "player-1"},
+                            {"puuid": "player-2", "summonerId": 2, "stats": {"CHAMPIONS_KILLED": 10, "ASSISTS": 10}}, # Best MVP score
+                            {"puuid": "friend-1", "summonerId": 3, "stats": {"CHAMPIONS_KILLED": 1, "ASSISTS": 1}}   # Friend, lower score
+                        ]}
+                    ]
+                }
+            elif endpoint == "/lol-chat/v1/friends":
+                mock.json.return_value = [{"puuid": "friend-1"}] # Friend is in match
+            return mock
+
+        engine.lcu.request.side_effect = mock_request
+
+        engine._handle_auto_honor("EndOfGame")
+
+        # It should honor the friend despite having lower MVP score
+        engine.lcu.request.assert_any_call("POST", "/lol-honor-v2/v1/honor-player", {
+            "gameId": 1234,
+            "honorCategory": "HEART",
+            "honorType": "HEART",
+            "summonerId": 3,
+            "puuid": "friend-1"
+        })
+
+
 if __name__ == '__main__':
     unittest.main()
