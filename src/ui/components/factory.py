@@ -129,7 +129,7 @@ class RiotButton(ctk.CTkFrame):
         self._disabled = False  # Item #194: Track disabled state
         
     def _on_enter(self, h_color):
-        if getattr(self, "_disabled", False):
+        if self._disabled:
             return
         self.configure()
         self.inner.configure(fg_color=h_color)
@@ -139,7 +139,7 @@ class RiotButton(ctk.CTkFrame):
         self.inner.configure(fg_color=i_color)
         
     def _on_click(self, e):
-        if getattr(self, "_disabled", False):
+        if self._disabled:
             return
         # Optional: Add small press scale if desired
         if hasattr(self, "_canvas"):

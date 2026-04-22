@@ -995,8 +995,7 @@ class AutomationEngine:
     def mass_invite_friends(self):
         """Invite all online friends (or VIP list) to the current lobby."""
         # Item #170: Rate-limit mass invites to prevent API spam
-        import time as _time
-        now = _time.time()
+        now = time.time()
         if now - self._last_mass_invite < 10:
             self._log("Mass invite on cooldown (10s).")
             return 0

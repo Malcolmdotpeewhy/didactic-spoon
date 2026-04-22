@@ -5,6 +5,7 @@ Provides non-intrusive, animated feedback for background actions.
 from utils.logger import Logger
 import customtkinter as ctk
 from .factory import get_color, get_font, get_radius, parse_border
+from .color_utils import lighten_color
 
 class Toast(ctk.CTkFrame):
     """
@@ -32,6 +33,7 @@ class Toast(ctk.CTkFrame):
         
         self.duration = duration
         self._is_dismissing = False
+        self._original_bg = bg_hex  # Stash for hover restore
 
         # Malcolm's UX Enhancement: Add subtle hover effect for interactive feel
         self.bind("<Enter>", self._on_hover)
@@ -165,11 +167,8 @@ class Toast(ctk.CTkFrame):
 
     def _on_hover(self, event=None):
         try:
-            # Item #185: Import hoisted to module level
-            from ui.components.color_utils import lighten_color
             bg = self.cget("fg_color")
-            if not hasattr(self, '_original_bg'):
-                self._original_bg = bg
+            self._original_bg = bg
             self.configure(fg_color=lighten_color(bg, 0.2))
         except Exception as e:
             Logger.error("toast.py", f"Handled exception: {e}")
@@ -177,13 +176,13 @@ class Toast(ctk.CTkFrame):
     def _on_leave(self, event=None):
         try:
             # Restore the original background, not always the panel color
-            self.configure(fg_color=getattr(self, '_original_bg', get_color("colors.background.panel")))
+            self.configure(fg_color=self._original_bg)
         except Exception as e:
             Logger.error("toast.py", f"Handled exception: {e}")
 
     def dismiss(self, event=None):
         """Start the dismissal animation."""
-        if getattr(self, "_is_dismissing", False):
+        if self._is_dismissing:
             return
         self._is_dismissing = True
         self._slide_out()

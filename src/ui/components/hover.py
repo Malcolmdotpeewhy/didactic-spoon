@@ -1,6 +1,6 @@
 """Hover animation utilities."""
 from utils.logger import Logger
-from .color_utils import lighten_color
+from .color_utils import lighten_color, darken_color
 
 def _apply_hover(widget, normal_fg, hover_fg, normal_border, hover_border):
     """Bind hover animation to a widget for brightness transition."""
@@ -46,8 +46,7 @@ def apply_click_animation(widget, normal_color, pulse_color=None, button_num=1):
     Applies a momentary gamified 'pulse' color flash to a widget upon clicking.
     Provides immediate haptic-like visual feedback that feels highly responsive.
     """
-    from .color_utils import lighten_color
-    from utils.logger import Logger
+    # lighten_color and Logger are already imported at module level
 
     # Precompute the pulse color outside the event handler to avoid redundant
     # string parsing and math operations on every single click event.
@@ -117,7 +116,7 @@ def apply_press_effect(widget, normal_color, press_color=None):
     If press_color is None, it defaults to normal_color (no change) or could be calculated.
     For now, we will perform a slight darken if no press_color is provided.
     """
-    from .color_utils import darken_color
+    # darken_color is already imported at module level
     
     active_color = press_color or darken_color(normal_color, 10)
 
@@ -163,14 +162,14 @@ def apply_card_hover(widget):
         try:
             widget.configure(border_color=hb)
         except Exception as e:
-            from utils.logger import Logger
+
             Logger.error("hover.py", f"Handled exception: {type(e).__name__}: {e}")
 
     def on_leave(_):
         try:
             widget.configure(border_color=nb)
         except Exception as e:
-            from utils.logger import Logger
+
             Logger.error("hover.py", f"Handled exception: {type(e).__name__}: {e}")
 
     widget.bind("<Enter>", on_enter, add="+")

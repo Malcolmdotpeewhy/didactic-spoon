@@ -192,7 +192,7 @@ class HotkeyRecorder(ctk.CTkButton):
             text_color=get_color("colors.text.primary"),
             border_color=get_color("colors.border.subtle"),
         )
-        if hasattr(self, "_tooltip"):
+        if hasattr(self, "_tooltip") and self._tooltip:
             self._tooltip.configure(text="Click to record a new hotkey")
 
     def get(self):
@@ -200,7 +200,7 @@ class HotkeyRecorder(ctk.CTkButton):
 
     def destroy(self):
         """Custom destroy with safety guards for CustomTkinter's '_font' bug."""
-        if getattr(self, "_hook", None) is not None:
+        if self._hook is not None:
             try:
                 keyboard.unhook(self._hook)
                 self._hook = None
@@ -794,7 +794,7 @@ class SettingsModal(ctk.CTkToplevel):
 
         try:
             if hasattr(self.master, "settings_window"):
-                self.master.settings_window = None
+                self.master.settings_window = None  # noqa: allow dynamic attr on parent
         except Exception:
             pass
 

@@ -40,6 +40,14 @@ class SidebarWidget(ctk.CTkFrame):
         self._queue_timer_job = None
         self._last_ui_phase = None
         self._current_game_phase = "None"
+        self._game_tool_visible = False
+        self._accounts_tool_visible = False
+        self._stats_visible = False
+        self.auto_expanded = True
+        self.profile_expanded = False
+        self._current_queue_time = 0
+        self._estimated_queue_time = 120
+        self._body_expanded = True
 
         self._setup_ui()
         self.after(100, self._load_icons_async)
@@ -119,16 +127,16 @@ class SidebarWidget(ctk.CTkFrame):
             if tab_name == "Play":
                 self.session_frame.pack(fill="x", pady=(0, 8))
                 self.action_container.pack(fill="x", pady=(0, 8))
-                if getattr(self, "_game_tool_visible", False):
+                if self._game_tool_visible:
                     self.game_tool_container.pack(fill="x", pady=(0, 8))
-                if getattr(self, "_accounts_tool_visible", False) and self.accounts_tool:
+                if self._accounts_tool_visible and self.accounts_tool:
                     self.accounts_tool.pack(fill="x", pady=(0, 8))
             elif tab_name == "Configure":
                 self.auto_container.pack(fill="x", pady=(0, 8))
                 self.friend_list.pack(fill="x", pady=(0, 8))
             elif tab_name == "Advanced":
                 self.profile_container.pack(fill="x", pady=(0, 8))
-                if getattr(self, "_stats_visible", False):
+                if self._stats_visible:
                     self.stats_frame.pack(fill="x", pady=(0, 8))
                     
         self.switch_tab = _switch_tab
@@ -613,7 +621,7 @@ class SidebarWidget(ctk.CTkFrame):
 
 
     def _toggle_auto_collapse(self, event=None):
-        self.auto_expanded = not getattr(self, "auto_expanded", True)
+        self.auto_expanded = not self.auto_expanded
         if self.auto_expanded:
             self.automation_frame.pack(fill="x")
         else:
@@ -843,7 +851,7 @@ class SidebarWidget(ctk.CTkFrame):
             self.update_action_log("Automation engine not available.")
 
     def _toggle_profile_collapse(self, event=None):
-        self.profile_expanded = not getattr(self, "profile_expanded", False)
+        self.profile_expanded = not self.profile_expanded
         if self.profile_expanded:
             self.lbl_profile_section.configure(text="▼  PROFILE")
             self.profile_frame.pack(fill="x")
@@ -953,8 +961,8 @@ class SidebarWidget(ctk.CTkFrame):
         self._estimated_queue_time = estimated_time if estimated_time > 0 else 120
 
         # If the timer is already ticking, only re-sync if drift is extreme (>5s)
-        if hasattr(self, "_queue_timer_job") and self._queue_timer_job is not None:
-            drift = abs(getattr(self, "_current_queue_time", 0) - time_in_queue)
+        if self._queue_timer_job is not None:
+            drift = abs(self._current_queue_time - time_in_queue)
             if drift <= 5:
                 return  # Timer is running fine, don't touch it
         
@@ -972,7 +980,7 @@ class SidebarWidget(ctk.CTkFrame):
 
         self.time_label.configure(text=time_str)
 
-        est = getattr(self, "_estimated_queue_time", 120)
+        est = self._estimated_queue_time
         if est > 0:
             est_mins = int(est // 60)
             est_secs = int(est % 60)
@@ -1033,7 +1041,7 @@ class SidebarWidget(ctk.CTkFrame):
         is_arena = current_mode == "Arena"
         is_draft = current_mode in {"Draft Pick", "Ranked Solo/Duo", "Ranked Flex"}
         
-        phase = getattr(self, "_current_game_phase", "None")
+        phase = self._current_game_phase
 
         active_phases = {"Lobby", "Matchmaking", "ReadyCheck", "ChampSelect"}
         should_show = (is_aram or is_arena or is_draft) and (phase in active_phases or phase == "None")
@@ -1080,7 +1088,7 @@ class SidebarWidget(ctk.CTkFrame):
         self._current_game_phase = phase
 
         # Track the last phase we processed to avoid redundant resets
-        prev_ui_phase = getattr(self, "_last_ui_phase", None)
+        prev_ui_phase = self._last_ui_phase
 
         if phase == "Matchmaking" and search_state and search_state.get("searchState") == "Searching":
             time_in_queue = search_state.get("timeInQueue", 0)
