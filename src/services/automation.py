@@ -374,7 +374,7 @@ class AutomationEngine:
         # if another player dodges and drops us back to the Lobby phase unexpectedly.
         if phase == "Lobby" and self.last_phase in ("ChampSelect", "ReadyCheck"):
             now = time.time()
-            if hasattr(self, "_cached_search_state") and hasattr(self, "_last_search_state_time") and (now - self._last_search_state_time < 3.0):
+            if self._cached_search_state and (now - self._last_search_state_time < 3.0):
                 state = self._cached_search_state
             else:
                 search_state = self.lcu.request("GET", "/lol-lobby/v2/lobby/matchmaking/search-state")
@@ -812,7 +812,7 @@ class AutomationEngine:
 
         if best_bench_id != 0:
             now = time.time()
-            if not hasattr(self, "_last_priority_swap"): self._last_priority_swap = 0
+
             if now - self._last_priority_swap < PRIORITY_SWAP_COOLDOWN: return
             
             self._log(f"Sniper: Found {best_bench_champ}! Swapping...")

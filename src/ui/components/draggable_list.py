@@ -163,18 +163,18 @@ class DraggableList(ctk.CTkScrollableFrame):
                 if i == 0:
                     btn_up.configure(state="disabled", text_color="gray40")
                 else:
-                    btn_up.configure(state="normal", text_color="#F0E6D2")
+                    btn_up.configure(state="normal", text_color=get_color("colors.text.primary", "#F0E6D2"))
 
                 if i == len(self.items) - 1:
                     btn_down.configure(state="disabled", text_color="gray40")
                 else:
-                    btn_down.configure(state="normal", text_color="#F0E6D2")
+                    btn_down.configure(state="normal", text_color=get_color("colors.text.primary", "#F0E6D2"))
 
             self.after(50, lambda: self._highlight_row(new_idx))
 
     def _highlight_row(self, index):
         """Malcolm's Infusion: Pulse the row to help the eye track moved items."""
-        if hasattr(self, "_row_frames") and 0 <= index < len(self._row_frames):
+        if self._row_frames and 0 <= index < len(self._row_frames):
             frame = self._row_frames[index]
             if not frame.winfo_exists(): return
 

@@ -166,7 +166,7 @@ class FriendPriorityList(ctk.CTkFrame):
         self._render_list()
 
     def _show_context_menu(self, event, friend_name):
-        menu = tk.Menu(self, tearoff=0, bg=get_color("colors.background.card"), fg="#F0E6D2")
+        menu = tk.Menu(self, tearoff=0, bg=get_color("colors.background.card"), fg=get_color("colors.text.primary", "#F0E6D2"))
         
         name_lower = friend_name.lower()
         is_auto = self._auto_join_names.get(name_lower, False)
