@@ -67,8 +67,8 @@ class SidebarWidget(ctk.CTkFrame):
         # ✕ Close
         self.btn_close = ctk.CTkButton(
             self.header, text="✕", width=20, height=20,
-            corner_radius=10, font=("Arial", 11),
-            fg_color="transparent", hover_color="#e81123",
+            corner_radius=10, font=get_font("caption"),
+            fg_color="transparent", hover_color=get_color("colors.state.danger", "#e81123"),
             command=self.master._on_close, cursor="hand2",
             )
         self.btn_close.pack(side="right", padx=(4, 2))
@@ -77,7 +77,7 @@ class SidebarWidget(ctk.CTkFrame):
         # ⚙ Settings
         self.btn_settings = ctk.CTkButton(
             self.header, text="⚙", width=20, height=20,
-            corner_radius=10, font=("Arial", 13),
+            corner_radius=10, font=get_font("body"),
             fg_color="transparent",
             text_color=get_color("colors.text.muted"),
             hover_color=get_color("colors.state.hover"),
@@ -89,8 +89,9 @@ class SidebarWidget(ctk.CTkFrame):
         self.drag_widgets = [self, self.header, self.lbl_title]
 
         # ── Collapsible Body ──
+        # NOTE: main_body is created here but packed AFTER the footer
+        # to ensure proper tkinter pack geometry (footer reserves bottom space first)
         self.main_body = ctk.CTkFrame(self, fg_color="transparent")
-        self.main_body.pack(fill="both", expand=True, padx=SPACING_MD, pady=SPACING_MD)
 
         self.power_state = True
         self.var_power = ctk.BooleanVar(value=True)
@@ -141,9 +142,9 @@ class SidebarWidget(ctk.CTkFrame):
                     
         self.switch_tab = _switch_tab
         
-        btn_play = ctk.CTkButton(self.tab_frame, text="Play", width=60, height=24, fg_color=get_color("colors.accent.primary"), text_color=get_color("colors.background.app"), hover_color=get_color("colors.state.hover"), font=("Arial", 11, "bold"), command=lambda: self.switch_tab("Play"))
-        btn_cfg = ctk.CTkButton(self.tab_frame, text="Configure", width=70, height=24, fg_color="transparent", text_color=get_color("colors.text.muted"), hover_color=get_color("colors.state.hover"), font=("Arial", 11, "bold"), command=lambda: self.switch_tab("Configure"))
-        btn_adv = ctk.CTkButton(self.tab_frame, text="Advanced", width=70, height=24, fg_color="transparent", text_color=get_color("colors.text.muted"), hover_color=get_color("colors.state.hover"), font=("Arial", 11, "bold"), command=lambda: self.switch_tab("Advanced"))
+        btn_play = ctk.CTkButton(self.tab_frame, text="Play", width=60, height=24, fg_color=get_color("colors.accent.primary"), text_color=get_color("colors.background.app"), hover_color=get_color("colors.state.hover"), font=get_font("caption", "bold"), command=lambda: self.switch_tab("Play"))
+        btn_cfg = ctk.CTkButton(self.tab_frame, text="Configure", width=70, height=24, fg_color="transparent", text_color=get_color("colors.text.muted"), hover_color=get_color("colors.state.hover"), font=get_font("caption", "bold"), command=lambda: self.switch_tab("Configure"))
+        btn_adv = ctk.CTkButton(self.tab_frame, text="Advanced", width=70, height=24, fg_color="transparent", text_color=get_color("colors.text.muted"), hover_color=get_color("colors.state.hover"), font=get_font("caption", "bold"), command=lambda: self.switch_tab("Advanced"))
         
         btn_play.pack(side="left", padx=2)
         btn_cfg.pack(side="left", padx=2)
@@ -163,7 +164,7 @@ class SidebarWidget(ctk.CTkFrame):
         self.queue_label = ctk.CTkLabel(
             self.session_frame,
             text=self.config.get("aram_mode", "ARAM"),
-            font=("Segoe UI", 12, "bold"),
+            font=get_font("body", "bold"),
             text_color=get_color("colors.accent.gold", "#C8AA6E"),
             cursor="hand2"
         )
@@ -189,7 +190,7 @@ class SidebarWidget(ctk.CTkFrame):
         self.time_label = ctk.CTkLabel(
             self.session_frame,
             text="Queue: Idle",
-            font=("Segoe UI", 11),
+            font=get_font("caption"),
             text_color=get_color("colors.text.primary")
         )
         self.time_label.grid(row=1, column=0, padx=8, pady=(0, 10), sticky="w")
@@ -197,7 +198,7 @@ class SidebarWidget(ctk.CTkFrame):
         self.estimate_label = ctk.CTkLabel(
             self.session_frame,
             text="● Connected",
-            font=("Segoe UI", 11),
+            font=get_font("caption"),
             text_color=get_color("colors.state.success", "#00C853")
         )
         self.estimate_label.grid(row=1, column=1, padx=8, pady=(0, 10), sticky="e")
@@ -236,7 +237,7 @@ class SidebarWidget(ctk.CTkFrame):
             self.queue_actions_container, 
             text="▶  Find Match",
             style="primary",
-            font=("Arial", 13, "bold"), 
+            font=get_font("body", "bold"), 
             height=32,
             border_width=1,
             border_color=get_color("colors.accent.primary", "#F0E6D2"),
@@ -260,7 +261,7 @@ class SidebarWidget(ctk.CTkFrame):
             self.quick_actions_frame,
             text="Requeue",
             style="primary",
-            font=("Arial", 12, "bold"),
+            font=get_font("body", "bold"),
             height=32,
             border_width=1,
             border_color=get_color("colors.accent.primary", "#F0E6D2"),
@@ -272,7 +273,7 @@ class SidebarWidget(ctk.CTkFrame):
             self.quick_actions_frame,
             text="Dodge",
             style="secondary",
-            font=("Arial", 12, "bold"),
+            font=get_font("body", "bold"),
             height=32,
             border_width=1,
             border_color=get_color("colors.accent.primary", "#F0E6D2"),
@@ -482,7 +483,7 @@ class SidebarWidget(ctk.CTkFrame):
             btn = ctk.CTkButton(
                 self.preset_frame, text=emoji, width=32, height=32,
                 corner_radius=get_radius("sm"),
-                font=("Arial", 16),
+                font=get_font("title"),
                 fg_color=get_color("colors.background.panel"),
                 hover_color=get_color("colors.state.hover"),
                 command=lambda e=emoji, t=text: self._on_quick_status(e, t),
@@ -499,7 +500,7 @@ class SidebarWidget(ctk.CTkFrame):
         self.stats_frame = ctk.CTkFrame(self.main_body, fg_color="transparent")
         
         self.lbl_stats_title = ctk.CTkLabel(
-            self.stats_frame, text="LOBBY STATS", font=("Arial", 11, "bold"),
+            self.stats_frame, text="LOBBY STATS", font=get_font("caption", "bold"),
             text_color=get_color("colors.accent.gold", "#C8AA6E"), anchor="w"
         )
         self.lbl_stats_title.pack(fill="x", padx=14, pady=(8, 2))
@@ -510,10 +511,16 @@ class SidebarWidget(ctk.CTkFrame):
         self.stats_content.pack(fill="x", padx=14)
         # stats_frame is NOT packed yet — it appears only during ChampSelect
 
-        ctk.CTkFrame(self.main_body, height=1, fg_color=get_color("colors.border.subtle")).pack(fill="x", padx=14)
+        # ── Fixed Footer (pinned to bottom of sidebar, never clips) ──
+        # IMPORTANT: Footer must be packed BEFORE main_body to reserve bottom space
+        self.footer = ctk.CTkFrame(self, fg_color="transparent", height=42)
+        self.footer.pack(fill="x", side="bottom", padx=SPACING_MD, pady=(0, SPACING_SM))
+        self.footer.pack_propagate(False)
 
-        action_row = ctk.CTkFrame(self.main_body, fg_color="transparent")
-        action_row.pack(fill="x", padx=14, pady=8)
+        ctk.CTkFrame(self.footer, height=1, fg_color=get_color("colors.border.subtle")).pack(fill="x", side="top")
+
+        action_row = ctk.CTkFrame(self.footer, fg_color="transparent")
+        action_row.pack(fill="x", padx=SPACING_SM, pady=(SPACING_SM, 0))
 
         self.lbl_action = ctk.CTkLabel(
             action_row, text="Waiting for client...",
@@ -525,7 +532,7 @@ class SidebarWidget(ctk.CTkFrame):
 
         self.btn_clear_log = ctk.CTkButton(
             action_row, text="✕", width=18, height=18,
-            corner_radius=9, font=("Arial", 10),
+            corner_radius=9, font=get_font("caption"),
             fg_color="transparent",
             text_color=get_color("colors.text.muted"),
             hover_color=get_color("colors.state.hover", "#e81123"),
@@ -533,6 +540,9 @@ class SidebarWidget(ctk.CTkFrame):
             )
         self.btn_clear_log.pack(side="right", padx=(4, 0))
         CTkTooltip(self.btn_clear_log, "Clear Log")
+
+        # NOW pack main_body to fill remaining space between header and footer
+        self.main_body.pack(fill="both", expand=True, padx=SPACING_MD, pady=SPACING_MD)
 
     # ── Account Manager Injection ──
     def set_account_manager(self, account_manager):
@@ -1117,9 +1127,9 @@ class SidebarWidget(ctk.CTkFrame):
             if prev_ui_phase != "ChampSelect":
                 self._stop_local_queue_timer()
                 self.time_label.configure(text="Champ Select", text_color=get_color("colors.accent.purple", "#A855F7"))
-                self.estimate_label.configure(text="● Drafting", text_color="#A855F7")
+                self.estimate_label.configure(text="● Drafting", text_color=get_color("colors.accent.purple", "#A855F7"))
                 self.progress_bar.set(1.0)
-                self.progress_bar.configure(progress_color="#A855F7")
+                self.progress_bar.configure(progress_color=get_color("colors.accent.purple", "#A855F7"))
                 self._show_quick_actions()
             self._last_ui_phase = "ChampSelect"
 
@@ -1127,7 +1137,7 @@ class SidebarWidget(ctk.CTkFrame):
             if prev_ui_phase != "InProgress":
                 self._stop_local_queue_timer()
                 self.time_label.configure(text="In Game", text_color=get_color("colors.text.primary"))
-                self.estimate_label.configure(text="● Playing", text_color="#3B82F6")
+                self.estimate_label.configure(text="● Playing", text_color=get_color("colors.accent.blue", "#3B82F6"))
                 self.progress_bar.set(0)
                 self._hide_quick_actions(show_find_match=False)
             self._last_ui_phase = phase
