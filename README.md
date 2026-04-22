@@ -35,8 +35,9 @@ Whether you're dodging queues, insta-locking ARAM priorities, or managing your a
 - **Auto-Accept Match**: Never miss a queue pop.
 - **Priority Sniper & Auto-Pick**: Configure backup roles, custom bans, and insta-lock logic.
 - **Draft Assistant (Role Enforcer)**: Role-based auto-hovering and banning for Ranked/Draft. Includes a teammate respect algorithm that dodges teammate hovers during the ban phase!
-- **Arena Synergy Picker (V2)**: Drag-and-drop fallback priority arrays (`IF Taric, THEN Maestro/Nilah/Vayne`) tailored exclusively for Arena combinations with intelligent global ban evasion.
+- **Arena Synergy Picker (V5)**: Rebuilt from the ground up for instantaneous one-click pair creation and streamlined Card Container aesthetics. Complete with Auto-Ban integration.
 - **ARAM Mayhem Prioritization**: Drag-and-drop or select from your customized `ARAM List`. Ships with a default list consisting of top-played ARAM monsters *(Nautilus, Xerath, Heimerdinger, Master Yi, Veigar, etc.)*.
+- **Event-Driven Architecture**: Fully thread-safe, zero-blocking API backend powered by real-time WebSocket subscriptions. No UI freezes, no missed queue pops.
 - **Auto-Honor System**: Instantly honor friends or top-performers algorithmically via LCU APIs.
 - **Auto-Join VIP Lobbies**: Automatically inject yourself into trusted lobbies.
 

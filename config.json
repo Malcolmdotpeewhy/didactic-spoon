@@ -119,7 +119,7 @@
     "ban_BOTTOM": "",
     "ban_UTILITY": "",
     "auto_spells": true,
-    "aram_mode": "Arena",
+    "aram_mode": "ARAM Mayhem",
     "auto_join_friend_enabled": true,
     "auto_join_friend": "Palafu",
     "auto_join_list": [
@@ -276,9 +276,10 @@
         "Palafu#NA1",
         "NicholasLobo\u2069 #\u2066NA1\u2069"
     ],
-    "auto_join_enabled": false,
+    "auto_join_enabled": true,
     "auto_honor_enabled": true,
     "honor_strategy": "best_kda",
     "vip_invite_list": "",
-    "startup_status": ""
+    "startup_status": "",
+    "arena_ban": ""
 }
