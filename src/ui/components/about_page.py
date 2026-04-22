@@ -25,14 +25,14 @@ class AboutPage(ctk.CTkToplevel):
         self.focus_force()
 
     def _setup_ui(self):
-        header = ctk.CTkFrame(self, fg_color="#0A1428", corner_radius=0, height=56)
+        header = ctk.CTkFrame(self, fg_color=get_color("colors.background.app", "#0A1428"), corner_radius=0, height=56)
         header.pack(fill="x")
         header.pack_propagate(False)
 
         ctk.CTkLabel(
             header, text="ⓘ  INFO & ABOUT",
             font=("Beaufort for LOL", 16, "bold"),
-            text_color="#C8AA6E",
+            text_color=get_color("colors.accent.gold", "#C8AA6E"),
         ).pack(side="left", padx=16, pady=16)
 
         body = ctk.CTkFrame(self, fg_color="transparent")
@@ -65,7 +65,7 @@ class AboutPage(ctk.CTkToplevel):
             disclaimer_frame, 
             text="LEGAL & LIABILITY WAIVER",
             font=get_font("caption", "bold"),
-            text_color="#e81123",
+            text_color=get_color("colors.state.danger", "#e81123"),
         ).pack(anchor="w", padx=12, pady=(12, 4))
         
         ctk.CTkLabel(
@@ -87,20 +87,20 @@ class AboutPage(ctk.CTkToplevel):
         self.lbl_author = ctk.CTkLabel(
             footer, text="Made by Malcolm",
             font=get_font("body", "bold"),
-            text_color="#C8AA6E",
+            text_color=get_color("colors.accent.gold", "#C8AA6E"),
             cursor="hand2",
         )
         self.lbl_author.pack(side="left")
 
         # Malcolm's Easter Egg bindings
         self.lbl_author.bind("<Button-1>", self._on_author_click)
-        self.lbl_author.bind("<Enter>", lambda e: self.lbl_author.configure(text_color="#F0E6D2"))
-        self.lbl_author.bind("<Leave>", lambda e: self.lbl_author.configure(text_color="#C8AA6E" if self._egg_clicks < 5 else "#A855F7"))
+        self.lbl_author.bind("<Enter>", lambda e: self.lbl_author.configure(text_color=get_color("colors.text.primary", "#F0E6D2")))
+        self.lbl_author.bind("<Leave>", lambda e: self.lbl_author.configure(text_color=get_color("colors.accent.gold", "#C8AA6E") if self._egg_clicks < 5 else get_color("colors.accent.purple", "#A855F7")))
 
         ctk.CTkLabel(
             footer, text="Banned.Malcolm@gmail.com",
             font=get_font("body", "bold"),
-            text_color="#4B5E73",
+            text_color=get_color("colors.text.disabled", "#4B5E73"),
         ).pack(side="right")
 
     def _on_author_click(self, event=None):

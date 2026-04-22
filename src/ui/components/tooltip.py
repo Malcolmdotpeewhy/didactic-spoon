@@ -50,7 +50,7 @@ class CTkTooltip:
             self.tooltip = tkinter.Toplevel(self.widget)
             self.tooltip.wm_overrideredirect(True)
             self.tooltip.wm_geometry(f"+{self._x}+{self._current_y}")
-            self.tooltip.configure(bg="#1E2328")
+            self.tooltip.configure(bg=get_color("colors.background.card", "#1E2328"))
 
             # Force it to stay on top
             self.tooltip.attributes("-topmost", True)
@@ -58,8 +58,8 @@ class CTkTooltip:
             frame = ctk.CTkFrame(
                 self.tooltip,
                 corner_radius=TOKENS.get("radius.sm"),
-                fg_color="#1E2328",
-                border_color="#C8AA6E",
+                fg_color=get_color("colors.background.card", "#1E2328"),
+                border_color=get_color("colors.accent.gold", "#C8AA6E"),
                 border_width=1,
             )
             frame.pack()

@@ -57,7 +57,7 @@ class AccountsTool(ctk.CTkFrame):
         self.lbl_count = ctk.CTkLabel(
             self.header, text="",
             font=("Inter", 9, "bold"),
-            text_color="#C8AA6E", anchor="w",
+            text_color=get_color("colors.accent.gold", "#C8AA6E"), anchor="w",
             width=20
         )
         self.lbl_count.pack(side="left", padx=(2, 0))
@@ -91,7 +91,7 @@ class AccountsTool(ctk.CTkFrame):
         self.form_title = ctk.CTkLabel(
             self.form_container, text="ADD ACCOUNT",
             font=get_font("caption", "bold"),
-            text_color="#C8AA6E", anchor="w"
+            text_color=get_color("colors.accent.gold", "#C8AA6E"), anchor="w"
         )
         self.form_title.pack(fill="x", padx=4, pady=(4, 4))
 
@@ -182,8 +182,8 @@ class AccountsTool(ctk.CTkFrame):
         ctk.CTkButton(
             btn_row, text="✕ Cancel", height=24, width=60,
             corner_radius=get_radius("sm"), font=get_font("caption", "bold"),
-            fg_color="transparent", hover_color="#4d1111",
-            text_color="#ff4444", border_width=1, border_color="#ff4444",
+            fg_color="transparent", hover_color=get_color("colors.state.danger.muted", "#4d1111"),
+            text_color=get_color("colors.state.danger", "#ff4444"), border_width=1, border_color=get_color("colors.state.danger", "#ff4444"),
             command=self._cancel_form, cursor="hand2",
         ).pack(side="left")
 
@@ -222,7 +222,7 @@ class AccountsTool(ctk.CTkFrame):
 
         self._adding = True
         self._editing_idx = -1
-        self.form_title.configure(text="ADD ACCOUNT", text_color="#C8AA6E")
+        self.form_title.configure(text="ADD ACCOUNT", text_color=get_color("colors.accent.gold", "#C8AA6E"))
         self._clear_form()
 
         self.list_frame.pack_forget()
@@ -362,7 +362,7 @@ class AccountsTool(ctk.CTkFrame):
                 fg_color=_card_bg,
                 corner_radius=_radius,
                 border_width=1 if is_active else 0,
-                border_color="#C8AA6E" if is_active else _card_bg,
+                border_color=get_color("colors.accent.gold", "#C8AA6E") if is_active else _card_bg,
             )
             card.pack(fill="x", pady=2, padx=2)
 
@@ -383,7 +383,7 @@ class AccountsTool(ctk.CTkFrame):
             ctk.CTkLabel(
                 top, text=label_text,
                 font=get_font("caption", "bold"),
-                text_color="#C8AA6E" if is_active else get_color("colors.text.primary"),
+                text_color=get_color("colors.accent.gold", "#C8AA6E") if is_active else get_color("colors.text.primary"),
                 anchor="w"
             ).pack(side="left", fill="x", expand=True)
 
@@ -476,7 +476,7 @@ class AccountsTool(ctk.CTkFrame):
                 action_frame, text="✎", width=20, height=20,
                 corner_radius=get_radius("sm"), font=("Segoe UI", 11),
                 fg_color="transparent", hover_color=get_color("colors.state.hover"),
-                text_color="#C8AA6E",
+                text_color=get_color("colors.accent.gold", "#C8AA6E"),
                 command=lambda idx=i: self._show_edit_form(idx),
                 cursor="hand2"
             ).pack(side="left", padx=(0, 2))
@@ -485,8 +485,8 @@ class AccountsTool(ctk.CTkFrame):
             ctk.CTkButton(
                 action_frame, text="✕", width=20, height=20,
                 corner_radius=get_radius("sm"), font=("Segoe UI", 11, "bold"),
-                fg_color="transparent", hover_color="#4d1111",
-                text_color="#ff4444",
+                fg_color="transparent", hover_color=get_color("colors.state.danger.muted", "#4d1111"),
+                text_color=get_color("colors.state.danger", "#ff4444"),
                 command=lambda idx=i: self._delete_account(idx),
                 cursor="hand2"
             ).pack(side="left")
@@ -522,8 +522,8 @@ class AccountsTool(ctk.CTkFrame):
             font=get_font("body", "bold"),
             fg_color="transparent",
             border_width=1,
-            border_color="#C8AA6E",
-            text_color="#C8AA6E",
+            border_color=get_color("colors.accent.gold", "#C8AA6E"),
+            text_color=get_color("colors.accent.gold", "#C8AA6E"),
             hover_color=get_color("colors.background.card"),
             height=36,
             corner_radius=8,

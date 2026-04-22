@@ -7,6 +7,7 @@ import time
 import traceback
 import queue
 import subprocess
+import tkinter as tk
 from tkinter import TclError
 
 import customtkinter as ctk  # type: ignore
@@ -88,7 +89,6 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
         self.minsize(260, 520)
         self.overrideredirect(True) # Borderless for docking
         self.attributes("-topmost", True) # Keep visible until docked
-        self.attributes("-topmost", True)
         
         self.configure(fg_color=get_color("colors.background.app"))
 
@@ -704,8 +704,8 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
 
         # 1. Stop the automation engine
         try:
-            if hasattr(self, 'engine') and self.engine:
-                self.engine.stop()
+            if hasattr(self, 'automation') and self.automation:
+                self.automation.stop()
         except Exception as e:
             Logger.debug("SYS", f"Engine stop error: {e}")
 

@@ -227,7 +227,7 @@ def _section_header(parent, title):
     hdr = ctk.CTkLabel(
         parent, text=title,
         font=get_font("caption", "bold"),
-        text_color="#C8AA6E",
+        text_color=get_color("colors.accent.gold", "#C8AA6E"),
         anchor="w",
     )
     hdr.pack(fill="x", pady=(12, 4))
@@ -320,7 +320,7 @@ class SettingsModal(ctk.CTkToplevel):
         ctk.CTkLabel(
             header, text="⚙  SETTINGS",
             font=("Beaufort for LOL", 16, "bold"),
-            text_color="#C8AA6E",
+            text_color=get_color("colors.accent.gold", "#C8AA6E"),
         ).pack(side="left", padx=16, pady=12)
 
         ctk.CTkLabel(
@@ -399,7 +399,7 @@ class SettingsModal(ctk.CTkToplevel):
         self.lbl_delay_val = ctk.CTkLabel(
             row_delay, text=f"{delay_val:.1f}s",
             font=get_font("body", "bold"),
-            text_color="#C8AA6E",
+            text_color=get_color("colors.accent.gold", "#C8AA6E"),
             width=40,
         )
         self.lbl_delay_val.pack(side="right")
@@ -411,8 +411,8 @@ class SettingsModal(ctk.CTkToplevel):
             variable=self.delay_var,
             width=100,
             fg_color=get_color("colors.background.card"),
-            progress_color="#C8AA6E",
-            button_color="#F0E6D2",
+            progress_color=get_color("colors.accent.gold", "#C8AA6E"),
+            button_color=get_color("colors.text.primary", "#F0E6D2"),
             button_hover_color="#FFFFFF",
             command=self._on_delay_slide,
         )
@@ -628,9 +628,9 @@ class SettingsModal(ctk.CTkToplevel):
         btn_save = ctk.CTkButton(
             inner, text="Save", width=80, height=32,
             font=get_font("body", "bold"),
-            fg_color="#C8AA6E",
-            text_color="#0A1428",
-            hover_color="#F0E6D2",
+            fg_color=get_color("colors.accent.gold", "#C8AA6E"),
+            text_color=get_color("colors.background.app", "#0A1428"),
+            hover_color=get_color("colors.text.primary", "#F0E6D2"),
             command=self._save_settings, cursor="hand2",
             )
         btn_save.pack(side="right")

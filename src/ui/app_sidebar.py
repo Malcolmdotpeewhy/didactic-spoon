@@ -1,6 +1,8 @@
 import tkinter as tk
 import customtkinter as ctk  # type: ignore
 import os
+import threading
+import time
 from PIL import Image  # type: ignore
 
 from utils.logger import Logger  # type: ignore
@@ -102,7 +104,6 @@ class SidebarWidget(ctk.CTkFrame):
                               text_color=get_color("colors.background.app") if tab_name == "Advanced" else get_color("colors.text.muted"))
             
             # Hide everything
-            status_frame.pack_forget()
             self.session_frame.pack_forget()
             self.action_container.pack_forget()
             self.game_tool_container.pack_forget()
@@ -116,7 +117,6 @@ class SidebarWidget(ctk.CTkFrame):
             
             # Pack based on tab
             if tab_name == "Play":
-                status_frame.pack(fill="x", pady=(0, 8))
                 self.session_frame.pack(fill="x", pady=(0, 8))
                 self.action_container.pack(fill="x", pady=(0, 8))
                 if getattr(self, "_game_tool_visible", False):
@@ -141,60 +141,6 @@ class SidebarWidget(ctk.CTkFrame):
         btn_cfg.pack(side="left", padx=2)
         btn_adv.pack(side="left", padx=2)
 
-        # ── Status & Mode Selection ──
-        status_frame = ctk.CTkFrame(self.main_body, fg_color="transparent")
-        status_frame.pack(fill="x", pady=(0, SPACING_MD))
-
-        self.btn_power_status = make_button(
-            status_frame, 
-            text="▶ Active" if getattr(self, "power_state", False) else "⏸ Paused", 
-            style="ghost",
-            font=get_font("body", "bold"),
-            text_color=get_color("colors.accent.primary") if getattr(self, "power_state", False) else get_color("colors.text.muted"),
-            width=80,
-            height=28,
-            command=self._on_power_click
-        )
-        self.btn_power_status.pack(side="left", padx=(0, 4))
-        hk_auto = self.config.get("hotkey_toggle_automation", "ctrl+shift+a").upper()
-        CTkTooltip(self.btn_power_status, f"Toggle Automation ({hk_auto})")
-
-        self.var_game_mode = ctk.StringVar(value=self.config.get("aram_mode", "ARAM"))
-        self.opt_game_mode = ctk.CTkOptionMenu(
-            status_frame,
-            variable=self.var_game_mode,
-            values=[
-                "Quickplay",
-                "Draft Pick",
-                "Ranked Solo/Duo",
-                "Ranked Flex",
-                "ARAM",
-                "ARAM Mayhem",
-                "Arena",
-                "Brawl",
-                "URF",
-                "ARURF",
-                "Nexus Blitz",
-                "One For All",
-                "Ultimate Spellbook",
-                "TFT Normal",
-                "TFT Ranked"
-            ],
-            font=get_font("caption"),
-            fg_color=get_color("colors.background.card"),
-            button_color=get_color("colors.background.card"),
-            button_hover_color=get_color("colors.state.hover"),
-            dropdown_fg_color=get_color("colors.background.app"),
-            dropdown_hover_color=get_color("colors.state.hover"),
-            dropdown_font=get_font("caption"),
-            width=110,
-            height=28,
-            command=self._on_mode_change,
-            cursor="hand2",
-        )
-        self.opt_game_mode.pack(side="left", fill="x", expand=True)
-        CTkTooltip(self.opt_game_mode, "Select Game Mode")
-
         # ── Session Info Block (always visible) ──
         self.session_frame = ctk.CTkFrame(
             self.main_body,
@@ -208,11 +154,29 @@ class SidebarWidget(ctk.CTkFrame):
 
         self.queue_label = ctk.CTkLabel(
             self.session_frame,
-            text=self.var_game_mode.get(),
+            text=self.config.get("aram_mode", "ARAM"),
             font=("Segoe UI", 12, "bold"),
-            text_color="#C8AA6E"
+            text_color=get_color("colors.accent.gold", "#C8AA6E"),
+            cursor="hand2"
         )
-        self.queue_label.grid(row=0, column=0, padx=8, pady=(10, 2), sticky="w", columnspan=2)
+        self.queue_label.grid(row=0, column=0, padx=8, pady=(10, 2), sticky="w")
+        self.queue_label.bind("<Button-1>", lambda e: self.master._open_settings() if hasattr(self.master, "_open_settings") else None)
+        CTkTooltip(self.queue_label, "Click to change game mode")
+
+        # Power Status Button (Moved from Status Frame)
+        self.btn_power_status = make_button(
+            self.session_frame, 
+            text="▶ Active" if getattr(self, "power_state", False) else "⏸ Paused", 
+            style="ghost",
+            font=get_font("body", "bold"),
+            text_color=get_color("colors.accent.primary") if getattr(self, "power_state", False) else get_color("colors.text.muted"),
+            width=80,
+            height=24,
+            command=self._on_power_click
+        )
+        self.btn_power_status.grid(row=0, column=2, padx=8, pady=(10, 2), sticky="e")
+        hk_auto = self.config.get("hotkey_toggle_automation", "ctrl+shift+a").upper()
+        CTkTooltip(self.btn_power_status, f"Toggle Automation ({hk_auto})")
 
         self.time_label = ctk.CTkLabel(
             self.session_frame,
@@ -680,8 +644,8 @@ class SidebarWidget(ctk.CTkFrame):
                 self.btn_launch_client.pack(fill="x", pady=(SPACING_SM, 0))
                 if hasattr(self, "divider_btn") and hasattr(self, "auto_container"):
                     self.divider_btn.pack(fill="x", pady=SPACING_MD, before=self.auto_container)
-            self.time_label.configure(text="Disconnected", text_color="#ff4444")
-            self.estimate_label.configure(text="● Offline", text_color="#ff4444")
+            self.time_label.configure(text="Disconnected", text_color=get_color("colors.state.danger", "#ff4444"))
+            self.estimate_label.configure(text="● Offline", text_color=get_color("colors.state.danger", "#ff4444"))
 
         # Show/hide accounts tool based on login state
         self.update_accounts_tool_visibility(lcu_connected=connected)
@@ -849,7 +813,6 @@ class SidebarWidget(ctk.CTkFrame):
 
             self.after(0, _update_ui)
 
-        import threading
         threading.Thread(target=_execute_sync, daemon=True).start()
 
     def _on_toggle_accept(self):
@@ -873,7 +836,6 @@ class SidebarWidget(ctk.CTkFrame):
     def _on_mass_invite(self):
         engine = getattr(self.master, "automation", None)
         if engine:
-            import threading
             def _invite():
                 engine.mass_invite_friends()
             threading.Thread(target=_invite, daemon=True).start()
@@ -893,7 +855,6 @@ class SidebarWidget(ctk.CTkFrame):
         text = self.entry_status.get().strip()
         engine = getattr(self.master, "automation", None)
         if engine and text:
-            import threading
             threading.Thread(target=lambda: engine.set_custom_status(text), daemon=True).start()
 
     def _on_quick_status(self, emoji, text):
@@ -945,22 +906,21 @@ class SidebarWidget(ctk.CTkFrame):
             self.lbl_action.configure(text="Idle.")
 
     def _force_requeue(self):
-        if hasattr(self, "master") and hasattr(self.master, "lcu"):
+        if self.lcu:
             try:
                 # Cancel current queue if active, then restart it
-                self.master.lcu.request("DELETE", "/lol-lobby/v2/lobby/matchmaking/search")
-                import time
+                self.lcu.request("DELETE", "/lol-lobby/v2/lobby/matchmaking/search")
                 time.sleep(0.5)
-                self.master.lcu.request("POST", "/lol-lobby/v2/lobby/matchmaking/search")
+                self.lcu.request("POST", "/lol-lobby/v2/lobby/matchmaking/search")
                 self.update_action_log("Re-queued Matchmaking.")
             except Exception as e:
                 self.update_action_log(f"Requeue error: {e}")
 
     def _force_dodge(self):
-        if hasattr(self, "master") and hasattr(self.master, "lcu"):
+        if self.lcu:
             try:
                 # Most reliable way to dodge is terminating the client UX
-                self.master.lcu.request("POST", "/process-control/v1/process/quit")
+                self.lcu.request("POST", "/process-control/v1/process/quit")
                 self.update_action_log("Client exiting (Dodging)...")
             except Exception as e:
                 self.update_action_log(f"Dodge error: {e}")
@@ -1023,9 +983,9 @@ class SidebarWidget(ctk.CTkFrame):
 
             if self._current_queue_time > est:
                 # Overtime: solid warning color, no pulsing
-                self.progress_bar.configure(progress_color="#ff4444")
-                self.time_label.configure(text_color="#ff4444")
-                self.estimate_label.configure(text="Overtime!", text_color="#ff4444")
+                self.progress_bar.configure(progress_color=get_color("colors.state.danger", "#ff4444"))
+                self.time_label.configure(text_color=get_color("colors.state.danger", "#ff4444"))
+                self.estimate_label.configure(text="Overtime!", text_color=get_color("colors.state.danger", "#ff4444"))
             else:
                 self.progress_bar.configure(progress_color=get_color("colors.accent.gold", "#C8AA6E"))
                 self.time_label.configure(text_color=get_color("colors.text.primary"))
@@ -1176,8 +1136,8 @@ class SidebarWidget(ctk.CTkFrame):
         elif phase == "Reconnect":
             if prev_ui_phase != "Reconnect":
                 self._stop_local_queue_timer()
-                self.time_label.configure(text="Reconnect", text_color="#ff4444")
-                self.estimate_label.configure(text="● Crash/DC", text_color="#ff4444")
+                self.time_label.configure(text="Reconnect", text_color=get_color("colors.state.danger", "#ff4444"))
+                self.estimate_label.configure(text="● Crash/DC", text_color=get_color("colors.state.danger", "#ff4444"))
                 self.progress_bar.set(0)
                 self._hide_quick_actions(show_find_match=False)
             self._last_ui_phase = phase
@@ -1190,8 +1150,8 @@ class SidebarWidget(ctk.CTkFrame):
                     self.time_label.configure(text="Queue: Idle", text_color=get_color("colors.text.primary"))
                     self.estimate_label.configure(text="● Connected", text_color=get_color("colors.state.success", "#00C853"))
                 else:
-                    self.time_label.configure(text="Disconnected", text_color="#ff4444")
-                    self.estimate_label.configure(text="● Offline", text_color="#ff4444")
+                    self.time_label.configure(text="Disconnected", text_color=get_color("colors.state.danger", "#ff4444"))
+                    self.estimate_label.configure(text="● Offline", text_color=get_color("colors.state.danger", "#ff4444"))
                 self.progress_bar.set(0)
                 self._hide_quick_actions(show_find_match=True)
             self._last_ui_phase = phase

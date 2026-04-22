@@ -73,7 +73,6 @@ DEFAULT_CONFIG = {
     "ban_UTILITY_1": "",
     "ban_UTILITY_2": "",
     "ban_UTILITY_3": "",
-    "custom_status": "🎮 LeagueLoop ⚙️ https://github.com/Intrusive-Thots/LeagueLoop-Installer",
     "always_on_top": True,
     "poro_snacks": 0,
     "stealth_mode": False,
@@ -151,10 +150,12 @@ class ConfigManager:
             self.save()
 
     def save(self):
-        """Save configuration to file securely in AppData."""
+        """Save configuration to file securely in AppData using atomic write."""
         try:
-            with open(USER_CONFIG_FILE, "w", encoding="utf-8") as f:
+            tmp_path = USER_CONFIG_FILE + ".tmp"
+            with open(tmp_path, "w", encoding="utf-8") as f:
                 json.dump(self.cfg, f, indent=4)
+            os.replace(tmp_path, USER_CONFIG_FILE)
         except Exception as e:
             Logger.error("asset_manager.py", f"Failed saving config: {e}")
 
@@ -180,7 +181,8 @@ class AssetManager:
         # Bolt: Use a Queue + Daemon Threads to prevent thread explosion during high load
         # (e.g., skin selector) while ensuring clean app exit.
         self._download_queue = queue.Queue()
-        for _ in range(5):
+        from core.constants import DOWNLOAD_WORKER_COUNT
+        for _ in range(DOWNLOAD_WORKER_COUNT):
             threading.Thread(target=self._download_worker, daemon=True).start()
 
         self.session = requests.Session()
@@ -461,8 +463,9 @@ class AssetManager:
                 img_size = size if size and size[1] is not None else pil_img.size
                 img = ctk.CTkImage(pil_img, size=img_size)
                 self.icons[cache_key] = img
-                if len(self.icons) > 300:
-                    self.icons.popitem(last=False)
+                with self._lock:
+                    if len(self.icons) > 300:
+                        self.icons.popitem(last=False)
                 return img
             except Exception as e:
                 Logger.error("asset_manager.py", f"Image load error: {e}")

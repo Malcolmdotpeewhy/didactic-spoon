@@ -193,9 +193,9 @@ class ArenaTool(ctk.CTkFrame):
             variable=self.var_synergy_enabled,
             width=36, height=18,
             switch_width=32, switch_height=16,
-            fg_color="#1E2328",
-            progress_color="#A855F7",
-            button_color="#C8AA6E",
+            fg_color=get_color("colors.border.subtle", "#1E2328"),
+            progress_color=get_color("colors.accent.purple", "#A855F7"),
+            button_color=get_color("colors.accent.gold", "#C8AA6E"),
             button_hover_color="#D9C382",
             text="", command=self._on_toggle_synergy_enabled
         )
@@ -219,9 +219,9 @@ class ArenaTool(ctk.CTkFrame):
             variable=self.var_auto_lock,
             width=36, height=18,
             switch_width=32, switch_height=16,
-            fg_color="#1E2328",
+            fg_color=get_color("colors.border.subtle", "#1E2328"),
             progress_color=get_color("colors.accent.primary"),
-            button_color="#C8AA6E",
+            button_color=get_color("colors.accent.gold", "#C8AA6E"),
             button_hover_color="#D9C382",
             text="", command=self._on_toggle_auto_lock
         )
@@ -620,9 +620,9 @@ class ArenaTool(ctk.CTkFrame):
                 variable=var_enabled,
                 width=32, height=16,
                 switch_width=28, switch_height=14,
-                fg_color="#1E2328",
-                progress_color="#A855F7",
-                button_color="#C8AA6E",
+                fg_color=get_color("colors.border.subtle", "#1E2328"),
+                progress_color=get_color("colors.accent.purple", "#A855F7"),
+                button_color=get_color("colors.accent.gold", "#C8AA6E"),
                 button_hover_color="#D9C382",
                 text="",
                 command=lambda idx=i, v=var_enabled: self._toggle_pair_enabled(idx, v.get())
@@ -683,8 +683,8 @@ class ArenaTool(ctk.CTkFrame):
                 btn_frame, text="✕", width=20, height=20,
                 corner_radius=get_radius("sm"),
                 font=("Segoe UI", 11, "bold"),
-                fg_color="transparent", hover_color="#4d1111",
-                text_color="#ff4444",
+                fg_color="transparent", hover_color=get_color("colors.state.danger.muted", "#4d1111"),
+                text_color=get_color("colors.state.danger", "#ff4444"),
                 command=lambda idx=i: self._remove_pair(idx),
                 cursor="hand2"
             ).pack(side="left")

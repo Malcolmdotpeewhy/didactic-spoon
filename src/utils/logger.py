@@ -31,7 +31,7 @@ _date_format = '%H:%M:%S'
 formatter = logging.Formatter(_log_format, datefmt=_date_format)
 
 # Main Logger
-_logger = logging.getLogger("AutoLock")
+_logger = logging.getLogger("LeagueLoop")
 _logger.setLevel(logging.DEBUG)
 
 if not _logger.handlers:
