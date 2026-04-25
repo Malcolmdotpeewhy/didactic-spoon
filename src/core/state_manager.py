@@ -22,6 +22,9 @@ class StateManager:
         # Bind Matchmaking
         EventBus.on("OnJsonApiEvent_lol-matchmaking_v1_search", self._on_search)
 
+        # Bind Friends List
+        EventBus.on("OnJsonApiEvent_lol-chat_v1_friends", self._on_friends)
+
     def _on_lcu_connected(self, connected: bool):
         State.connected = connected
         if not connected:
@@ -48,6 +51,11 @@ class StateManager:
     def _on_search(self, search_state):
         State.search_state = search_state
         EventBus.emit("queue_event", search_state)
+        EventBus.emit("state_updated")
+
+    def _on_friends(self, friends_data):
+        State.friends = friends_data
+        EventBus.emit("friends_event", friends_data)
         EventBus.emit("state_updated")
 
 # Initialize globally

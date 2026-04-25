@@ -100,6 +100,7 @@ class AutomationEngine:
             self.lcu.subscribe("OnJsonApiEvent_lol-champ-select_v1_session", self._on_ws_event)
             self.lcu.subscribe("OnJsonApiEvent_lol-lobby_v2_lobby", self._on_ws_event)
             self.lcu.subscribe("OnJsonApiEvent_lol-matchmaking_v1_search", self._on_ws_event)
+            self.lcu.subscribe("OnJsonApiEvent_lol-chat_v1_friends", self._on_ws_event)
         except Exception as e:
             Logger.debug("Auto", f"WebSocket init error: {e}")
 
@@ -846,16 +847,17 @@ class AutomationEngine:
         if not active_friends:
             return
 
-        now = time.time()
-        # Rate limit checks to every ~5 seconds to avoid spamming the friends endpoint
-        if now - self._last_friend_check < 5.0:
-            return
-        self._last_friend_check = now
+        from core.state import State
+        friends = State.friends
 
-        res = self.lcu.request("GET", "/lol-chat/v1/friends")
-        if not res or res.status_code != 200:
-            return
-        friends = res.json()
+        # Fallback if State is empty (first run before WS push)
+        if not friends or not isinstance(friends, list):
+            res = self.lcu.request("GET", "/lol-chat/v1/friends", silent=True)
+            if res and res.status_code == 200:
+                friends = res.json()
+                State.friends = friends
+            else:
+                return
 
         # ⚡ Bolt: Fast-path priority sniper early-return optimization.
         # Instead of an O(N*M) nested loop evaluating every friend against the priority list,

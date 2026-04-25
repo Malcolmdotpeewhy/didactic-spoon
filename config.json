@@ -51,7 +51,7 @@
     "hotkey_compact_mode": "alt+esc",
     "hotkey_omnibar": "ctrl+alt+a",
     "priority_picker": {
-        "enabled": false,
+        "enabled": true,
         "list": [
             "Fizz",
             "Singed",
@@ -63,6 +63,7 @@
             "Fiddlesticks",
             "Sion",
             "Karthus",
+            "Nunu",
             "Velkoz",
             "Zyra",
             "Tryndamere",
@@ -74,7 +75,6 @@
             "Draven",
             "Nautilus",
             "Xerath",
-            "Nunu",
             "MasterYi",
             "Heimerdinger",
             "Lux",
@@ -276,7 +276,7 @@
         "Palafu#NA1",
         "NicholasLobo\u2069 #\u2066NA1\u2069"
     ],
-    "auto_join_enabled": true,
+    "auto_join_enabled": false,
     "auto_honor_enabled": true,
     "honor_strategy": "best_kda",
     "vip_invite_list": "",

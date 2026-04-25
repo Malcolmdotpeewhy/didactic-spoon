@@ -1,0 +1,17 @@
+[
+  {
+    "error_pattern": "UI elements removed during overhaul but still referenced in core controllers (like omnibar commands)",
+    "fix": "Ensure that legacy UI component references (like var_game_mode) are replaced with centralized config lookups and shared event handlers (_on_mode_change).",
+    "context": "Omnibar crashed when attempting to queue for Arena because var_game_mode was removed from app_sidebar."
+  },
+  {
+    "error_pattern": "Pythonw.exe shortcut fails silently to launch the application",
+    "fix": "Python execution context defaults to the script directory, breaking absolute imports from sibling folders. Inject sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))) at the top of the entrypoint file to ensure imports resolve regardless of launch context.",
+    "context": "Desktop shortcut pointing to pythonw.exe src/core/main.py failed because the 'src' folder wasn't in PYTHONPATH."
+  },
+  {
+    "error_pattern": "Acrylic Blur with CustomTkinter causes window to become completely invisible or text unreadable",
+    "fix": "Do not attempt to use SetWindowCompositionAttribute with ACCENT_ENABLE_ACRYLICBLURBEHIND and -transparentcolor simultaneously in CustomTkinter. Keep acrylic blur disabled unless using a specialized library like pywinstyles that properly handles the DWM composition without washing out the canvas. Revert the code back to the disabled state with remove_blur(self).",
+    "context": "Applying acrylic blur to LeagueLoopApp, SettingsModal, and MiniPlayer made the windows invisible to the user because setting -transparentcolor to the background color turns the window into a hole on modern Windows 11."
+  }
+]

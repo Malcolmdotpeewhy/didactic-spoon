@@ -15,6 +15,7 @@ Structure:
   └─────────────────────────┘
 """
 import threading
+from core.events import EventBus
 import tkinter as tk
 import customtkinter as ctk
 
@@ -134,8 +135,12 @@ class FriendPriorityList(ctk.CTkFrame):
         self._build_header()
         self._build_body()
 
+        # Subscribe to EventBus — WebSocket pushes friends data in real-time
+        EventBus.on("friends_event", self._on_friends_event)
+
+        # One-shot initial fetch in case WS hasn't pushed data yet
         if self.lcu:
-            self.after(200, self._fetch_lcu_friends_loop)
+            self.after(500, self._initial_fetch)
 
     # ─────────── Config Persistence ───────────
 
@@ -218,70 +223,61 @@ class FriendPriorityList(ctk.CTkFrame):
         self.list_parent = ctk.CTkFrame(self.scroll, fg_color="transparent")
         self.list_parent.pack(fill="x")
 
-    # ─────────── Data Fetching ───────────
+    # ─────────── Data Fetching (EventBus-driven) ───────────
 
-    def _fetch_lcu_friends_loop(self):
+    def _on_friends_event(self, friends_data):
+        """Called by EventBus when LCU WebSocket pushes friend updates."""
+        if not friends_data or not isinstance(friends_data, list):
+            return
+        self._process_friends(friends_data)
+
+    def _initial_fetch(self):
+        """One-shot fallback fetch for initial load before WS pushes data."""
+        if self._friends_data:  # Already got data from WS
+            return
         try:
             if not self.winfo_exists() or not self.lcu:
                 return
         except Exception:
             return
 
-        # Use root window for scheduling since this widget may be pack_forget'd
-        root = self.winfo_toplevel()
-
-        # Skip fetch entirely if widget is not currently visible (different tab)
-        try:
-            mapped = self.winfo_ismapped()
-        except Exception:
-            mapped = False
-
-        if not mapped:
-            # Still reschedule so we resume when user switches to Configure tab
-            root.after(5000, self._fetch_lcu_friends_loop)
-            return
-
         def task():
             try:
-                res = self.lcu.request("GET", "/lol-chat/v1/friends")
+                res = self.lcu.request("GET", "/lol-chat/v1/friends", silent=True)
                 if res and res.status_code == 200:
-                    friends = res.json()
-
-                    for f in friends:
-                        f["_name_lower"] = f.get("gameName", "").lower()
-
-                    def sort_key(f):
-                        avail = f.get("availability", "offline")
-                        gn = f.get("_name_lower", f.get("gameName", "").lower())
-                        prio = 1 if avail == "offline" else 0
-                        return (prio, gn)
-
-                    friends.sort(key=sort_key)
-                    self._friends_data = friends
-                    root.after(0, self._render_and_reschedule)
+                    self._process_friends(res.json())
             except Exception as e:
-                Logger.debug("FriendList", f"Fetch error: {e}")
-                root.after(0, self._schedule_next_fetch)
+                Logger.debug("FriendList", f"Initial fetch error: {e}")
 
         threading.Thread(target=task, daemon=True).start()
 
-    def _render_and_reschedule(self):
-        """Called on main thread: render the list then schedule next fetch."""
+    def _process_friends(self, friends):
+        """Sort + render friends data (callable from any thread)."""
+        for f in friends:
+            f["_name_lower"] = f.get("gameName", "").lower()
+
+        def sort_key(f):
+            avail = f.get("availability", "offline")
+            gn = f.get("_name_lower", f.get("gameName", "").lower())
+            prio = 1 if avail == "offline" else 0
+            return (prio, gn)
+
+        friends.sort(key=sort_key)
+        self._friends_data = friends
+
+        # Marshal render to main thread
+        try:
+            EventBus.invoke_thread_safe(self, self._safe_render)
+        except Exception:
+            pass
+
+    def _safe_render(self):
+        """Thread-safe render wrapper."""
         try:
             if self.winfo_exists() and self.winfo_ismapped():
                 self._render_list()
         except Exception:
             pass  # Widget not packed (different tab active) — skip silently
-        self._schedule_next_fetch()
-
-    def _schedule_next_fetch(self):
-        """Schedule next friend fetch from the main thread."""
-        try:
-            root = self.winfo_toplevel()
-            if self.winfo_exists():
-                root.after(5000, self._fetch_lcu_friends_loop)
-        except Exception:
-            pass
 
     # ─────────── Collapse ───────────
 

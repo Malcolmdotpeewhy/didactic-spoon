@@ -2,6 +2,12 @@ import ctypes
 import os
 import random
 import sys
+
+# Ensure 'src' is in the Python path when executed directly
+_src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if _src_path not in sys.path:
+    sys.path.insert(0, _src_path)
+
 import threading
 import time
 import traceback
@@ -493,7 +499,6 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
         if not hasattr(self, "sidebar") or not self.sidebar.winfo_exists():
             return
 
-        self.sidebar.var_game_mode.set(mode_name)
         self.sidebar._on_mode_change(mode_name)
         self.after(50, self.sidebar._find_match)
 
@@ -523,18 +528,22 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
         # 2. Spin animation parameters
         spins = random.randint(15, 25)
         delay = 50
+        
+        # Track the last rolled mode in a mutable container
+        state = {"current": "ARAM"}
 
         def do_spin(count):
             if count > 0:
-                current_mode = random.choice(modes)
-                self.sidebar.var_game_mode.set(current_mode)
+                state["current"] = random.choice(modes)
+                if hasattr(self.sidebar, "queue_label"):
+                    self.sidebar.queue_label.configure(text=state["current"])
 
                 # Slow down towards the end
                 next_delay = delay + int((spins - count) * 4)
                 self.after(next_delay, lambda: do_spin(count - 1))
             else:
                 # Landed!
-                winner = self.sidebar.var_game_mode.get()
+                winner = state["current"]
                 self.sidebar._on_mode_change(winner)
 
                 try:
