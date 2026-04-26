@@ -12,7 +12,7 @@ cache/
 
 # Auto-generated Jules files (case-sensitivity collision on Windows)
 .Jules/
-.jules/
+
 
 # Build artifacts
 build/
