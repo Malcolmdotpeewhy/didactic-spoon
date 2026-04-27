@@ -169,6 +169,8 @@ class TestAutomationEngineWindowState(unittest.TestCase):
         for stealth in (True, False):
             engine = self._make_engine(stealth=stealth)
             engine.last_phase = "ChampSelect"
+            engine._is_first_tick = False
+            engine._is_game_running = MagicMock(return_value=False)
 
             mock_response = MagicMock()
             mock_response.status_code = 200

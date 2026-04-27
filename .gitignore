@@ -11,8 +11,8 @@ venv/
 cache/
 
 # Auto-generated Jules files (case-sensitivity collision on Windows)
-.Jules/
-.jules/
+# .Jules/
+
 
 # Build artifacts
 build/
