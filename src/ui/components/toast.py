@@ -258,6 +258,7 @@ class ToastManager:
 
         # Cleanup reference when destroyed
         def on_destroy(e):
+            """Handles destruction."""
             if toast in self._toasts:
                 self._toasts.remove(toast)
         

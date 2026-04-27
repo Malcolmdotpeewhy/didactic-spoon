@@ -28,6 +28,7 @@ from core.constants import (  # type: ignore
 class SidebarWidget(ctk.CTkFrame):
     """The main layout component containing the sidebar navigation, header, and primary content area."""
     def __init__(self, master, toggle_callback, config, lcu=None, assets=None, scraper=None):
+        """Initializes the SidebarWidget."""
         self._account_manager = None  # Set externally by main.py
         super().__init__(  # type: ignore
             master, 
@@ -774,6 +775,7 @@ class SidebarWidget(ctk.CTkFrame):
 
     # ── Handlers ──
     def on_lcu_connection_changed(self, connected: bool):
+        """Handles LCU connection state changes."""
         if not self.winfo_exists(): return
         if connected:
             if hasattr(self, "btn_launch_client") and bool(self.btn_launch_client.winfo_manager()):
@@ -1040,6 +1042,7 @@ class SidebarWidget(ctk.CTkFrame):
             self.lbl_auto_section.configure(text=base_text)
 
     def update_action_log(self, text):
+        """Updates the action log."""
         if self.winfo_exists():
             self.lbl_action.configure(text=text)
 
@@ -1216,6 +1219,7 @@ class SidebarWidget(ctk.CTkFrame):
             container.pack_forget()
 
     def update_queue_state(self, phase, search_state):
+        """Updates the queue state."""
         if not self.winfo_exists():
             return
 

@@ -1,3 +1,6 @@
+"""
+Automation Engine module.
+"""
 import json
 import random
 import subprocess
@@ -978,6 +981,7 @@ class AutomationEngine:
             strategy = self.config.get("honor_strategy", "random")
             if strategy == "best_kda":
                 def kda(p):
+                    """Calculates KDA."""
                     k = p.get("stats", {}).get("CHAMPIONS_KILLED", 0)
                     a = p.get("stats", {}).get("ASSISTS", 0)
                     d = max(p.get("stats", {}).get("NUM_DEATHS", 1), 1)
@@ -985,6 +989,7 @@ class AutomationEngine:
                 target = max(candidates, key=kda)
             elif strategy == "mvp":
                 def score(p):
+                    """Calculates score."""
                     s = p.get("stats", {})
                     return s.get("CHAMPIONS_KILLED", 0) + s.get("ASSISTS", 0)
                 target = max(candidates, key=score)
