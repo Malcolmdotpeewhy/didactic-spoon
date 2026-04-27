@@ -62,6 +62,7 @@ ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("dark-blue")
 
 def global_exception_handler(exc_type, exc_value, exc_traceback):
+    """Global exception handler."""
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
@@ -73,6 +74,7 @@ sys.excepthook = global_exception_handler
 class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
     """Main application window and controller for LeagueLoop."""
     def __init__(self):
+        """Initializes the LeagueLoopApp."""
         super().__init__()
         self.TkdndVersion = TkinterDnD._require(self)
         self.report_callback_exception = self._on_tk_error
@@ -225,6 +227,7 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
         super().after(16, self._process_ui_queue)
 
     def after(self, ms, func=None, *args):
+        """Overrides after to handle exceptions."""
         if threading.current_thread() is threading.main_thread():
             return super().after(ms, func, *args)
         else:
@@ -235,6 +238,7 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
             return "queued"
 
     def setup_ui(self):
+        """Sets up the user interface."""
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.sidebar = SidebarWidget(self, self.toggle_power, self.config, lcu=self.lcu, assets=self.assets, scraper=self.scraper)
@@ -249,13 +253,16 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
             widget.bind("<B1-Motion>", self.on_drag_motion)
 
     def on_drag_start(self, event):
+        """Handles drag start event."""
         self._drag_data["x"] = event.x
         self._drag_data["y"] = event.y
 
     def on_drag_stop(self, event):
+        """Handles drag stop event."""
         pass
 
     def on_drag_motion(self, event):
+        """Handles drag motion event."""
         x = self.winfo_x() - self._drag_data["x"] + event.x
         y = self.winfo_y() - self._drag_data["y"] + event.y
         self.geometry(f"+{x}+{y}")
@@ -537,6 +544,7 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
         state = {"current": "ARAM"}
 
         def do_spin(count):
+            """Animates a spinner."""
             if count > 0:
                 state["current"] = random.choice(modes)
                 if hasattr(self.sidebar, "queue_label"):
@@ -608,10 +616,12 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
             Logger.error("SYS", f"Failed to register hotkeys: {e}")
 
     def on_settings_saved(self):
+        """Handles settings saved event."""
         self._bind_hotkeys()
         self.scraper.set_mode(self.config.get("aram_mode", "ARAM"))
 
     def toggle_power(self, power_state):
+        """Toggles the automation power."""
         Logger.info("SYS", f"Power Toggled: {power_state}")
         if self.automation is not None:
             if power_state:
@@ -620,6 +630,7 @@ class LeagueLoopApp(ctk.CTk, TkinterDnD.DnDWrapper):
                 self.automation.pause()  # type: ignore
 
     def connection_loop(self):
+        """Background loop to maintain connection."""
         last_state = None
         while self.running and not self._stop_event.is_set():
             try:

@@ -31,6 +31,7 @@ class FriendRow(ctk.CTkFrame):
 
     def __init__(self, master, name, status_text, availability, icon_widget_cb=None,
                  is_auto_join=False, on_toggle_auto_join=None, on_context_menu=None, **kw):
+        """Initializes the FriendRow."""
         super().__init__(master, height=ROW_HEIGHT + 4, fg_color="transparent", cursor="hand2", **kw)
         self.grid_columnconfigure(2, weight=1)  # Name column expands
         self.grid_propagate(False)
@@ -243,6 +244,7 @@ class FriendPriorityList(ctk.CTkFrame):
             return
 
         def task():
+            """Background task."""
             try:
                 res = self.lcu.request("GET", "/lol-chat/v1/friends", silent=True)
                 if res and res.status_code == 200:
@@ -258,6 +260,7 @@ class FriendPriorityList(ctk.CTkFrame):
             f["_name_lower"] = f.get("gameName", "").lower()
 
         def sort_key(f):
+            """Sorting key function."""
             avail = f.get("availability", "offline")
             gn = f.get("_name_lower", f.get("gameName", "").lower())
             prio = 1 if avail == "offline" else 0
@@ -403,7 +406,9 @@ class FriendPriorityList(ctk.CTkFrame):
 
             # Build icon loading callback
             def make_icon_cb(asset_mgr, icon_id):
+                """Creates an icon callback."""
                 def cb(label_widget):
+                    """Callback function."""
                     if asset_mgr and hasattr(asset_mgr, "get_icon_async"):
                         asset_mgr.get_icon_async(
                             "profileicon", str(icon_id),
