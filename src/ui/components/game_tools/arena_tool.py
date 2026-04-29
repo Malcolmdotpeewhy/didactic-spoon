@@ -116,12 +116,33 @@ class ArenaTool(ctk.CTkFrame):
 
         # Row 3: Auto Ban
         self.ban_row = ctk.CTkFrame(self.config_card, fg_color="transparent")
-        self.ban_row.pack(fill="x", padx=10, pady=(4, 8))
+        self.ban_row.pack(fill="x", padx=10, pady=(4, 4))
         ctk.CTkLabel(self.ban_row, text="🚫 Auto Ban", font=get_font("caption"), text_color=get_color("colors.text.muted")).pack(side="left")
         self.entry_ban = ChampionInput(self.ban_row, placeholder="None", width=100, height=24, on_commit=self._on_ban_updated)
         self.entry_ban.pack(side="right")
         self.entry_ban.insert(0, self.config.get("arena_ban", ""))
         self.entry_ban.bind("<FocusOut>", lambda e: self._on_ban_updated())
+
+        # Row 4: Instant Ban
+        self.instant_ban_row = ctk.CTkFrame(self.config_card, fg_color="transparent")
+        self.instant_ban_row.pack(fill="x", padx=10, pady=(0, 4))
+        ctk.CTkLabel(self.instant_ban_row, text="⚡ Instant Ban", font=get_font("caption"), text_color=get_color("colors.text.muted")).pack(side="left")
+        self.var_instant_ban = ctk.BooleanVar(value=self.config.get("arena_instant_ban", False))
+        self.sw_instant_ban = ctk.CTkSwitch(
+            self.instant_ban_row, variable=self.var_instant_ban,
+            width=36, height=18, switch_width=32, switch_height=16,
+            progress_color=get_color("colors.accent.primary"), text="", command=self._on_toggle_instant_ban
+        )
+        self.sw_instant_ban.pack(side="right")
+        
+        # Row 5: Fallback Pick
+        self.fallback_row = ctk.CTkFrame(self.config_card, fg_color="transparent")
+        self.fallback_row.pack(fill="x", padx=10, pady=(0, 8))
+        ctk.CTkLabel(self.fallback_row, text="❔ Fallback Pick", font=get_font("caption"), text_color=get_color("colors.text.muted")).pack(side="left")
+        self.entry_fallback = ChampionInput(self.fallback_row, placeholder="None", width=100, height=24, on_commit=self._on_fallback_updated)
+        self.entry_fallback.pack(side="right")
+        self.entry_fallback.insert(0, self.config.get("arena_fallback_pick", ""))
+        self.entry_fallback.bind("<FocusOut>", lambda e: self._on_fallback_updated())
 
         # Add Pair Card
         self.add_card = ctk.CTkFrame(self.body, fg_color=get_color("colors.background.card"), corner_radius=8)
@@ -162,6 +183,9 @@ class ArenaTool(ctk.CTkFrame):
 
     def _on_toggle_auto_lock(self):
         self.config.set("arena_auto_lock", self.var_auto_lock.get())
+        
+    def _on_toggle_instant_ban(self):
+        self.config.set("arena_instant_ban", self.var_instant_ban.get())
 
     def _on_ban_updated(self, resolved=None):
         if not resolved:
@@ -181,6 +205,25 @@ class ArenaTool(ctk.CTkFrame):
             self.entry_ban.delete(0, "end")
             self.entry_ban.insert(0, saved)
             self._flash_entry(self.entry_ban)
+
+    def _on_fallback_updated(self, resolved=None):
+        if not resolved:
+            val = self.entry_fallback.get().strip()
+            if not val:
+                self.config.set("arena_fallback_pick", "")
+                self.entry_fallback.delete(0, "end")
+                return
+            resolved = self._resolve_champion_name(val)
+            
+        if resolved:
+            self.entry_fallback.delete(0, "end")
+            self.entry_fallback.insert(0, resolved)
+            self.config.set("arena_fallback_pick", resolved)
+        else:
+            saved = self.config.get("arena_fallback_pick", "")
+            self.entry_fallback.delete(0, "end")
+            self.entry_fallback.insert(0, saved)
+            self._flash_entry(self.entry_fallback)
 
     def _flash_entry(self, entry):
         entry.configure(border_color="#e81123")

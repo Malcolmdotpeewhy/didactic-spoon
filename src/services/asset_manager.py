@@ -103,7 +103,9 @@ DEFAULT_CONFIG = {
     "arena_auto_lock": False,
     "arena_synergy_enabled": True,
     "run_in_tray": True,
-    "discord_rpc_enabled": True
+    "discord_rpc_enabled": True,
+    "skip_stats_enabled": True,
+    "auto_runes_enabled": False
 }
 
 

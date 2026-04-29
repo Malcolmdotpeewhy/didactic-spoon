@@ -10,7 +10,7 @@
     "auto_hover": false,
     "auto_lock_in": false,
     "auto_random_skin": false,
-    "accept_delay": 0.0,
+    "accept_delay": 0.5,
     "polling_rate_champ_select": 0.5,
     "pick_TOP_1": "Singed",
     "pick_TOP_2": "Garen",
@@ -57,13 +57,13 @@
             "Singed",
             "Amumu",
             "TwistedFate",
-            "Brand",
             "AurelionSol",
+            "Nunu",
+            "Brand",
             "Shaco",
             "Fiddlesticks",
             "Sion",
             "Karthus",
-            "Nunu",
             "Velkoz",
             "Zyra",
             "Tryndamere",
@@ -103,8 +103,35 @@
         {
             "teammate": "Bravery",
             "me": [
-                "Yuumi",
-                "Bravery"
+                "Yuumi"
+            ],
+            "enabled": true
+        },
+        {
+            "teammate": "Ahri",
+            "me": [
+                "Leona"
+            ],
+            "enabled": true
+        },
+        {
+            "teammate": "Darius",
+            "me": [
+                "Nautilus"
+            ],
+            "enabled": true
+        },
+        {
+            "teammate": "Graves",
+            "me": [
+                "Fizz"
+            ],
+            "enabled": true
+        },
+        {
+            "teammate": "Draven",
+            "me": [
+                "Karthus"
             ],
             "enabled": true
         }
@@ -113,13 +140,15 @@
     "arena_synergy_enabled": true,
     "run_in_tray": true,
     "discord_rpc_enabled": true,
+    "skip_stats_enabled": false,
+    "auto_runes_enabled": false,
     "ban_TOP": "",
     "ban_JUNGLE": "",
     "ban_MIDDLE": "",
     "ban_BOTTOM": "",
     "ban_UTILITY": "",
     "auto_spells": true,
-    "aram_mode": "ARAM Mayhem",
+    "aram_mode": "Arena",
     "auto_join_friend_enabled": true,
     "auto_join_friend": "Palafu",
     "auto_join_list": [
@@ -278,9 +307,11 @@
     ],
     "auto_join_enabled": false,
     "auto_honor_enabled": true,
-    "honor_strategy": "best_kda",
+    "honor_strategy": "random",
     "vip_invite_list": "",
     "startup_status": "",
-    "arena_ban": "",
-    "auto_join_vip_only": true
+    "arena_ban": "Yuumi",
+    "auto_join_vip_only": true,
+    "arena_fallback_pick": "Bravery",
+    "arena_instant_ban": true
 }

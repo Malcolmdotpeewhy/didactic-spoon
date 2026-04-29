@@ -13,5 +13,15 @@
     "error_pattern": "Acrylic Blur with CustomTkinter causes window to become completely invisible or text unreadable",
     "fix": "Do not attempt to use SetWindowCompositionAttribute with ACCENT_ENABLE_ACRYLICBLURBEHIND and -transparentcolor simultaneously in CustomTkinter. Keep acrylic blur disabled unless using a specialized library like pywinstyles that properly handles the DWM composition without washing out the canvas. Revert the code back to the disabled state with remove_blur(self).",
     "context": "Applying acrylic blur to LeagueLoopApp, SettingsModal, and MiniPlayer made the windows invisible to the user because setting -transparentcolor to the background color turns the window into a hole on modern Windows 11."
+  },
+  {
+    "error_pattern": "LCU Champ Select POST /complete fails silently or with 400 Bad Request",
+    "fix": "Use PATCH /actions/{id} with data={\"championId\": id, \"completed\": True} instead of POST /complete.",
+    "context": "Arena synergy and draft assistant failed to lock in champions due to empty JSON payloads being rejected by the LCU."
+  },
+  {
+    "error_pattern": "LCU Champ Select actions matrix iteration yields false teammate locked state",
+    "fix": "Do not iterate the actions matrix to find completed: True. Instead, check the myTeam array for the player: teammate.get(\"championId\", 0) != 0.",
+    "context": "Arena synergy instantly locked in before the teammate chose because the actions matrix structure caused premature loop exit / false positives."
   }
 ]

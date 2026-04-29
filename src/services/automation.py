@@ -317,6 +317,12 @@ class AutomationEngine:
                 if l_req and l_req.status_code == 200:
                     lobby_data = l_req.json()
                     self.current_queue_id = lobby_data.get("gameConfig", {}).get("queueId")
+                    # Emit so UI components stay in sync even on startup
+                    try:
+                        from core.events import EventBus
+                        EventBus.emit("lobby_event", lobby_data)
+                    except Exception as e:
+                        pass
             except Exception as e:
                 Logger.debug("AutoLoop", f"Lobby data fetch error: {e}")
 
@@ -332,7 +338,7 @@ class AutomationEngine:
         self._handle_ready_check(phase)
         self._handle_champ_select(phase, session_data)
         self._handle_dodge_requeue(phase)
-        self._handle_auto_honor(phase)
+        self._handle_end_of_game(phase)
         self._check_friend_lobby(phase)
 
         # Optimization: Websockets will wake us instantly on updates. 
@@ -628,21 +634,29 @@ class AutomationEngine:
         action_id = action.get("id", 0)
         current_hover = action.get("championId", 0)
         
+        timer = session.get("timer", {})
+        time_left_ms = timer.get("adjustedTimeLeftInPhase", 15000)
+        instant_ban = self.config.get("arena_instant_ban", False)
+        
         if current_hover != ban_id and (now - getattr(self, "_last_synergy_patch", 0) > 0.5):
             self._log(f"Arena: Hovering Ban {arena_ban}")
             self.lcu.request("PATCH", f"/lol-champ-select/v1/session/actions/{action_id}", data={"championId": ban_id})
             self._last_synergy_patch = now
-        elif current_hover == ban_id and self.config.get("auto_lock_in", False):
-            if now - getattr(self, "_last_synergy_patch", 0) > 0.5:
-                self._log(f"Arena: Locking Ban {arena_ban}")
-                self.lcu.request("POST", f"/lol-champ-select/v1/session/actions/{action_id}/complete")
+            self._synergy_patch_time = now
+            
+        elif current_hover == ban_id:
+            time_since_patch = now - getattr(self, "_synergy_patch_time", 0)
+            if time_since_patch > 0.5 and (instant_ban or time_left_ms <= 2000) and (now - getattr(self, "_last_synergy_patch", 0) > 0.5):
+                log_msg = "(Instant)" if instant_ban else "(<2s left)"
+                self._log(f"Arena: Locking Ban {arena_ban} {log_msg}")
+                res = self.lcu.request("PATCH", f"/lol-champ-select/v1/session/actions/{action_id}", data={"championId": ban_id, "completed": True})
+                if res and res.status_code not in (200, 204):
+                    Logger.error("Auto", f"Arena ban lock FAILED: {res.status_code} {res.text[:200]}")
                 self._last_synergy_patch = now
 
     def _handle_arena_pick(self, session, me, action, banned_ids):
         pairs = self.config.get("arena_pairs", [])
-        if not pairs:
-            return
-
+        
         my_team = session.get("myTeam", [])
         teammate = next((p for p in my_team if p.get("cellId") != me.get("cellId")), None)
         if not teammate:
@@ -650,30 +664,36 @@ class AutomationEngine:
 
         teammate_champ_id = teammate.get("championId", 0)
         target_id = teammate_champ_id if teammate_champ_id != 0 else teammate.get("championPickIntent", 0)
-        if target_id == 0:
-            return
-            
-        teammate_champ_name = self.assets.get_champ_name(target_id)
-        if not teammate_champ_name:
-            return
-
-        teammate_champ_name_lower = teammate_champ_name.lower()
-        mapped_me_list = []
         
-        for idx, pair in enumerate(pairs):
-            if pair.get("enabled", True) and pair.get("teammate", "").lower() == teammate_champ_name_lower:
-                val = pair.get("me", [])
-                mapped_me_list = val if isinstance(val, list) else [val]
-                self._active_arena_pair_idx = idx
-                break
+        teammate_champ_name = ""
+        teammate_champ_name_lower = ""
+        if target_id != 0:
+            teammate_champ_name = self.assets.get_champ_name(target_id)
+            if teammate_champ_name:
+                teammate_champ_name_lower = teammate_champ_name.lower()
 
+        mapped_me_list = []
+        if teammate_champ_name_lower:
+            for idx, pair in enumerate(pairs):
+                if pair.get("enabled", True) and pair.get("teammate", "").lower() == teammate_champ_name_lower:
+                    val = pair.get("me", [])
+                    mapped_me_list = val if isinstance(val, list) else [val]
+                    self._active_arena_pair_idx = idx
+                    break
+
+        is_fallback = False
         if not mapped_me_list:
-            return
+            fallback = self.config.get("arena_fallback_pick", "")
+            if fallback:
+                mapped_me_list = [fallback]
+                is_fallback = True
+            else:
+                return
 
         mapped_my_id, mapped_me_champ = 0, ""
         for champ_name in mapped_me_list:
             cid = self.assets.name_to_id.get(champ_name.lower())
-            if cid and cid not in banned_ids:
+            if cid and cid not in banned_ids and cid != target_id:
                 mapped_my_id = cid
                 mapped_me_champ = champ_name
                 break
@@ -684,16 +704,28 @@ class AutomationEngine:
         now = time.time()
         action_id = action.get("id", 0)
         current_hover = action.get("championId", 0)
+        timer = session.get("timer", {})
+        time_left_ms = timer.get("adjustedTimeLeftInPhase", 15000)
 
         try:
+            # A teammate is officially locked in ONLY when their "championId" is > 0.
+            # While they are hovering, it is 0 and only "championPickIntent" is populated.
+            teammate_locked = teammate.get("championId", 0) != 0
+
             if current_hover != mapped_my_id and (now - getattr(self, "_last_synergy_patch", 0) > 0.5):
-                self._log(f"Arena: Teammate hovering/locked {teammate_champ_name}, selecting {mapped_me_champ}...")
+                self._log(f"Arena: Teammate hovering {teammate_champ_name}, selecting {mapped_me_champ}...")
                 self.lcu.request("PATCH", f"/lol-champ-select/v1/session/actions/{action_id}", data={"championId": mapped_my_id})
                 self._last_synergy_patch = now
-            elif current_hover == mapped_my_id and self.config.get("arena_auto_lock", False) and teammate_champ_id != 0:
-                if now - getattr(self, "_last_synergy_patch", 0) > 0.5:
-                    self._log(f"Arena: Teammate locked {teammate_champ_name}, locking {mapped_me_champ}!")
-                    self.lcu.request("POST", f"/lol-champ-select/v1/session/actions/{action_id}/complete")
+                self._synergy_patch_time = now
+                
+            elif current_hover == mapped_my_id and (self.config.get("arena_auto_lock", False) or is_fallback):
+                time_since_patch = now - getattr(self, "_synergy_patch_time", 0)
+                if time_since_patch > 0.5 and (time_left_ms <= 2000 or teammate_locked) and (now - getattr(self, "_last_synergy_patch", 0) > 0.5):
+                    log_msg = "(Teammate Locked)" if teammate_locked else "(<2s left)"
+                    self._log(f"Arena: Locking {mapped_me_champ} {log_msg}!")
+                    res = self.lcu.request("PATCH", f"/lol-champ-select/v1/session/actions/{action_id}", data={"championId": mapped_my_id, "completed": True})
+                    if res and res.status_code not in (200, 204):
+                        Logger.error("Auto", f"Arena pick lock FAILED: {res.status_code} {res.text[:200]}")
                     self._last_synergy_patch = now
         except Exception as e:
             Logger.error("Auto", f"Arena synergy error: {e}")
@@ -763,7 +795,7 @@ class AutomationEngine:
                 elif my_action.get("championId") == ban_id and self.config.get("auto_lock_in", False):
                     if now - self._last_draft_action_time > 0.5:
                         self._log(f"Draft: Locking Ban {ban_str}")
-                        self.lcu.request("POST", f"/lol-champ-select/v1/session/actions/{action_id}/complete")
+                        self.lcu.request("PATCH", f"/lol-champ-select/v1/session/actions/{action_id}", data={"championId": ban_id, "completed": True})
                         self._last_draft_action_time = now
                 break
 
@@ -788,7 +820,7 @@ class AutomationEngine:
                 elif my_action.get("championId") == pick_id and self.config.get("auto_lock_in", False):
                     if now - self._last_draft_action_time > 0.5:
                         self._log(f"Draft: Locking Pick {pick_str}")
-                        self.lcu.request("POST", f"/lol-champ-select/v1/session/actions/{action_id}/complete")
+                        self.lcu.request("PATCH", f"/lol-champ-select/v1/session/actions/{action_id}", data={"championId": pick_id, "completed": True})
                         self._last_draft_action_time = now
                 break
 
@@ -921,14 +953,18 @@ class AutomationEngine:
                     except Exception as e:
                         Logger.debug("Auto", f"Failed parsing friend party: {e}")
 
-    # ── Auto-Honor ──
-    def _handle_auto_honor(self, phase):
+    # ── End Of Game ──
+    def _handle_end_of_game(self, phase):
         if phase not in ["PreEndOfGame", "EndOfGame"]:
             self._honor_handled = False
             return
 
-        if not self.config.get("auto_honor_enabled", False):
+        auto_honor = self.config.get("auto_honor_enabled", False)
+        skip_stats = self.config.get("skip_stats_enabled", True)
+
+        if not auto_honor and not skip_stats:
             return
+
         if self._honor_handled:
             return
 
@@ -978,47 +1014,49 @@ class AutomationEngine:
             
             candidates = friend_teammates if friend_teammates else teammates
 
-            strategy = self.config.get("honor_strategy", "random")
-            if strategy == "best_kda":
-                def kda(p):
-                    """Calculates KDA."""
-                    k = p.get("stats", {}).get("CHAMPIONS_KILLED", 0)
-                    a = p.get("stats", {}).get("ASSISTS", 0)
-                    d = max(p.get("stats", {}).get("NUM_DEATHS", 1), 1)
-                    return (k + a) / d
-                target = max(candidates, key=kda)
-            elif strategy == "mvp":
-                def score(p):
-                    """Calculates score."""
-                    s = p.get("stats", {})
-                    return s.get("CHAMPIONS_KILLED", 0) + s.get("ASSISTS", 0)
-                target = max(candidates, key=score)
-            else:
-                target = random.choice(candidates)
+            if auto_honor:
+                strategy = self.config.get("honor_strategy", "random")
+                if strategy == "best_kda":
+                    def kda(p):
+                        """Calculates KDA."""
+                        k = p.get("stats", {}).get("CHAMPIONS_KILLED", 0)
+                        a = p.get("stats", {}).get("ASSISTS", 0)
+                        d = max(p.get("stats", {}).get("NUM_DEATHS", 1), 1)
+                        return (k + a) / d
+                    target = max(candidates, key=kda)
+                elif strategy == "mvp":
+                    def score(p):
+                        """Calculates score."""
+                        s = p.get("stats", {})
+                        return s.get("CHAMPIONS_KILLED", 0) + s.get("ASSISTS", 0)
+                    target = max(candidates, key=score)
+                else:
+                    target = random.choice(candidates)
 
-            summoner_id = target.get("summonerId", 0)
-            puuid = target.get("puuid", "")
-            honor_body = {
-                "gameId": game_id,
-                "honorCategory": "HEART",
-                "honorType": "HEART",
-                "summonerId": summoner_id,
-                "puuid": puuid
-            }
-            res = self.lcu.request("POST", "/lol-honor-v2/v1/honor-player", honor_body)
-            name = target.get("summonerName", "teammate")
-            if res and res.status_code in [200, 204]:
-                self._log(f"Honored {name} ({strategy})")
-            else:
-                Logger.debug("Auto", f"Honor request returned {res.status_code if res else 'None'}. Full target: {name}")
+                summoner_id = target.get("summonerId", 0)
+                puuid = target.get("puuid", "")
+                honor_body = {
+                    "gameId": game_id,
+                    "honorCategory": "HEART",
+                    "honorType": "HEART",
+                    "summonerId": summoner_id,
+                    "puuid": puuid
+                }
+                res = self.lcu.request("POST", "/lol-honor-v2/v1/honor-player", honor_body)
+                name = target.get("summonerName", "teammate")
+                if res and res.status_code in [200, 204]:
+                    self._log(f"Honored {name} ({strategy})")
+                else:
+                    Logger.debug("Auto", f"Honor request returned {res.status_code if res else 'None'}. Full target: {name}")
 
-            # Auto proceed to lobby ("Play Again")
-            play_again = self.lcu.request("POST", "/lol-lobby/v2/play-again", silent=True)
-            if play_again and play_again.status_code in [200, 204]:
-                self._log("Proceeded to Lobby (Skipped Stats)")
+            if skip_stats:
+                # Auto proceed to lobby ("Play Again")
+                play_again = self.lcu.request("POST", "/lol-lobby/v2/play-again", silent=True)
+                if play_again and play_again.status_code in [200, 204]:
+                    self._log("Proceeded to Lobby (Skipped Stats)")
                 
         except Exception as e:
-            Logger.debug("Auto", f"Auto-honor error: {e}")
+            Logger.debug("Auto", f"End of game error: {e}")
 
     # ── Mass Invite ──
     def mass_invite_friends(self):

@@ -19,6 +19,7 @@ from ui.components.game_tools.draft_tool import DraftTool  # type: ignore
 
 from ui.components.lol_toggle import LolToggle  # type: ignore
 from ui.components.friend_list import FriendPriorityList  # type: ignore
+from core.events import EventBus  # type: ignore
 from core.constants import (  # type: ignore
     SPACING_XS, SPACING_SM, SPACING_MD, SPACING_LG, SPACING_XL,
     SECTION_GAP, CARD_PAD, INNER_GAP, CARD_RADIUS, ROW_HEIGHT,
@@ -57,6 +58,8 @@ class SidebarWidget(ctk.CTkFrame):
         self._current_queue_time = 0
         self._estimated_queue_time = 120
         self._body_expanded = True
+        
+        EventBus.on("lobby_event", self._on_lobby_event)
 
         self._setup_ui()
         self.after(100, self._load_icons_async)
@@ -107,6 +110,8 @@ class SidebarWidget(ctk.CTkFrame):
             # Update button colors for pseudo-animation
             btn_play.configure(fg_color=get_color("colors.accent.primary") if tab_name == "Play" else "transparent",
                                text_color=get_color("colors.background.app") if tab_name == "Play" else get_color("colors.text.muted"))
+            btn_act.configure(fg_color=get_color("colors.accent.primary") if tab_name == "Actions" else "transparent",
+                              text_color=get_color("colors.background.app") if tab_name == "Actions" else get_color("colors.text.muted"))
             btn_cfg.configure(fg_color=get_color("colors.accent.primary") if tab_name == "Configure" else "transparent",
                               text_color=get_color("colors.background.app") if tab_name == "Configure" else get_color("colors.text.muted"))
             btn_adv.configure(fg_color=get_color("colors.accent.primary") if tab_name == "Advanced" else "transparent",
@@ -129,14 +134,16 @@ class SidebarWidget(ctk.CTkFrame):
             if tab_name == "Play":
                 self.session_frame.pack(fill="x", pady=(0, SECTION_GAP))
                 self.action_container.pack(fill="x", pady=(0, SECTION_GAP))
-                if self._game_tool_visible:
-                    self.game_tool_container.pack(fill="x", pady=(0, SECTION_GAP))
-                if self._accounts_tool_visible and self.accounts_tool:
+                self.game_tool_container.pack(fill="x", pady=(0, SECTION_GAP))
+                if getattr(self, "friend_list", None):
+                    self.friend_list.pack(fill="x", pady=(0, SECTION_GAP))
+                if getattr(self, "_accounts_tool_visible", False) and getattr(self, "accounts_tool", None):
                     self.accounts_tool.pack(fill="x", pady=(0, SECTION_GAP))
                 self.spacer.pack(fill="both", expand=True)
-            elif tab_name == "Configure":
+            elif tab_name == "Actions":
                 self.auto_container.pack(fill="x", pady=(0, SECTION_GAP))
-                self.friend_list.pack(fill="x", pady=(0, SECTION_GAP))
+            elif tab_name == "Configure":
+                self.game_tool_container.pack(fill="x", pady=(0, SECTION_GAP))
             elif tab_name == "Advanced":
                 self.advanced_scroll.pack(fill="both", expand=True, pady=(0, SPACING_XS))
                 if self._stats_visible:
@@ -144,13 +151,15 @@ class SidebarWidget(ctk.CTkFrame):
                     
         self.switch_tab = _switch_tab
         
-        btn_play = ctk.CTkButton(self.tab_frame, text="Play", width=60, height=24, fg_color=get_color("colors.accent.primary"), text_color=get_color("colors.background.app"), hover_color=get_color("colors.state.hover"), font=get_font("caption", "bold"), command=lambda: self.switch_tab("Play"))
-        btn_cfg = ctk.CTkButton(self.tab_frame, text="Configure", width=70, height=24, fg_color="transparent", text_color=get_color("colors.text.muted"), hover_color=get_color("colors.state.hover"), font=get_font("caption", "bold"), command=lambda: self.switch_tab("Configure"))
-        btn_adv = ctk.CTkButton(self.tab_frame, text="Advanced", width=70, height=24, fg_color="transparent", text_color=get_color("colors.text.muted"), hover_color=get_color("colors.state.hover"), font=get_font("caption", "bold"), command=lambda: self.switch_tab("Advanced"))
+        btn_play = ctk.CTkButton(self.tab_frame, text="Play", width=55, height=24, fg_color=get_color("colors.accent.primary"), text_color=get_color("colors.background.app"), hover_color=get_color("colors.state.hover"), font=get_font("caption", "bold"), command=lambda: self.switch_tab("Play"))
+        btn_act = ctk.CTkButton(self.tab_frame, text="Actions", width=60, height=24, fg_color="transparent", text_color=get_color("colors.text.muted"), hover_color=get_color("colors.state.hover"), font=get_font("caption", "bold"), command=lambda: self.switch_tab("Actions"))
+        btn_cfg = ctk.CTkButton(self.tab_frame, text="Config", width=55, height=24, fg_color="transparent", text_color=get_color("colors.text.muted"), hover_color=get_color("colors.state.hover"), font=get_font("caption", "bold"), command=lambda: self.switch_tab("Configure"))
+        btn_adv = ctk.CTkButton(self.tab_frame, text="Advanced", width=65, height=24, fg_color="transparent", text_color=get_color("colors.text.muted"), hover_color=get_color("colors.state.hover"), font=get_font("caption", "bold"), command=lambda: self.switch_tab("Advanced"))
         
-        btn_play.pack(side="left", padx=2)
-        btn_cfg.pack(side="left", padx=2)
-        btn_adv.pack(side="left", padx=2)
+        btn_play.pack(side="left", padx=1)
+        btn_act.pack(side="left", padx=1)
+        btn_cfg.pack(side="left", padx=1)
+        btn_adv.pack(side="left", padx=1)
 
         # ── Session Info Block (always visible) ──
         self.session_frame = ctk.CTkFrame(
@@ -311,6 +320,18 @@ class SidebarWidget(ctk.CTkFrame):
         )
         CTkTooltip(self.dodge_button, "Force quit the client to dodge the lobby")
 
+        self.play_again_button = make_button(
+            self.queue_actions_container,
+            text="🔄 Play Again",
+            style="primary",
+            font=get_font("body", "bold"),
+            height=BTN_HEIGHT,
+            border_width=1,
+            border_color=get_color("colors.accent.primary", "#F0E6D2"),
+            command=self._play_again
+        )
+        CTkTooltip(self.play_again_button, "Return to lobby and play again")
+
         # ── Launch Client ──
         self.btn_launch_client = make_button(
             self.btn_frame,
@@ -360,15 +381,19 @@ class SidebarWidget(ctk.CTkFrame):
         self.hdr_icon_auto_join = ctk.CTkLabel(self.icon_header_frame, text="", width=16)
         self.hdr_icon_priority = ctk.CTkLabel(self.icon_header_frame, text="", width=16)
         self.hdr_icon_accept = ctk.CTkLabel(self.icon_header_frame, text="", width=16)
+        self.hdr_icon_skip_stats = ctk.CTkLabel(self.icon_header_frame, text="", width=16)
+        self.hdr_icon_auto_runes = ctk.CTkLabel(self.icon_header_frame, text="", width=16)
 
         if getattr(self, "assets", None):
             self.assets.get_icon_async("item", "3105", lambda img, l=self.hdr_icon_honor: l.configure(image=img) if l.winfo_exists() else None, size=(16, 16), widget=self.hdr_icon_honor)
             self.assets.get_icon_async("item", "3109", lambda img, l=self.hdr_icon_auto_join: l.configure(image=img) if l.winfo_exists() else None, size=(16, 16), widget=self.hdr_icon_auto_join)
             self.assets.get_icon_async("item", "2052", lambda img, l=self.hdr_icon_priority: l.configure(image=img) if l.winfo_exists() else None, size=(16, 16), widget=self.hdr_icon_priority)
             self.assets.get_icon_async("item", "2420", lambda img, l=self.hdr_icon_accept: l.configure(image=img) if l.winfo_exists() else None, size=(16, 16), widget=self.hdr_icon_accept)
+            self.assets.get_icon_async("item", "3111", lambda img, l=self.hdr_icon_skip_stats: l.configure(image=img) if l.winfo_exists() else None, size=(16, 16), widget=self.hdr_icon_skip_stats)
+            self.assets.get_icon_async("item", "3340", lambda img, l=self.hdr_icon_auto_runes: l.configure(image=img) if l.winfo_exists() else None, size=(16, 16), widget=self.hdr_icon_auto_runes)
         
         TOGGLE_ROW_HEIGHT = 28
-        self.automation_frame = ctk.CTkFrame(self.auto_container, height=155, fg_color="transparent")
+        self.automation_frame = ctk.CTkFrame(self.auto_container, height=310, fg_color="transparent")
         self.automation_frame.pack_propagate(False)
 
         # Auto Accept
@@ -422,7 +447,7 @@ class SidebarWidget(ctk.CTkFrame):
         # Auto Honor
         self.var_auto_honor = ctk.BooleanVar(value=self.config.get("auto_honor_enabled", False))
         row5 = ctk.CTkFrame(self.automation_frame, fg_color="transparent", height=TOGGLE_ROW_HEIGHT)
-        row5.pack(fill="x", padx=CARD_PAD, pady=(0, CARD_PAD))
+        row5.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
         row5.pack_propagate(False)
         self.icon_auto_honor = ctk.CTkLabel(row5, text="", width=24)
         self.icon_auto_honor.pack(side="left")
@@ -434,6 +459,49 @@ class SidebarWidget(ctk.CTkFrame):
         self.sw_auto_honor = LolToggle(row5, variable=self.var_auto_honor, command=self._on_toggle_auto_honor)
         self.sw_auto_honor.pack(side="right")
         CTkTooltip(self.sw_auto_honor, "Automatically honors a teammate after each game")
+
+        # Skip Stats
+        self.var_skip_stats = ctk.BooleanVar(value=self.config.get("skip_stats_enabled", True))
+        row6 = ctk.CTkFrame(self.automation_frame, fg_color="transparent", height=TOGGLE_ROW_HEIGHT)
+        row6.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
+        row6.pack_propagate(False)
+        self.icon_skip_stats = ctk.CTkLabel(row6, text="", width=24)
+        self.icon_skip_stats.pack(side="left")
+        if self.assets:
+            self.assets.get_icon_async("item", "3111", lambda img, l=self.icon_skip_stats: l.configure(image=img) if l.winfo_exists() else None, size=(24, 24), widget=self.icon_skip_stats)
+        lbl_skip = ctk.CTkLabel(row6, text="Skip Stats", font=get_font("body"), width=90, anchor="w", text_color=get_color("colors.text.primary", "#F0E6D2"))
+        lbl_skip.pack(side="left", padx=(6,0))
+        CTkTooltip(lbl_skip, "Automatically skips the post-match stats screen")
+        self.sw_skip_stats = LolToggle(row6, variable=self.var_skip_stats, command=self._on_toggle_skip_stats)
+        self.sw_skip_stats.pack(side="right")
+        CTkTooltip(self.sw_skip_stats, "Automatically skips the post-match stats screen")
+
+        # Auto Runes
+        self.var_auto_runes = ctk.BooleanVar(value=self.config.get("auto_runes_enabled", False))
+        row7 = ctk.CTkFrame(self.automation_frame, fg_color="transparent", height=TOGGLE_ROW_HEIGHT)
+        row7.pack(fill="x", padx=CARD_PAD, pady=(0, CARD_PAD))
+        row7.pack_propagate(False)
+        self.icon_auto_runes = ctk.CTkLabel(row7, text="", width=24)
+        self.icon_auto_runes.pack(side="left")
+        if self.assets:
+            self.assets.get_icon_async("item", "3340", lambda img, l=self.icon_auto_runes: l.configure(image=img) if l.winfo_exists() else None, size=(24, 24), widget=self.icon_auto_runes)
+        lbl_runes = ctk.CTkLabel(row7, text="Auto Runes", font=get_font("body"), width=90, anchor="w", text_color=get_color("colors.text.primary", "#F0E6D2"))
+        lbl_runes.pack(side="left", padx=(6,0))
+        CTkTooltip(lbl_runes, "Automatically equips recommended runes for your champion")
+        self.sw_auto_runes = LolToggle(row7, variable=self.var_auto_runes, command=self._on_toggle_auto_runes)
+        self.sw_auto_runes.pack(side="right")
+        CTkTooltip(self.sw_auto_runes, "Automatically equips recommended runes for your champion")
+        # Honor Strategy
+        row_honor = ctk.CTkFrame(self.automation_frame, fg_color="transparent")
+        row_honor.pack(fill="x", padx=CARD_PAD, pady=(INNER_GAP, 0))
+        ctk.CTkLabel(row_honor, text="Honor Strategy", font=get_font("body"), text_color=get_color("colors.text.primary")).pack(side="top", anchor="w")
+        
+        self.honor_var = ctk.StringVar(value=self.config.get("honor_strategy", "random"))
+        def _on_honor_change(val):
+            self.config.set("honor_strategy", val)
+        self.honor_select = ctk.CTkOptionMenu(row_honor, values=["random", "best_kda", "mvp"], variable=self.honor_var, font=get_font("body", "bold"), fg_color=get_color("colors.background.app"), button_color="#1A2733", button_hover_color=get_color("colors.state.hover"), dropdown_fg_color=get_color("colors.background.app"), dropdown_hover_color=get_color("colors.state.hover"), dropdown_font=get_font("caption"), command=_on_honor_change, height=24)
+        self.honor_select.pack(fill="x", pady=(4,0))
+
         self._update_auto_header()
         
         # (Divider removed — card containers provide visual separation)
@@ -449,14 +517,11 @@ class SidebarWidget(ctk.CTkFrame):
         self.priority_grid = PriorityIconGrid(self.game_tool_container, self.config, self.assets)
         self.arena_tool = ArenaTool(self.game_tool_container, self.config, self.assets)
         self.draft_tool = DraftTool(self.game_tool_container, self.config, self.assets)
-        # We don't pack them here; _update_game_tool_visibility will pack the relevant one.
+        
+        self._update_game_tool_visibility(self.config.get("aram_mode", "ARAM"))
         
         # ── Friend Auto-Join List ──
         self.friend_list = FriendPriorityList(self.main_body, config=self.config, lcu=self.lcu)
-        self.friend_list.pack(fill="x", pady=(0, SECTION_GAP), padx=0)
-
-        # Show game tool if mode warrants it on startup
-        self._update_game_tool_visibility()
 
         # ── Accounts Tool ──
         # Placeholder — instantiated properly once account_manager is injected from main.py
@@ -489,16 +554,6 @@ class SidebarWidget(ctk.CTkFrame):
 
         # AUTOMATION & BEHAVIOR
         card_auto = make_card(self.advanced_scroll, title="AUTOMATION & BEHAVIOR", padx=0, pady=(0, SECTION_GAP))
-        
-        row_honor = ctk.CTkFrame(card_auto, fg_color="transparent")
-        row_honor.pack(fill="x", pady=(0, INNER_GAP))
-        ctk.CTkLabel(row_honor, text="Honor Strategy", font=get_font("body"), text_color=get_color("colors.text.primary")).pack(side="top", anchor="w")
-        
-        self.honor_var = ctk.StringVar(value=self.config.get("honor_strategy", "random"))
-        def _on_honor_change(val):
-            self.config.set("honor_strategy", val)
-        self.honor_select = ctk.CTkOptionMenu(row_honor, values=["random", "best_kda", "mvp"], variable=self.honor_var, font=get_font("body", "bold"), fg_color=get_color("colors.background.app"), button_color="#1A2733", button_hover_color=get_color("colors.state.hover"), dropdown_fg_color=get_color("colors.background.app"), dropdown_hover_color=get_color("colors.state.hover"), dropdown_font=get_font("caption"), command=_on_honor_change, height=24)
-        self.honor_select.pack(fill="x", pady=(4,0))
         
         row_tray = ctk.CTkFrame(card_auto, fg_color="transparent")
         row_tray.pack(fill="x", pady=(INNER_GAP, 0))
@@ -781,13 +836,68 @@ class SidebarWidget(ctk.CTkFrame):
             self.automation_frame.pack_forget()
         self._update_auto_header()
 
+    def _update_game_tool_visibility(self, mode):
+        if hasattr(self, "priority_grid"):
+            self.priority_grid.pack_forget()
+        if hasattr(self, "arena_tool"):
+            self.arena_tool.pack_forget()
+        if hasattr(self, "draft_tool"):
+            self.draft_tool.pack_forget()
+
+        if mode in ["ARAM", "ARAM Mayhem"]:
+            if hasattr(self, "priority_grid"):
+                self.priority_grid.pack(fill="x", pady=(0, SPACING_MD), padx=0)
+        elif mode == "Arena":
+            if hasattr(self, "arena_tool"):
+                self.arena_tool.pack(fill="x", pady=(0, SPACING_MD), padx=0)
+        elif mode in ["Draft Pick", "Ranked Solo/Duo", "Ranked Flex", "Quickplay"]:
+            if hasattr(self, "draft_tool"):
+                self.draft_tool.pack(fill="x", pady=(0, SPACING_MD), padx=0)
+
     def _on_mode_change(self, new_mode):
         self.config.set("aram_mode", new_mode)
         if self.scraper:
             self.scraper.set_mode(new_mode)
         if hasattr(self, "queue_label"):
             self.queue_label.configure(text=new_mode)
-        self._update_game_tool_visibility()
+        self._update_game_tool_visibility(new_mode)
+
+    def _on_lobby_event(self, lobby_data):
+        if not self.winfo_exists() or not lobby_data:
+            return
+            
+        queue_id = lobby_data.get("gameConfig", {}).get("queueId")
+        if not queue_id:
+            return
+            
+        try:
+            queue_id = int(queue_id)
+        except ValueError:
+            return
+            
+        mode_map = {
+            400: "Draft Pick",
+            490: "Quickplay",
+            420: "Ranked Solo/Duo",
+            440: "Ranked Flex",
+            450: "ARAM",
+            2400: "ARAM Mayhem",
+            1700: "Arena",
+            2300: "Brawl",
+            900: "URF",
+            1010: "ARURF",
+            1300: "Nexus Blitz",
+            1020: "One For All",
+            1400: "Ultimate Spellbook",
+            1090: "TFT Normal",
+            1100: "TFT Ranked",
+        }
+        
+        detected_mode = mode_map.get(queue_id)
+        if detected_mode:
+            current_mode = self.config.get("aram_mode", "ARAM")
+            if detected_mode != current_mode:
+                self.after(0, lambda: self._on_mode_change(detected_mode))
 
     # ── Handlers ──
     def on_lcu_connection_changed(self, connected: bool):
@@ -993,6 +1103,14 @@ class SidebarWidget(ctk.CTkFrame):
         self.config.set("auto_honor_enabled", self.var_auto_honor.get())
         self._update_auto_header()
 
+    def _on_toggle_skip_stats(self):
+        self.config.set("skip_stats_enabled", self.var_skip_stats.get())
+        self._update_auto_header()
+        
+    def _on_toggle_auto_runes(self):
+        self.config.set("auto_runes_enabled", self.var_auto_runes.get())
+        self._update_auto_header()
+
     def _on_mass_invite(self):
         engine = getattr(self.master, "automation", None)
         if engine:
@@ -1050,6 +1168,14 @@ class SidebarWidget(ctk.CTkFrame):
         if getattr(self, "var_auto_honor", None) and getattr(self, "hdr_icon_honor", None):
             if self.var_auto_honor.get(): self.hdr_icon_honor.pack(side="left", padx=2)
             else: self.hdr_icon_honor.pack_forget()
+
+        if getattr(self, "var_skip_stats", None) and getattr(self, "hdr_icon_skip_stats", None):
+            if self.var_skip_stats.get(): self.hdr_icon_skip_stats.pack(side="left", padx=2)
+            else: self.hdr_icon_skip_stats.pack_forget()
+            
+        if getattr(self, "var_auto_runes", None) and getattr(self, "hdr_icon_auto_runes", None):
+            if self.var_auto_runes.get(): self.hdr_icon_auto_runes.pack(side="left", padx=2)
+            else: self.hdr_icon_auto_runes.pack_forget()
         
         arrow = "▼" if getattr(self, "auto_expanded", True) else "▶"
         base_text = f"{arrow}  AUTOMATION"
@@ -1087,12 +1213,35 @@ class SidebarWidget(ctk.CTkFrame):
                     self.after(0, lambda: self.update_action_log(f"Dodge error: {e}"))
             threading.Thread(target=_execute, daemon=True).start()
 
+    def _play_again(self):
+        if self.lcu:
+            self.update_action_log("Playing again...")
+            def _execute():
+                try:
+                    res = self.lcu.request("POST", "/lol-lobby/v2/play-again")
+                    if res and res.status_code in [200, 204]:
+                        self.after(0, lambda: self.update_action_log("Entered Lobby."))
+                    else:
+                        self.after(0, lambda: self.update_action_log("Play Again failed."))
+                except Exception as e:
+                    self.after(0, lambda: self.update_action_log(f"Play Again error: {e}"))
+            threading.Thread(target=_execute, daemon=True).start()
+
+    def _show_play_again(self):
+        if hasattr(self, "btn_find_match"):
+            self.btn_find_match.pack_forget()
+        if hasattr(self, "quick_actions_frame"):
+            self.quick_actions_frame.pack_forget()
+        if hasattr(self, "play_again_button"):
+            self.play_again_button.pack(fill="x", pady=0)
 
     def _show_quick_actions(self):
         """Reveal the Requeue & Dodge buttons during active matchmaking phases."""
         if hasattr(self, "quick_actions_frame"):
             if hasattr(self, "btn_find_match"):
                 self.btn_find_match.pack_forget()
+            if hasattr(self, "play_again_button"):
+                self.play_again_button.pack_forget()
             
             self.requeue_button.grid(row=0, column=0, padx=(0, 4), pady=0, sticky="ew")
             self.dodge_button.grid(row=0, column=1, padx=(4, 0), pady=0, sticky="ew")
@@ -1104,6 +1253,9 @@ class SidebarWidget(ctk.CTkFrame):
             self.requeue_button.grid_remove()
             self.dodge_button.grid_remove()
             self.quick_actions_frame.pack_forget()
+            
+            if hasattr(self, "play_again_button"):
+                self.play_again_button.pack_forget()
             
             if show_find_match and hasattr(self, "btn_find_match"):
                 self.btn_find_match.pack(fill="x", pady=0)
@@ -1177,63 +1329,6 @@ class SidebarWidget(ctk.CTkFrame):
             mode = self.config.get("aram_mode", "ARAM")
         return mode in self._ARAM_MODES
 
-    def _update_game_tool_visibility(self):
-        """Show/hide the game tool module based on current phase and mode.
-
-        The tool is shown when:
-          1. The selected game mode has an active tool (ARAM-based, Arena, Draft), AND
-          2. The user is in a lobby, queue, champ select, or the last game was that mode.
-
-        When the user is idle with no active session and the mode isn't supported,
-        the container stays hidden.
-        """
-        if not self.winfo_exists():
-            return
-
-        current_mode = self.config.get("aram_mode", "ARAM")
-        is_aram = self._is_aram_mode(current_mode)
-        is_arena = current_mode == "Arena"
-        is_draft = current_mode in {"Draft Pick", "Ranked Solo/Duo", "Ranked Flex"}
-        
-        phase = self._current_game_phase
-
-        active_phases = {"Lobby", "Matchmaking", "ReadyCheck", "ChampSelect"}
-        should_show = (is_aram or is_arena or is_draft) and (phase in active_phases or phase == "None")
-
-        container = getattr(self, "game_tool_container", None)
-        if container is None:
-            return
-
-        # Swap active module inside the container
-        if hasattr(self, "priority_grid") and hasattr(self, "arena_tool") and hasattr(self, "draft_tool"):
-            if is_aram:
-                self.arena_tool.pack_forget()
-                self.draft_tool.pack_forget()
-                self.priority_grid.pack(fill="x", pady=(0, SPACING_MD), padx=0)
-            elif is_arena:
-                self.priority_grid.pack_forget()
-                self.draft_tool.pack_forget()
-                self.arena_tool.pack(fill="x", pady=(0, SPACING_MD), padx=0)
-            elif is_draft:
-                self.priority_grid.pack_forget()
-                self.arena_tool.pack_forget()
-                self.draft_tool.pack(fill="x", pady=(0, SPACING_MD), padx=0)
-            else:
-                self.priority_grid.pack_forget()
-                self.arena_tool.pack_forget()
-                self.draft_tool.pack_forget()
-
-        currently_visible = bool(container.winfo_manager())
-
-        if should_show and not currently_visible:
-            # Pack after the divider, before the friend list
-            if hasattr(self, "friend_list"):
-                container.pack(fill="x", pady=(0, SPACING_MD), padx=0, before=self.friend_list)
-            else:
-                container.pack(fill="x", pady=(0, SPACING_MD), padx=0)
-        elif not should_show and currently_visible:
-            container.pack_forget()
-
     def update_queue_state(self, phase, search_state):
         """Updates the queue state."""
         if not self.winfo_exists():
@@ -1294,6 +1389,10 @@ class SidebarWidget(ctk.CTkFrame):
                 self.estimate_label.configure(text="● Waiting Stats", text_color=get_color("colors.state.warning", "#F59E0B"))
                 self.progress_bar.set(0)
                 self._hide_quick_actions(show_find_match=False)
+                self._show_play_again()
+            elif not getattr(self, "play_again_button", None) or not bool(self.play_again_button.winfo_manager()):
+                self._hide_quick_actions(show_find_match=False)
+                self._show_play_again()
             self._last_ui_phase = phase
             
         elif phase == "Reconnect":
@@ -1319,8 +1418,7 @@ class SidebarWidget(ctk.CTkFrame):
                 self._hide_quick_actions(show_find_match=True)
             self._last_ui_phase = phase
 
-        # Update game-tool visibility whenever phase changes
-        self._update_game_tool_visibility()
+        self._current_game_phase = phase
 
     def update_lobby_stats(self, team, bench, me=None):
         """Called from AutomationEngine during ChampSelect to show winrate stats."""

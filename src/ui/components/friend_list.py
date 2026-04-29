@@ -229,9 +229,14 @@ class FriendPriorityList(ctk.CTkFrame):
 
     def _on_friends_event(self, friends_data):
         """Called by EventBus when LCU WebSocket pushes friend updates."""
-        if not friends_data or not isinstance(friends_data, list):
+        if not friends_data:
             return
-        self._process_friends(friends_data)
+        if isinstance(friends_data, list):
+            self._process_friends(friends_data)
+        elif isinstance(friends_data, dict):
+            # WAMP pushes delta updates as dicts. Refetch whole list for 100% accuracy.
+            self._friends_data = []
+            self._initial_fetch()
 
     def _initial_fetch(self):
         """One-shot fallback fetch for initial load before WS pushes data."""
