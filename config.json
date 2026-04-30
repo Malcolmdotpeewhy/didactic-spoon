@@ -51,7 +51,7 @@
     "hotkey_compact_mode": "alt+esc",
     "hotkey_omnibar": "ctrl+alt+a",
     "priority_picker": {
-        "enabled": false,
+        "enabled": true,
         "list": [
             "Fizz",
             "Singed",
@@ -98,7 +98,7 @@
             "me": [
                 "Leona"
             ],
-            "enabled": true
+            "enabled": false
         },
         {
             "teammate": "Bravery",
@@ -112,7 +112,7 @@
             "me": [
                 "Leona"
             ],
-            "enabled": true
+            "enabled": false
         },
         {
             "teammate": "Darius",
@@ -134,14 +134,28 @@
                 "Karthus"
             ],
             "enabled": true
+        },
+        {
+            "teammate": "Tristana",
+            "me": [
+                "Yuumi"
+            ],
+            "enabled": true
+        },
+        {
+            "teammate": "Ziggs",
+            "me": [
+                "Leona"
+            ],
+            "enabled": true
         }
     ],
     "arena_auto_lock": true,
     "arena_synergy_enabled": true,
     "run_in_tray": true,
     "discord_rpc_enabled": true,
-    "skip_stats_enabled": false,
-    "auto_runes_enabled": false,
+    "skip_stats_enabled": true,
+    "auto_runes_enabled": true,
     "ban_TOP": "",
     "ban_JUNGLE": "",
     "ban_MIDDLE": "",
@@ -305,13 +319,13 @@
         "Palafu#NA1",
         "NicholasLobo\u2069 #\u2066NA1\u2069"
     ],
-    "auto_join_enabled": false,
+    "auto_join_enabled": true,
     "auto_honor_enabled": true,
     "honor_strategy": "random",
     "vip_invite_list": "",
     "startup_status": "",
-    "arena_ban": "Yuumi",
+    "arena_ban": "TahmKench",
     "auto_join_vip_only": true,
-    "arena_fallback_pick": "Bravery",
+    "arena_fallback_pick": "Leona",
     "arena_instant_ban": true
 }

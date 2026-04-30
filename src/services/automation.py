@@ -598,7 +598,7 @@ class AutomationEngine:
         my_action = None
         for row in actions:
             for action in row:
-                if action.get("actorCellId") == me.get("cellId") and action.get("isInProgress"):
+                if action.get("actorCellId") == me.get("cellId") and not action.get("completed"):
                     my_action = action
                     break
             if my_action:
@@ -695,12 +695,24 @@ class AutomationEngine:
                 mapped_me_list = [fallback]
                 
         mapped_my_id, mapped_me_champ = 0, ""
-        for champ_name in mapped_me_list:
-            cid = self.assets.name_to_id.get(champ_name.lower())
-            if cid and cid not in banned_ids and cid != target_id:
-                mapped_my_id = cid
-                mapped_me_champ = champ_name
-                break
+        
+        # Try arena pairs or arena fallback first
+        if mapped_me_list:
+            for champ_name in mapped_me_list:
+                cid = self.assets.name_to_id.get(champ_name.lower())
+                if cid and cid not in banned_ids and cid != target_id:
+                    mapped_my_id = cid
+                    mapped_me_champ = champ_name
+                    break
+                    
+        # If still 0, try global auto_pick
+        if mapped_my_id == 0:
+            legacy_fallback = self.config.get("auto_pick", "")
+            if legacy_fallback:
+                cid = self.assets.name_to_id.get(legacy_fallback.lower())
+                if cid and cid not in banned_ids and cid != target_id:
+                    mapped_my_id = cid
+                    mapped_me_champ = legacy_fallback
                 
         timer = session.get("timer", {})
         time_left_ms = timer.get("adjustedTimeLeftInPhase", 15000)
