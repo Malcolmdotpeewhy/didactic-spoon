@@ -704,7 +704,23 @@ class AutomationEngine:
                 
         timer = session.get("timer", {})
         time_left_ms = timer.get("adjustedTimeLeftInPhase", 15000)
-        teammate_locked = (target_id != 0 and teammate and teammate.get("championId", 0) != 0)
+        
+        # Check if teammate has locked by inspecting their action
+        teammate_locked = False
+        if teammate:
+            actions = session.get("actions", [])
+            for row in actions:
+                for act in row:
+                    if act.get("actorCellId") == teammate.get("cellId") and act.get("type") == "pick":
+                        if act.get("completed", False):
+                            teammate_locked = True
+                        break
+                if teammate_locked:
+                    break
+                    
+        # Fallback to championId check just in case
+        if not teammate_locked and target_id != 0 and teammate and teammate.get("championId", 0) != 0:
+            teammate_locked = True
 
         # Handle Hovering
         if mapped_my_id != 0 and current_hover != mapped_my_id:
