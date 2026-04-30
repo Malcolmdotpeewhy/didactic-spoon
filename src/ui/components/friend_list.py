@@ -120,7 +120,7 @@ class FriendPriorityList(ctk.CTkFrame):
 
     def __init__(self, master, config, lcu=None, **kw):
         """Initializes the FriendPriorityList widget."""
-        super().__init__(master, fg_color=get_color("colors.background.panel"), corner_radius=8, **kw)
+        super().__init__(master, fg_color="transparent", **kw)
 
         self.config = config
         self.lcu = lcu
@@ -134,8 +134,7 @@ class FriendPriorityList(ctk.CTkFrame):
         self._last_render_sig = None
         self._row_widgets = []  # Track FriendRow instances for cleanup
 
-        self._build_header()
-        self._build_body()
+        self._build_ui()
 
         # Subscribe to EventBus — WebSocket pushes friends data in real-time
         EventBus.on("friends_event", self._on_friends_event)
@@ -150,23 +149,17 @@ class FriendPriorityList(ctk.CTkFrame):
         lst = [{"name": name, "enabled": enabled} for name, enabled in self._auto_join_names.items()]
         self.config.set("auto_join_list", lst)
 
-    # ─────────── Header ───────────
+    # ─────────── UI Construction ───────────
 
-    def _build_header(self):
-        self.header = ctk.CTkFrame(self, fg_color="transparent", height=28)
-        self.header.pack(fill="x", padx=SPACING_MD, pady=(SPACING_MD, 0))
-        self.header.grid_columnconfigure(1, weight=1)
-
-        self.lbl_section = ctk.CTkLabel(
-            self.header, text="▼  FRIEND LIST",
-            font=get_font("caption", "bold"),
-            text_color=get_color("colors.text.muted"), anchor="w",
-            cursor="hand2"
+    def _build_ui(self):
+        from ui.components.factory import make_card
+        self.card = make_card(
+            self, title="FRIEND LIST",
+            collapsible=True, start_collapsed=False,
+            padx=0, pady=0
         )
-        self.lbl_section.pack(side="left", padx=2)
-        self.lbl_section.bind("<Button-1>", lambda e: self._toggle_collapse())
-        self.lbl_section.bind("<Enter>", lambda e: self.lbl_section.configure(text_color=get_color("colors.text.primary")))
-        self.lbl_section.bind("<Leave>", lambda e: self.lbl_section.configure(text_color=get_color("colors.text.muted")))
+        self.header = self.card._header
+        self.body = self.card
 
         # Online count badge
         self.lbl_online_count = ctk.CTkLabel(
@@ -202,12 +195,7 @@ class FriendPriorityList(ctk.CTkFrame):
         self.btn_mass_invite.pack(side="right")
         CTkTooltip(self.btn_mass_invite, "Invite all online friends (or VIPs) to your lobby")
 
-    # ─────────── Body (Scroll Area) ───────────
-
-    def _build_body(self):
-        self.body = ctk.CTkFrame(self, fg_color="transparent")
-        self.body.pack(fill="x", pady=(SPACING_SM, SPACING_MD), padx=SPACING_MD)
-
+        # Scroll Area
         self.scroll = ctk.CTkScrollableFrame(
             self.body, fg_color="transparent", height=220,
             scrollbar_button_color=get_color("colors.text.disabled"),
@@ -287,17 +275,6 @@ class FriendPriorityList(ctk.CTkFrame):
                 self._render_list()
         except Exception:
             pass  # Widget not packed (different tab active) — skip silently
-
-    # ─────────── Collapse ───────────
-
-    def _toggle_collapse(self):
-        self._expanded = not self._expanded
-        if self._expanded:
-            self.body.pack(fill="x", pady=(4, 0))
-            self.lbl_section.configure(text="▼  FRIEND LIST")
-        else:
-            self.body.pack_forget()
-            self.lbl_section.configure(text="▶  FRIEND LIST")
 
     # ─────────── Auto-Join Toggle ───────────
 

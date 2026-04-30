@@ -48,6 +48,7 @@ class PriorityIconGrid(ctk.CTkFrame):
         self._clear_confirm = False      # Whether clear-all is in confirmation mode
         self._shake_phase = 0            # Edit-mode shake animation phase counter
         self._parsed_import = None       # Cached parsed import data
+        self._drag_data = {"widget": None, "start_x": 0, "start_y": 0, "idx": -1, "ghost": None, "cell": None}
 
         self._build_header()
         self._build_body()
@@ -323,79 +324,31 @@ class PriorityIconGrid(ctk.CTkFrame):
         # ── Edit-mode control bar (hidden until edit) ──
         self.edit_bar = ctk.CTkFrame(self.body, fg_color="transparent", height=30)
 
-        btn_kw = dict(
-            width=30, height=24, corner_radius=get_radius("sm"),
-            font=get_font("body", "bold"), fg_color="transparent",
-            hover_color=get_color("colors.state.hover"),
-            text_color=get_color("colors.text.primary"),
-            
+        # In Drag-and-Drop mode, we only need the mass-delete controls
+        self.lbl_edit_hint = ctk.CTkLabel(
+            self.edit_bar, text="Drag to reorder. Click to select for deletion.",
+            font=get_font("caption", "italic"), text_color=get_color("colors.text.disabled")
         )
-
-        self.btn_top = ctk.CTkButton(self.edit_bar, text="⤒", command=self._move_top, **btn_kw,
-            cursor="hand2",
-        )
-        self.btn_up  = ctk.CTkButton(self.edit_bar, text="▲", command=self._move_up,  **btn_kw,
-            cursor="hand2",
-        )
-        self.btn_down = ctk.CTkButton(self.edit_bar, text="▼", command=self._move_down, **btn_kw,
-            cursor="hand2",
-        )
+        self.lbl_edit_hint.pack(side="left", padx=4)
 
         self.btn_del = ctk.CTkButton(
-            self.edit_bar, text="✕", width=30, height=24,
+            self.edit_bar, text="✕ Delete Selected", height=24,
             corner_radius=get_radius("sm"), font=get_font("body", "bold"),
             fg_color="transparent", hover_color=get_color("colors.state.danger.muted", "#4d1111"),
             text_color=get_color("colors.state.danger", "#ff4444"), command=self._delete_active, cursor="hand2",
             )
 
         self.btn_clear_all = ctk.CTkButton(
-            self.edit_bar, text="🗑️", width=30, height=24,
+            self.edit_bar, text="🗑️ Clear All", height=24,
             corner_radius=get_radius("sm"), font=get_font("body"),
             fg_color="transparent", hover_color=get_color("colors.state.danger.muted", "#4d1111"),
             text_color=get_color("colors.state.danger", "#ff4444"), command=self._request_clear_all, cursor="hand2",
             )
 
-        self.btn_top.pack(side="left", padx=1)
-        CTkTooltip(self.btn_top, "Move to Top")
-        self.btn_up.pack(side="left", padx=1)
-        CTkTooltip(self.btn_up, "Move Up")
-        self.btn_down.pack(side="left", padx=1)
-        CTkTooltip(self.btn_down, "Move Down")
         self.btn_clear_all.pack(side="right", padx=1)
         CTkTooltip(self.btn_clear_all, "Clear All")
         self.btn_del.pack(side="right", padx=1)
         CTkTooltip(self.btn_del, "Remove")
-
-        # ── Move-to-position entry (inline in edit bar) ──
-        self._move_to_frame = ctk.CTkFrame(self.edit_bar, fg_color="transparent")
-        move_lbl = ctk.CTkLabel(
-            self._move_to_frame, text="#",
-            font=get_font("body", "bold"),
-            text_color=get_color("colors.accent.primary"),
-            width=12,
-        )
-        move_lbl.pack(side="left")
-        self._move_entry = make_input(
-            self._move_to_frame,
-            placeholder="pos",
-            width=34,
-            height=22,
-            font=get_font("caption"),
-            justify="center"
-        )
-        self._move_entry.pack(side="left", padx=(0, 2))
-        self._move_entry.bind("<Return>", lambda e: self._commit_move_to())
-        self._move_go_btn = ctk.CTkButton(
-            self._move_to_frame, text="Go", width=28, height=22,
-            corner_radius=4, font=get_font("caption", "bold"),
-            fg_color=get_color("colors.accent.primary"),
-            hover_color=get_color("colors.state.hover"),
-            text_color="#ffffff",
-            command=self._commit_move_to, cursor="hand2",
-            )
-        self._move_go_btn.pack(side="left")
-        CTkTooltip(self._move_go_btn, "Move to Position")
-        self._move_to_frame.pack(side="left", padx=(6, 0))
 
     # ───────────── hovered champion integration ─────────────
     def set_hovered_champion(self, champ_id):
@@ -569,8 +522,11 @@ class PriorityIconGrid(ctk.CTkFrame):
 
             lbl.bind("<Enter>", _on_enter)
             lbl.bind("<Leave>", _on_leave)
-            lbl.bind("<Button-1>", lambda e, idx=i: self._on_cell_click(idx))
-            lbl.bind("<Shift-Button-1>", lambda e, idx=i: self._on_shift_click(idx))
+            
+            # Drag-and-drop bindings replace cell click and shift-click
+            lbl.bind("<ButtonPress-1>", lambda e, idx=i, label=lbl, c=cell: self._on_drag_start(e, idx, label, c))
+            lbl.bind("<B1-Motion>", self._on_drag_motion)
+            lbl.bind("<ButtonRelease-1>", self._on_drag_release)
 
             self._icon_widgets.append((cell, lbl, i))
 
@@ -579,27 +535,35 @@ class PriorityIconGrid(ctk.CTkFrame):
     # ───────────── tooltip ─────────────
     def _show_tooltip(self, event, name, idx=None):
         if self._tip:
-            self._tip.destroy()
+            self._hide_tooltip()
         self._tip = tk.Toplevel(self)
         self._tip.wm_overrideredirect(True)
         self._tip.wm_attributes("-topmost", True)
+        
         x = event.widget.winfo_rootx() + ICON_SIZE
-        y = event.widget.winfo_rooty()
-        self._tip.geometry(f"+{x}+{y}")
+        target_y = event.widget.winfo_rooty()
+        start_y = target_y + 10
+        self._tip.geometry(f"+{x}+{start_y}")
+        self._tip.configure(bg=get_color("colors.background.card", "#1E2328"))
         
         display = f"#{idx + 1}  {name}" if idx is not None else name
-        tip_frame = tk.Frame(
-            self._tip, bg=get_color("colors.background.card", "#1E2328"),
-            highlightbackground=get_color("colors.accent.gold", "#C8AA6E"),
-            highlightthickness=1, highlightcolor=get_color("colors.accent.gold", "#C8AA6E")
+        
+        tip_frame = ctk.CTkFrame(
+            self._tip,
+            corner_radius=4,
+            fg_color=get_color("colors.background.card", "#1E2328"),
+            border_width=1,
+            border_color=get_color("colors.accent.gold", "#C8AA6E")
         )
         tip_frame.pack()
         
         # Header (Rank and Name)
-        tk.Label(tip_frame, text=display,
-                 bg=get_color("colors.background.card", "#1E2328"),
-                 fg=get_color("colors.accent.gold", "#C8AA6E"),
-                 font=get_font("caption", "bold"), padx=8, pady=4).pack(anchor="w")
+        ctk.CTkLabel(
+            tip_frame, text=display,
+            fg_color="transparent",
+            text_color=get_color("colors.accent.gold", "#C8AA6E"),
+            font=get_font("caption", "bold")
+        ).pack(anchor="w", padx=8, pady=(4, 0))
                  
         # Rich Stats — pull real winrate from StatsScraper
         winrate = 50.0
@@ -619,20 +583,52 @@ class PriorityIconGrid(ctk.CTkFrame):
         else:
             wr_color = get_color("colors.state.danger", "#ff4444")  # red — weak
 
-        _tip_bg = get_color("colors.background.card", "#1E2328")
         priority_label = "High" if idx is not None and idx < 3 else ("Medium" if idx is not None and idx < 7 else "Low")
-        tk.Label(tip_frame, text=f"Winrate: {winrate:.1f}%", bg=_tip_bg, fg=wr_color, justify="left",
-                 font=get_font("caption", "bold"), padx=8, pady=2).pack(anchor="w")
-        tk.Label(tip_frame, text=f"Priority: {priority_label}", bg=_tip_bg, fg="#e0e0e0", justify="left",
-                 font=get_font("caption"), padx=8, pady=(0, 2)).pack(anchor="w")
+        
+        ctk.CTkLabel(
+            tip_frame, text=f"Winrate: {winrate:.1f}%", fg_color="transparent", text_color=wr_color, justify="left",
+            font=get_font("caption", "bold")
+        ).pack(anchor="w", padx=8, pady=0)
+        
+        ctk.CTkLabel(
+            tip_frame, text=f"Priority: {priority_label}", fg_color="transparent", text_color="#e0e0e0", justify="left",
+            font=get_font("caption")
+        ).pack(anchor="w", padx=8, pady=(0, 2))
                  
         if self._edit_mode and len(self._selected_indices) == 1 and idx not in self._selected_indices:
-            tk.Label(tip_frame, text="⇧Click to move here", bg=_tip_bg,
-                     fg=get_color("colors.accent.blue", "#4da6ff"), font=get_font("caption"), padx=8, pady=4).pack(anchor="w")
+            ctk.CTkLabel(
+                tip_frame, text="⇧Click to move here", fg_color="transparent",
+                text_color=get_color("colors.accent.blue", "#4da6ff"), font=get_font("caption")
+            ).pack(anchor="w", padx=8, pady=(0, 4))
+
+        # Slide-up animation
+        self._tip._current_y = start_y
+        self._tip._target_y = target_y
+        self._tip._x = x
+        self._animate_tip_in()
+
+    def _animate_tip_in(self):
+        try:
+            if not self._tip or not getattr(self._tip, "winfo_exists", lambda: False)():
+                return
+            if self._tip._current_y > self._tip._target_y:
+                self._tip._current_y -= max(1, (self._tip._current_y - self._tip._target_y) // 2)
+                self._tip.wm_geometry(f"+{self._tip._x}+{self._tip._current_y}")
+                self.after(16, self._animate_tip_in)
+            else:
+                self._tip.wm_geometry(f"+{self._tip._x}+{self._tip._target_y}")
+        except Exception:
+            pass
 
     def _hide_tooltip(self):
         if self._tip:
-            self._tip.destroy()
+            try:
+                tw = self._tip
+                self._tip = None
+                tw.withdraw()
+                tw.after(50, tw.destroy)
+            except Exception:
+                pass
             self._tip = None
 
     # ───────────── collapse ─────────────
@@ -654,14 +650,17 @@ class PriorityIconGrid(ctk.CTkFrame):
             self.btn_edit.configure(text="Done", text_color=get_color("colors.state.danger", "#ff4444"))
             # Staged reveal: sweep gold borders across grid cells before showing edit bar
             self._sweep_edit_borders(entering=True)
-            self.edit_bar.pack(fill="x", padx=2, pady=(4, 0))
+            self.edit_bar.pack(fill="x", padx=16, pady=(0, 8), before=self.scroll_frame)
+            self._sync_edit_bar_state()
+            self._refresh_visuals()
             self._shake_phase = 0
             self._shake_tick()
         else:
             self.btn_edit.configure(text="Edit", text_color=get_color("colors.accent.primary"))
             self._sweep_edit_borders(entering=False)
             self.edit_bar.pack_forget()
-        self._refresh_visuals()
+            self._selected_indices.clear()
+            self._refresh_visuals()
 
     def _sweep_edit_borders(self, entering=True):
         """Staggered gold border sweep across grid cells for edit mode transition."""
@@ -708,20 +707,7 @@ class PriorityIconGrid(ctk.CTkFrame):
         self.after(60, self._shake_tick)
 
     def _sync_edit_bar_state(self):
-        """Hides move controls if multiple champions are selected (mass-delete only)."""
-        should_show_moves = len(self._selected_indices) <= 1
-        
-        if should_show_moves:
-            self.btn_top.pack(side="left", padx=1)
-            self.btn_up.pack(side="left", padx=1)
-            self.btn_down.pack(side="left", padx=1)
-            self._move_to_frame.pack(side="left", padx=(6, 0))
-        else:
-            self.btn_top.pack_forget()
-            self.btn_up.pack_forget()
-            self.btn_down.pack_forget()
-            self._move_to_frame.pack_forget()
-
+        """Hides clear all button if the priority list is empty."""
         if self._get_priority_list():
             self.btn_clear_all.pack(side="right", padx=1, before=self.btn_del)
         else:
@@ -737,28 +723,103 @@ class PriorityIconGrid(ctk.CTkFrame):
             self._selected_indices.add(idx)
             
         self._refresh_visuals()
-        
-        # Auto-populate position entry with selected rank (only if 1 selected)
-        if len(self._selected_indices) == 1:
-            val = list(self._selected_indices)[0]
-            self._move_entry.delete(0, "end")
-            self._move_entry.insert(0, str(val + 1))
-        else:
-            self._move_entry.delete(0, "end")
 
-    def _on_shift_click(self, target_idx):
-        """Shift+Click: move the single selected champion to this position."""
-        if not self._edit_mode or len(self._selected_indices) != 1:
+    # ───────────── drag-and-drop ─────────────
+    def _on_drag_start(self, event, idx, label, cell):
+        """Initiate drag. Creates a floating ghost icon."""
+        if not self._edit_mode:
+            # If not in edit mode, standard click (no drag)
             return
+
+        # Start a drag timer to differentiate click from drag
+        self._drag_data["widget"] = label
+        self._drag_data["cell"] = cell
+        self._drag_data["idx"] = idx
+        self._drag_data["start_x"] = event.x_root
+        self._drag_data["start_y"] = event.y_root
+        self._drag_data["ghost"] = None
+        self._drag_data["is_dragging"] = False
+
+    def _on_drag_motion(self, event):
+        """Move the ghost icon with the mouse."""
+        if not self._edit_mode or not self._drag_data.get("widget"):
+            return
+
+        # Threshold for drag
+        dx = abs(event.x_root - self._drag_data["start_x"])
+        dy = abs(event.y_root - self._drag_data["start_y"])
+        if not self._drag_data.get("is_dragging"):
+            if dx > 5 or dy > 5:
+                self._drag_data["is_dragging"] = True
+                self._create_ghost_icon()
+            else:
+                return
+
+        ghost = self._drag_data["ghost"]
+        if ghost:
+            x = event.x_root - self.winfo_toplevel().winfo_rootx() - (ICON_SIZE // 2)
+            y = event.y_root - self.winfo_toplevel().winfo_rooty() - (ICON_SIZE // 2)
+            ghost.place(x=x, y=y)
+
+    def _create_ghost_icon(self):
+        label = self._drag_data["widget"]
+        cell = self._drag_data["cell"]
+        try:
+            img = label.cget("image")
+            if img:
+                ghost = tk.Label(self.winfo_toplevel(), image=img, bg=get_color("colors.background.app"), bd=0)
+                x = self._drag_data["start_x"] - self.winfo_toplevel().winfo_rootx() - (ICON_SIZE // 2)
+                y = self._drag_data["start_y"] - self.winfo_toplevel().winfo_rooty() - (ICON_SIZE // 2)
+                ghost.place(x=x, y=y)
+                ghost.lift()
+                self._drag_data["ghost"] = ghost
+                
+                # Make original cell dim
+                label.configure(image="")
+                cell.configure(fg_color="#141E28", border_width=1, border_color="#e81123")
+        except Exception:
+            pass
+
+    def _on_drag_release(self, event):
+        """Drop the icon and calculate new position."""
+        if not self._edit_mode or not self._drag_data.get("widget"):
+            return
+
+        is_dragging = self._drag_data.get("is_dragging")
+        idx = self._drag_data["idx"]
         
-        active_idx = list(self._selected_indices)[0]
-        if active_idx == target_idx:
+        # Cleanup ghost
+        if self._drag_data.get("ghost"):
+            self._drag_data["ghost"].destroy()
+            self._drag_data["ghost"] = None
+
+        self._drag_data["widget"] = None
+        self._drag_data["is_dragging"] = False
+
+        if not is_dragging:
+            # It was just a click, handle selection!
+            self._on_cell_click(idx)
             return
+
+        # Calculate target drop cell based on mouse coordinates over grid_parent
+        drop_x = event.x_root - self.grid_parent.winfo_rootx()
+        drop_y = event.y_root - self.grid_parent.winfo_rooty()
+
+        col = max(0, min(ICONS_PER_ROW - 1, int(drop_x // (ICON_SIZE + GRID_GAP))))
+        row = max(0, int(drop_y // (ICON_SIZE + GRID_GAP)))
+        
+        target_idx = (row * ICONS_PER_ROW) + col
+        
         names = self._get_priority_list()
-        item = names.pop(active_idx)
-        names.insert(target_idx, item)
-        self._save_priority_list(names)
-        self._selected_indices = {target_idx}
+        target_idx = max(0, min(target_idx, len(names) - 1))
+
+        if target_idx != idx:
+            item = names.pop(idx)
+            names.insert(target_idx, item)
+            self._save_priority_list(names)
+            # Make the newly moved item selected for visibility
+            self._selected_indices = {target_idx}
+
         self._render_grid()
 
     def _refresh_visuals(self):
@@ -770,41 +831,6 @@ class PriorityIconGrid(ctk.CTkFrame):
                                corner_radius=6)
             else:
                 cell.configure(fg_color="transparent", border_width=0, corner_radius=4)
-
-    # ───────────── reorder buttons ─────────────
-    def _move_top(self):
-        if len(self._selected_indices) != 1: return
-        active_idx = list(self._selected_indices)[0]
-        if active_idx == 0: return
-        
-        names = self._get_priority_list()
-        item = names.pop(active_idx)
-        names.insert(0, item)
-        self._save_priority_list(names)
-        self._selected_indices = {0}
-        self._render_grid()
-
-    def _move_up(self):
-        if len(self._selected_indices) != 1: return
-        active_idx = list(self._selected_indices)[0]
-        if active_idx == 0: return
-        
-        names = self._get_priority_list()
-        names[active_idx], names[active_idx - 1] = names[active_idx - 1], names[active_idx]
-        self._save_priority_list(names)
-        self._selected_indices = {active_idx - 1}
-        self._render_grid()
-
-    def _move_down(self):
-        if len(self._selected_indices) != 1: return
-        active_idx = list(self._selected_indices)[0]
-        names = self._get_priority_list()
-        if active_idx >= len(names) - 1: return
-        
-        names[active_idx], names[active_idx + 1] = names[active_idx + 1], names[active_idx]
-        self._save_priority_list(names)
-        self._selected_indices = {active_idx + 1}
-        self._render_grid()
 
     def _delete_active(self):
         if not self._selected_indices:
@@ -818,7 +844,6 @@ class PriorityIconGrid(ctk.CTkFrame):
                 
         self._save_priority_list(names)
         self._selected_indices.clear()
-        self._move_entry.delete(0, "end")
         self._render_grid()
 
     def _request_clear_all(self):
@@ -857,66 +882,6 @@ class PriorityIconGrid(ctk.CTkFrame):
                 confetti=True
             )
 
-    # ───────────── move-to-position ─────────────
-    def _commit_move_to(self):
-        """Move the selected champion to the position typed in the # entry."""
-        if len(self._selected_indices) != 1:
-            self._flash_move_entry()
-            return
-            
-        active_idx = list(self._selected_indices)[0]
-        raw = self._move_entry.get().strip()
-        if not raw:
-            self._flash_move_entry()
-            return
-        try:
-            target = int(raw)
-        except ValueError:
-            self._flash_move_entry()
-            return
-        names = self._get_priority_list()
-        # Clamp to valid range (1-based input)
-        target = max(1, min(target, len(names)))
-        target_idx = target - 1
-        if target_idx == active_idx:
-            return
-        item = names.pop(active_idx)
-        names.insert(target_idx, item)
-        self._save_priority_list(names)
-        self._selected_indices = {target_idx}
-        self._move_entry.delete(0, "end")
-        self._move_entry.insert(0, str(target))
-        self._render_grid()
-
-    def _shake_widget(self, widget, orig_padx, frames=6, dx=4):
-        """Horizontal shake by rapidly modifying padx on packed widgets."""
-        if not widget.winfo_exists() or frames <= 0:
-            widget.pack(padx=orig_padx)
-            return
-
-        offset = dx if frames % 2 == 0 else -dx
-        if isinstance(orig_padx, tuple):
-            new_padx = (max(0, orig_padx[0] + offset), max(0, orig_padx[1] - offset))
-        else:
-            new_padx = max(0, orig_padx + offset)
-            
-        widget.pack(padx=new_padx)
-        self.after(40, lambda: self._shake_widget(widget, orig_padx, frames - 1, dx))
-
-    def _flash_move_entry(self):
-        """Brief red flash and horizontal shake on the position entry."""
-        self._move_entry.configure(border_color="#e81123")
-        
-        try:
-            # Shake the _move_to_frame wrapper since it contains the go button too
-            orig = self._move_to_frame.pack_info().get("padx", (6, 0))
-            self._shake_widget(self._move_to_frame, orig)
-        except Exception:
-            pass
-            
-        self.after(800, lambda: self._move_entry.configure(
-            border_color=get_color("colors.border.subtle")))
-
     # ───────────── export / import ─────────────
     def _undo_action(self):
         if not self._undo_stack:
@@ -927,8 +892,6 @@ class PriorityIconGrid(ctk.CTkFrame):
 
         # Clear editing states
         self._selected_indices.clear()
-        if hasattr(self, "_move_entry") and self._move_entry.winfo_exists():
-            self._move_entry.delete(0, "end")
 
         self._render_grid()
         self._sync_undo_btn()

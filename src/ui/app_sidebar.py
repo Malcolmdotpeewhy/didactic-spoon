@@ -16,6 +16,7 @@ from ui.components.priority_grid import PriorityIconGrid  # type: ignore
 from ui.components.game_tools.arena_tool import ArenaTool  # type: ignore
 from ui.components.game_tools.accounts_tool import AccountsTool  # type: ignore
 from ui.components.game_tools.draft_tool import DraftTool  # type: ignore
+from ui.components.tab_bar import TabBar  # type: ignore
 
 from ui.components.lol_toggle import LolToggle  # type: ignore
 from ui.components.friend_list import FriendPriorityList  # type: ignore
@@ -100,157 +101,84 @@ class SidebarWidget(ctk.CTkFrame):
         self.var_power = ctk.BooleanVar(value=True)
 
         # ── 5.1 Tab Navigation ──
-        self.tab_frame = ctk.CTkFrame(self.main_body, fg_color="transparent", height=28)
+        self.tab_frame = ctk.CTkFrame(self.main_body, fg_color="transparent")
         self.tab_frame.pack(fill="x", pady=(0, INNER_GAP))
         
         self._current_tab = "Play"
         
         def _switch_tab(tab_name):
             self._current_tab = tab_name
-            # Update button colors for pseudo-animation
-            btn_play.configure(fg_color=get_color("colors.accent.primary") if tab_name == "Play" else "transparent",
-                               text_color=get_color("colors.background.app") if tab_name == "Play" else get_color("colors.text.muted"))
-            btn_act.configure(fg_color=get_color("colors.accent.primary") if tab_name == "Actions" else "transparent",
-                              text_color=get_color("colors.background.app") if tab_name == "Actions" else get_color("colors.text.muted"))
-            btn_cfg.configure(fg_color=get_color("colors.accent.primary") if tab_name == "Configure" else "transparent",
-                              text_color=get_color("colors.background.app") if tab_name == "Configure" else get_color("colors.text.muted"))
-            btn_adv.configure(fg_color=get_color("colors.accent.primary") if tab_name == "Advanced" else "transparent",
-                              text_color=get_color("colors.background.app") if tab_name == "Advanced" else get_color("colors.text.muted"))
             
             # Hide everything
             self.session_frame.pack_forget()
             self.action_container.pack_forget()
             self.game_tool_container.pack_forget()
-            if self.accounts_tool: self.accounts_tool.pack_forget()
+            if getattr(self, "accounts_tool", None): self.accounts_tool.pack_forget()
             
             self.auto_container.pack_forget()
-            self.friend_list.pack_forget()
+            if getattr(self, "friend_list", None): self.friend_list.pack_forget()
             
             self.advanced_scroll.pack_forget()
-            self.stats_frame.pack_forget()
+            if hasattr(self, "stats_card"):
+                self.stats_card.pack_forget()
             self.spacer.pack_forget()
             
             # Pack based on tab
             if tab_name == "Play":
                 self.session_frame.pack(fill="x", pady=(0, SECTION_GAP))
                 self.action_container.pack(fill="x", pady=(0, SECTION_GAP))
-                self.game_tool_container.pack(fill="x", pady=(0, SECTION_GAP))
+                
+                # Show tools in Play mode
                 if getattr(self, "friend_list", None):
                     self.friend_list.pack(fill="x", pady=(0, SECTION_GAP))
                 if getattr(self, "_accounts_tool_visible", False) and getattr(self, "accounts_tool", None):
                     self.accounts_tool.pack(fill="x", pady=(0, SECTION_GAP))
                 self.spacer.pack(fill="both", expand=True)
+                
             elif tab_name == "Actions":
                 self.auto_container.pack(fill="x", pady=(0, SECTION_GAP))
-            elif tab_name == "Configure":
+                self.spacer.pack(fill="both", expand=True)
+                
+            elif tab_name == "Config":
+                # Config tab shows game tools
                 self.game_tool_container.pack(fill="x", pady=(0, SECTION_GAP))
-            elif tab_name == "Advanced":
+                self.spacer.pack(fill="both", expand=True)
+                
+            elif tab_name == "Settings":
                 self.advanced_scroll.pack(fill="both", expand=True, pady=(0, SPACING_XS))
-                if self._stats_visible:
-                    self.stats_frame.pack(fill="x", pady=(0, SECTION_GAP))
+                if getattr(self, "_stats_visible", False):
+                    if hasattr(self, "stats_card"):
+                        self.stats_card.pack(fill="x", pady=(0, SECTION_GAP))
                     
         self.switch_tab = _switch_tab
         
-        btn_play = ctk.CTkButton(self.tab_frame, text="Play", width=55, height=24, fg_color=get_color("colors.accent.primary"), text_color=get_color("colors.background.app"), hover_color=get_color("colors.state.hover"), font=get_font("caption", "bold"), command=lambda: self.switch_tab("Play"))
-        btn_act = ctk.CTkButton(self.tab_frame, text="Actions", width=60, height=24, fg_color="transparent", text_color=get_color("colors.text.muted"), hover_color=get_color("colors.state.hover"), font=get_font("caption", "bold"), command=lambda: self.switch_tab("Actions"))
-        btn_cfg = ctk.CTkButton(self.tab_frame, text="Config", width=55, height=24, fg_color="transparent", text_color=get_color("colors.text.muted"), hover_color=get_color("colors.state.hover"), font=get_font("caption", "bold"), command=lambda: self.switch_tab("Configure"))
-        btn_adv = ctk.CTkButton(self.tab_frame, text="Advanced", width=65, height=24, fg_color="transparent", text_color=get_color("colors.text.muted"), hover_color=get_color("colors.state.hover"), font=get_font("caption", "bold"), command=lambda: self.switch_tab("Advanced"))
-        
-        btn_play.pack(side="left", padx=1)
-        btn_act.pack(side="left", padx=1)
-        btn_cfg.pack(side="left", padx=1)
-        btn_adv.pack(side="left", padx=1)
+        self.tab_bar = TabBar(
+            self.tab_frame,
+            tabs=["Play", "Actions", "Config", "Settings"],
+            default_tab=None,
+            command=self.switch_tab
+        )
+        self.tab_bar.pack(fill="x")
+
+        from ui.components.session_header import SessionHeader  # type: ignore
 
         # ── Session Info Block (always visible) ──
-        self.session_frame = ctk.CTkFrame(
+        self.session_header = SessionHeader(
             self.main_body,
-            height=64,
-            fg_color=get_color("colors.background.card", "#0F1923"),
-            corner_radius=CARD_RADIUS,
-            border_width=1,
-            border_color="#1A2332"
+            config=self.config,
+            on_mode_change=self._on_mode_change,
+            on_power_click=self._on_power_click,
+            initial_mode=self.config.get("aram_mode", "ARAM")
         )
-        self.session_frame.pack(fill="x", pady=(0, SECTION_GAP))
-        self.session_frame.pack_propagate(False)
-        # 2-column grid: col 0 gets most space for text, col 1 for compact controls
-        self.session_frame.grid_columnconfigure(0, weight=3)
-        self.session_frame.grid_columnconfigure(1, weight=1)
-
-        self.queue_label = ctk.CTkLabel(
-            self.session_frame,
-            text=self.config.get("aram_mode", "ARAM"),
-            font=get_font("body", "bold"),
-            text_color=get_color("colors.accent.gold", "#C8AA6E"),
-            anchor="w",
-            cursor="hand2"
-        )
-        self.queue_label.grid(row=0, column=0, padx=(CARD_PAD, 2), pady=(CARD_PAD, 2), sticky="w")
-
-        # Left-click: cycle through modes via dropdown menu
-        def _show_mode_menu(event):
-            menu = tk.Menu(self, tearoff=0, bg="#1A2332", fg="#F0E6D2",
-                           activebackground="#C8AA6E", activeforeground="#0A1428",
-                           font=("Segoe UI", 9))
-            modes = [
-                "Quickplay", "Draft Pick", "Ranked Solo/Duo", "Ranked Flex",
-                "ARAM", "ARAM Mayhem", "Arena", "Brawl", "URF", "ARURF",
-                "Nexus Blitz", "One For All", "Ultimate Spellbook",
-                "TFT Normal", "TFT Ranked"
-            ]
-            for mode in modes:
-                menu.add_command(label=mode, command=lambda m=mode: self._on_mode_change(m))
-            menu.tk_popup(event.x_root, event.y_root)
-
-        self.queue_label.bind("<Button-1>", _show_mode_menu)
-
-        # Power Status Button
-        self.btn_power_status = make_button(
-            self.session_frame, 
-            text="▶ Active" if getattr(self, "power_state", False) else "⏸ Paused", 
-            style="ghost",
-            font=get_font("body", "bold"),
-            text_color=get_color("colors.accent.primary") if getattr(self, "power_state", False) else get_color("colors.text.muted"),
-            width=80,
-            height=24,
-            command=self._on_power_click
-        )
-        self.btn_power_status.grid(row=0, column=1, padx=(2, CARD_PAD), pady=(CARD_PAD, 2), sticky="e")
-        hk_auto = self.config.get("hotkey_toggle_automation", "ctrl+shift+a").upper()
-        CTkTooltip(self.btn_power_status, f"Toggle Automation ({hk_auto})")
-
-        self.time_label = ctk.CTkLabel(
-            self.session_frame,
-            text="Queue: Idle",
-            font=get_font("caption"),
-            text_color=get_color("colors.text.primary"),
-            anchor="w"
-        )
-        self.time_label.grid(row=1, column=0, padx=(CARD_PAD, 2), pady=(0, CARD_PAD), sticky="w")
-
-        self.estimate_label = ctk.CTkLabel(
-            self.session_frame,
-            text="● Connected",
-            font=get_font("caption"),
-            text_color=get_color("colors.state.success", "#00C853"),
-            anchor="e"
-        )
-        self.estimate_label.grid(row=1, column=1, padx=(2, CARD_PAD), pady=(0, CARD_PAD), sticky="e")
-
-        self.session_separator = ctk.CTkFrame(
-            self.session_frame,
-            height=1,
-            fg_color=get_color("colors.border.subtle", "#1F2A36")
-        )
-        self.session_separator.place(relx=0, rely=1.0, relwidth=1.0, anchor="sw")
-
-        self.progress_bar = ctk.CTkProgressBar(
-            self.session_frame,
-            height=3,
-            corner_radius=0,
-            progress_color=get_color("colors.accent.gold", "#C8AA6E")
-        )
-        self.progress_bar.set(0)
-        self.progress_bar.place(relx=0, rely=0.98, relwidth=1.0, anchor="sw")
+        self.session_header.pack(fill="x", pady=(0, SECTION_GAP))
+        
+        # Backward compatibility for other methods
+        self.queue_label = self.session_header.queue_label
+        self.time_label = self.session_header.time_label
+        self.estimate_label = self.session_header.estimate_label
+        self.progress_bar = self.session_header.progress_bar
+        self.btn_power_status = self.session_header.btn_power_status
+        self.session_frame = self.session_header
 
         # ── Action Buttons ──
         self.action_container = ctk.CTkFrame(
@@ -347,35 +275,26 @@ class SidebarWidget(ctk.CTkFrame):
 
         # (Divider removed — card containers provide visual separation)
 
-        # ── Toggles Section ──
-        self.auto_container = ctk.CTkFrame(
+        # ── Toggles Section (Automation) ──
+        self.automation_frame = make_card(
             self.main_body,
-            fg_color=get_color("colors.background.card", "#0F1923"),
-            corner_radius=CARD_RADIUS,
-            border_width=1,
-            border_color="#1A2332"
+            title="AUTOMATION",
+            padx=0,
+            pady=(0, SECTION_GAP),
+            collapsible=True,
+            start_collapsed=False
         )
-        self.auto_container.pack(fill="x", pady=(0, SECTION_GAP))
-
-        self.auto_expanded = False
-        self.auto_header_frame = ctk.CTkFrame(self.auto_container, fg_color="transparent")
-        self.auto_header_frame.pack(fill="x", padx=CARD_PAD, pady=(CARD_PAD, INNER_GAP))
         
-        self.lbl_auto_section = ctk.CTkLabel(
-            self.auto_header_frame, text="▶  AUTOMATION",
-            font=get_font("caption", "bold"),
-            text_color=get_color("colors.text.muted"), anchor="w",
-            cursor="hand2"
-        )
-        self.lbl_auto_section.pack(side="left")
-        CTkTooltip(self.lbl_auto_section, "Toggle Automation")
-        self.lbl_auto_section.bind("<Button-1>", self._toggle_auto_collapse)
-        self.lbl_auto_section.bind("<Enter>", lambda e: self.lbl_auto_section.configure(text_color=get_color("colors.text.primary")))
-        self.lbl_auto_section.bind("<Leave>", lambda e: self.lbl_auto_section.configure(text_color=get_color("colors.text.muted")))
+        # Inject custom icon header frame into the card's header
+        self.icon_header_frame = ctk.CTkFrame(self.automation_frame._header, fg_color="transparent")
+        self.icon_header_frame.pack(side="right", padx=(0, INNER_GAP))
         
-        self.icon_header_frame = ctk.CTkFrame(self.auto_header_frame, fg_color="transparent")
-        self.icon_header_frame.pack(side="right")
-        self.icon_header_frame.bind("<Button-1>", self._toggle_auto_collapse)
+        # Bind the click events to the card's toggle controller so clicking icons collapses the card
+        def _bind_toggle(widget):
+            widget.configure(cursor="hand2")
+            widget.bind("<Button-1>", self.automation_frame._toggle_controller.toggle)
+            
+        _bind_toggle(self.icon_header_frame)
         
         self.hdr_icon_honor = ctk.CTkLabel(self.icon_header_frame, text="", width=16)
         self.hdr_icon_auto_join = ctk.CTkLabel(self.icon_header_frame, text="", width=16)
@@ -383,6 +302,9 @@ class SidebarWidget(ctk.CTkFrame):
         self.hdr_icon_accept = ctk.CTkLabel(self.icon_header_frame, text="", width=16)
         self.hdr_icon_skip_stats = ctk.CTkLabel(self.icon_header_frame, text="", width=16)
         self.hdr_icon_auto_runes = ctk.CTkLabel(self.icon_header_frame, text="", width=16)
+        
+        for w in (self.hdr_icon_honor, self.hdr_icon_auto_join, self.hdr_icon_priority, self.hdr_icon_accept, self.hdr_icon_skip_stats, self.hdr_icon_auto_runes):
+            _bind_toggle(w)
 
         if getattr(self, "assets", None):
             self.assets.get_icon_async("item", "3105", lambda img, l=self.hdr_icon_honor: l.configure(image=img) if l.winfo_exists() else None, size=(16, 16), widget=self.hdr_icon_honor)
@@ -393,104 +315,62 @@ class SidebarWidget(ctk.CTkFrame):
             self.assets.get_icon_async("item", "3340", lambda img, l=self.hdr_icon_auto_runes: l.configure(image=img) if l.winfo_exists() else None, size=(16, 16), widget=self.hdr_icon_auto_runes)
         
         TOGGLE_ROW_HEIGHT = 28
-        self.automation_frame = ctk.CTkFrame(self.auto_container, height=310, fg_color="transparent")
-        self.automation_frame.pack_propagate(False)
+
+        from ui.components.toggle_row import ToggleRow  # type: ignore
 
         # Auto Accept
         self.var_accept = ctk.BooleanVar(value=self.config.get("auto_accept", True))
-        row1 = ctk.CTkFrame(self.automation_frame, fg_color="transparent", height=TOGGLE_ROW_HEIGHT)
-        row1.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
-        row1.pack_propagate(False)
-        self.icon_accept = ctk.CTkLabel(row1, text="", width=24)
-        self.icon_accept.pack(side="left")
-        if self.assets:
-            self.assets.get_icon_async("item", "2420", lambda img, l=self.icon_accept: l.configure(image=img) if l.winfo_exists() else None, size=(24, 24), widget=self.icon_accept)
-        lbl_accept = ctk.CTkLabel(row1, text="Auto Accept", font=get_font("body"), width=90, anchor="w", text_color=get_color("colors.text.primary", "#F0E6D2"))
-        lbl_accept.pack(side="left", padx=(6,0))
-        CTkTooltip(lbl_accept, "Automatically accepts match queue pops")
-        self.sw_accept = LolToggle(row1, variable=self.var_accept, command=self._on_toggle_accept)
-        self.sw_accept.pack(side="right")
-        CTkTooltip(self.sw_accept, "Automatically accepts match queue pops")
+        self.row_accept = ToggleRow(
+            self.automation_frame, label_text="Auto Accept", variable=self.var_accept,
+            command=self._on_toggle_accept, tooltip_text="Automatically accepts match queue pops",
+            icon_item_id="2420", assets=self.assets, height=TOGGLE_ROW_HEIGHT
+        )
+        self.row_accept.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
 
         # ARAM Picker
         self.var_priority = ctk.BooleanVar(value=self.config.get("priority_picker", {}).get("enabled", False))
-        row3 = ctk.CTkFrame(self.automation_frame, fg_color="transparent", height=TOGGLE_ROW_HEIGHT)
-        row3.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
-        row3.pack_propagate(False)
-        self.icon_priority = ctk.CTkLabel(row3, text="", width=24)
-        self.icon_priority.pack(side="left")
-        if self.assets:
-            self.assets.get_icon_async("item", "2052", lambda img, l=self.icon_priority: l.configure(image=img) if l.winfo_exists() else None, size=(24, 24), widget=self.icon_priority)
-        lbl_priority = ctk.CTkLabel(row3, text="ARAM Picker", font=get_font("body"), width=90, anchor="w", text_color=get_color("colors.text.primary", "#F0E6D2"))
-        lbl_priority.pack(side="left", padx=(6,0))
-        CTkTooltip(lbl_priority, "Attempts to pick highest available champion from ARAM List")
-        self.sw_priority = LolToggle(row3, variable=self.var_priority, command=self._on_toggle_priority)
-        self.sw_priority.pack(side="right")
-        CTkTooltip(self.sw_priority, "Attempts to pick highest available champion from ARAM List")
+        self.row_priority = ToggleRow(
+            self.automation_frame, label_text="ARAM Picker", variable=self.var_priority,
+            command=self._on_toggle_priority, tooltip_text="Attempts to pick highest available champion from ARAM List",
+            icon_item_id="2052", assets=self.assets, height=TOGGLE_ROW_HEIGHT
+        )
+        self.row_priority.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
         
         # Friend Auto-Join
         self.var_auto_join = ctk.BooleanVar(value=self.config.get("auto_join_enabled", True))
-        row4 = ctk.CTkFrame(self.automation_frame, fg_color="transparent", height=TOGGLE_ROW_HEIGHT)
-        row4.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
-        row4.pack_propagate(False)
-        self.icon_auto_join = ctk.CTkLabel(row4, text="", width=24)
-        self.icon_auto_join.pack(side="left")
-        if self.assets:
-            self.assets.get_icon_async("item", "3109", lambda img, l=self.icon_auto_join: l.configure(image=img) if l.winfo_exists() else None, size=(24, 24), widget=self.icon_auto_join)
-        lbl_auto_join = ctk.CTkLabel(row4, text="Friend Auto-Join", font=get_font("body"), width=90, anchor="w", text_color=get_color("colors.text.primary", "#F0E6D2"))
-        lbl_auto_join.pack(side="left", padx=(6,0))
-        CTkTooltip(lbl_auto_join, "Automatically joins available friend lobbies")
-        self.sw_auto_join = LolToggle(row4, variable=self.var_auto_join, command=self._on_toggle_auto_join)
-        self.sw_auto_join.pack(side="right")
-        CTkTooltip(self.sw_auto_join, "Automatically joins available friend lobbies")
+        self.row_auto_join = ToggleRow(
+            self.automation_frame, label_text="Friend Auto-Join", variable=self.var_auto_join,
+            command=self._on_toggle_auto_join, tooltip_text="Automatically joins available friend lobbies",
+            icon_item_id="3109", assets=self.assets, height=TOGGLE_ROW_HEIGHT
+        )
+        self.row_auto_join.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
 
         # Auto Honor
         self.var_auto_honor = ctk.BooleanVar(value=self.config.get("auto_honor_enabled", False))
-        row5 = ctk.CTkFrame(self.automation_frame, fg_color="transparent", height=TOGGLE_ROW_HEIGHT)
-        row5.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
-        row5.pack_propagate(False)
-        self.icon_auto_honor = ctk.CTkLabel(row5, text="", width=24)
-        self.icon_auto_honor.pack(side="left")
-        if self.assets:
-            self.assets.get_icon_async("item", "3105", lambda img, l=self.icon_auto_honor: l.configure(image=img) if l.winfo_exists() else None, size=(24, 24), widget=self.icon_auto_honor)
-        lbl_honor = ctk.CTkLabel(row5, text="Auto Honor", font=get_font("body"), width=90, anchor="w", text_color=get_color("colors.text.primary", "#F0E6D2"))
-        lbl_honor.pack(side="left", padx=(6,0))
-        CTkTooltip(lbl_honor, "Automatically honors a teammate after each game")
-        self.sw_auto_honor = LolToggle(row5, variable=self.var_auto_honor, command=self._on_toggle_auto_honor)
-        self.sw_auto_honor.pack(side="right")
-        CTkTooltip(self.sw_auto_honor, "Automatically honors a teammate after each game")
+        self.row_auto_honor = ToggleRow(
+            self.automation_frame, label_text="Auto Honor", variable=self.var_auto_honor,
+            command=self._on_toggle_auto_honor, tooltip_text="Automatically honors a teammate after each game",
+            icon_item_id="3105", assets=self.assets, height=TOGGLE_ROW_HEIGHT
+        )
+        self.row_auto_honor.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
 
         # Skip Stats
         self.var_skip_stats = ctk.BooleanVar(value=self.config.get("skip_stats_enabled", True))
-        row6 = ctk.CTkFrame(self.automation_frame, fg_color="transparent", height=TOGGLE_ROW_HEIGHT)
-        row6.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
-        row6.pack_propagate(False)
-        self.icon_skip_stats = ctk.CTkLabel(row6, text="", width=24)
-        self.icon_skip_stats.pack(side="left")
-        if self.assets:
-            self.assets.get_icon_async("item", "3111", lambda img, l=self.icon_skip_stats: l.configure(image=img) if l.winfo_exists() else None, size=(24, 24), widget=self.icon_skip_stats)
-        lbl_skip = ctk.CTkLabel(row6, text="Skip Stats", font=get_font("body"), width=90, anchor="w", text_color=get_color("colors.text.primary", "#F0E6D2"))
-        lbl_skip.pack(side="left", padx=(6,0))
-        CTkTooltip(lbl_skip, "Automatically skips the post-match stats screen")
-        self.sw_skip_stats = LolToggle(row6, variable=self.var_skip_stats, command=self._on_toggle_skip_stats)
-        self.sw_skip_stats.pack(side="right")
-        CTkTooltip(self.sw_skip_stats, "Automatically skips the post-match stats screen")
+        self.row_skip_stats = ToggleRow(
+            self.automation_frame, label_text="Skip Stats", variable=self.var_skip_stats,
+            command=self._on_toggle_skip_stats, tooltip_text="Automatically skips the post-match stats screen",
+            icon_item_id="3111", assets=self.assets, height=TOGGLE_ROW_HEIGHT
+        )
+        self.row_skip_stats.pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
 
         # Auto Runes
         self.var_auto_runes = ctk.BooleanVar(value=self.config.get("auto_runes_enabled", False))
-        row7 = ctk.CTkFrame(self.automation_frame, fg_color="transparent", height=TOGGLE_ROW_HEIGHT)
-        row7.pack(fill="x", padx=CARD_PAD, pady=(0, CARD_PAD))
-        row7.pack_propagate(False)
-        self.icon_auto_runes = ctk.CTkLabel(row7, text="", width=24)
-        self.icon_auto_runes.pack(side="left")
-        if self.assets:
-            self.assets.get_icon_async("item", "3340", lambda img, l=self.icon_auto_runes: l.configure(image=img) if l.winfo_exists() else None, size=(24, 24), widget=self.icon_auto_runes)
-        lbl_runes = ctk.CTkLabel(row7, text="Auto Runes", font=get_font("body"), width=90, anchor="w", text_color=get_color("colors.text.primary", "#F0E6D2"))
-        lbl_runes.pack(side="left", padx=(6,0))
-        CTkTooltip(lbl_runes, "Automatically equips recommended runes for your champion")
-        self.sw_auto_runes = LolToggle(row7, variable=self.var_auto_runes, command=self._on_toggle_auto_runes)
-        self.sw_auto_runes.pack(side="right")
-        CTkTooltip(self.sw_auto_runes, "Automatically equips recommended runes for your champion")
+        self.row_auto_runes = ToggleRow(
+            self.automation_frame, label_text="Auto Runes", variable=self.var_auto_runes,
+            command=self._on_toggle_auto_runes, tooltip_text="Automatically equips recommended runes for your champion",
+            icon_item_id="3340", assets=self.assets, height=TOGGLE_ROW_HEIGHT
+        )
+        self.row_auto_runes.pack(fill="x", padx=CARD_PAD, pady=(0, CARD_PAD))
         # Honor Strategy
         row_honor = ctk.CTkFrame(self.automation_frame, fg_color="transparent")
         row_honor.pack(fill="x", padx=CARD_PAD, pady=(INNER_GAP, 0))
@@ -529,69 +409,82 @@ class SidebarWidget(ctk.CTkFrame):
 
         # UI status and dummy stats stripped for cleaner layout
 
+        from ui.components.settings_row import SettingsToggleRow, SettingsSliderRow  # type: ignore
+
         # ── Advanced Settings Tab Content ──
         self.advanced_scroll = ctk.CTkScrollableFrame(self.main_body, fg_color="transparent")
         
         # LOBBY & QUEUE
         card_lobby = make_card(self.advanced_scroll, title="LOBBY & QUEUE", padx=0, pady=(0, SECTION_GAP))
         
-        row_delay = ctk.CTkFrame(card_lobby, fg_color="transparent")
-        row_delay.pack(fill="x", pady=(0, INNER_GAP))
-        ctk.CTkLabel(row_delay, text="Accept Delay", font=get_font("body"), text_color=get_color("colors.text.primary")).pack(side="left")
-        
         delay_val = float(self.config.get("accept_delay", 2.0))
         self.delay_var = ctk.DoubleVar(value=delay_val)
-        self.lbl_delay_val = ctk.CTkLabel(row_delay, text=f"{delay_val:.1f}s", font=get_font("body", "bold"), text_color=get_color("colors.accent.gold", "#C8AA6E"), width=40)
-        self.lbl_delay_val.pack(side="right")
-        
         def _on_delay_slide(value):
-            self.lbl_delay_val.configure(text=f"{value:.1f}s")
             self.config.set("accept_delay", round(value, 1))
             
-        self.slider_delay = ctk.CTkSlider(row_delay, from_=0, to=8, number_of_steps=16, variable=self.delay_var, width=80, fg_color=get_color("colors.background.app"), progress_color=get_color("colors.accent.gold", "#C8AA6E"), button_color=get_color("colors.text.primary", "#F0E6D2"), button_hover_color="#FFFFFF", command=_on_delay_slide)
-        self.slider_delay.pack(side="right", padx=(4, 4))
-        CTkTooltip(self.slider_delay, "Delay before auto-accepting a match")
+        self.row_delay = SettingsSliderRow(
+            card_lobby,
+            label_text="Accept Delay",
+            variable=self.delay_var,
+            command=_on_delay_slide,
+            from_=0,
+            to=8,
+            number_of_steps=16,
+            format_str="{:.1f}s",
+            tooltip_text="Delay before auto-accepting a match"
+        )
+        self.row_delay.pack(fill="x", pady=(0, INNER_GAP))
 
         # AUTOMATION & BEHAVIOR
         card_auto = make_card(self.advanced_scroll, title="AUTOMATION & BEHAVIOR", padx=0, pady=(0, SECTION_GAP))
         
-        row_tray = ctk.CTkFrame(card_auto, fg_color="transparent")
-        row_tray.pack(fill="x", pady=(INNER_GAP, 0))
-        ctk.CTkLabel(row_tray, text="Run in Tray", font=get_font("body"), text_color=get_color("colors.text.primary")).pack(side="left")
-        
         self.tray_var = ctk.BooleanVar(value=bool(self.config.get("run_in_tray", True)))
         def _on_tray_toggle():
             self.config.set("run_in_tray", self.tray_var.get())
-        self.tray_switch = LolToggle(row_tray, variable=self.tray_var, command=_on_tray_toggle)
-        self.tray_switch.pack(side="right")
+            
+        self.row_tray = SettingsToggleRow(
+            card_auto,
+            label_text="Run in Tray",
+            variable=self.tray_var,
+            command=_on_tray_toggle
+        )
+        self.row_tray.pack(fill="x", pady=(INNER_GAP, 0))
 
         # SOCIAL & IDENTITY
         card_social = make_card(self.advanced_scroll, title="SOCIAL & IDENTITY", padx=0, pady=(0, SECTION_GAP))
         
-        row_discord = ctk.CTkFrame(card_social, fg_color="transparent")
-        row_discord.pack(fill="x", pady=(0, INNER_GAP))
-        ctk.CTkLabel(row_discord, text="Discord RPC", font=get_font("body"), text_color=get_color("colors.text.primary")).pack(side="left")
         self.discord_var = ctk.BooleanVar(value=bool(self.config.get("discord_rpc_enabled", True)))
-        self.discord_switch = LolToggle(row_discord, variable=self.discord_var, command=lambda: self.config.set("discord_rpc_enabled", self.discord_var.get()))
-        self.discord_switch.pack(side="right")
+        self.row_discord = SettingsToggleRow(
+            card_social,
+            label_text="Discord RPC",
+            variable=self.discord_var,
+            command=lambda: self.config.set("discord_rpc_enabled", self.discord_var.get())
+        )
+        self.row_discord.pack(fill="x", pady=(0, INNER_GAP))
         
-        row_join_vip = ctk.CTkFrame(card_social, fg_color="transparent")
-        row_join_vip.pack(fill="x", pady=(0, INNER_GAP))
-        ctk.CTkLabel(row_join_vip, text="VIP Invites Only", font=get_font("body"), text_color=get_color("colors.text.primary")).pack(side="left")
         self.join_vip_var = ctk.BooleanVar(value=bool(self.config.get("auto_join_vip_only", False)))
-        self.join_vip_switch = LolToggle(row_join_vip, variable=self.join_vip_var, command=lambda: self.config.set("auto_join_vip_only", self.join_vip_var.get()))
-        self.join_vip_switch.pack(side="right")
+        self.row_join_vip = SettingsToggleRow(
+            card_social,
+            label_text="VIP Invites Only",
+            variable=self.join_vip_var,
+            command=lambda: self.config.set("auto_join_vip_only", self.join_vip_var.get())
+        )
+        self.row_join_vip.pack(fill="x", pady=(0, INNER_GAP))
         
-        ctk.CTkLabel(card_social, text="VIP Invite List", font=get_font("caption"), text_color=get_color("colors.text.muted")).pack(anchor="w", pady=(0, 2))
+        from ui.components.settings_row import SettingsInputRow, SettingsHotkeyRow  # type: ignore
+
         self.vip_var = ctk.StringVar(value=self.config.get("vip_invite_list", ""))
-        self.entry_vip = ctk.CTkEntry(card_social, textvariable=self.vip_var, font=get_font("body"), height=26, fg_color=get_color("colors.background.input", "#0A1220"), border_color=get_color("colors.border.subtle"))
-        self.entry_vip.pack(fill="x", pady=(0, 0))
-        def _save_vip(*args): self.config.set("vip_invite_list", self.vip_var.get().strip())
-        self.entry_vip.bind("<KeyRelease>", _save_vip)
+        self.row_vip_list = SettingsInputRow(
+            card_social,
+            label_text="VIP Invite List",
+            variable=self.vip_var,
+            command=lambda val: self.config.set("vip_invite_list", val.strip()),
+            placeholder_text="Enter summoner names, comma separated..."
+        )
+        self.row_vip_list.pack(fill="x", pady=(0, 0))
         
         # HOTKEYS
         card_hotkeys = make_card(self.advanced_scroll, title="HOTKEYS", padx=0, pady=(0, SECTION_GAP))
-        from ui.components.hotkey_recorder import HotkeyRecorder
         hotkeys = [
             ("Client Launch", "hotkey_launch_client", "ctrl+shift+l"),
             ("Toggle Auto", "hotkey_toggle_automation", "ctrl+shift+a"),
@@ -600,19 +493,22 @@ class SidebarWidget(ctk.CTkFrame):
         ]
         self.recorders = {}
         for i, (label_text, config_key, default_val) in enumerate(hotkeys):
-            row = ctk.CTkFrame(card_hotkeys, fg_color="transparent")
             pad_bottom = INNER_GAP if i < len(hotkeys) - 1 else 0
-            row.pack(fill="x", pady=(0, pad_bottom))
-            ctk.CTkLabel(row, text=label_text, font=get_font("body"), text_color=get_color("colors.text.primary")).pack(side="top", anchor="w")
             
-            def _save_hk(val, key=config_key):
+            def _save_hk(val, key):
                 self.config.set(key, val)
                 if hasattr(self.master, "on_settings_saved"):
                     self.master.on_settings_saved()
                     
-            recorder = HotkeyRecorder(row, initial_value=self.config.get(config_key, default_val), width=150, on_change=_save_hk)
-            recorder.pack(fill="x", pady=(2,0))
-            self.recorders[config_key] = recorder
+            row = SettingsHotkeyRow(
+                card_hotkeys,
+                label_text=label_text,
+                config_key=config_key,
+                default_val=self.config.get(config_key, default_val),
+                on_change_callback=_save_hk
+            )
+            row.pack(fill="x", pady=(0, pad_bottom))
+            self.recorders[config_key] = row.recorder
 
         # ABOUT
         card_about = make_card(self.advanced_scroll, title="ABOUT", padx=0, pady=(0, SECTION_GAP))
@@ -628,24 +524,15 @@ class SidebarWidget(ctk.CTkFrame):
         btn_about.pack(anchor="w")
 
         # ── Profile Section (Moved into Advanced Scroll) ──
-        self.profile_container = ctk.CTkFrame(self.advanced_scroll, fg_color=get_color("colors.background.panel"), corner_radius=CARD_RADIUS)
-        self.profile_container.pack(fill="x", pady=(0, SECTION_GAP))
-
-        self.profile_expanded = False
-        self.lbl_profile_section = ctk.CTkLabel(
-            self.profile_container, text="▶  PROFILE",
-            font=get_font("caption", "bold"),
-            text_color=get_color("colors.text.muted"), anchor="w",
-            cursor="hand2"
+        self.profile_frame = make_card(
+            self.advanced_scroll,
+            title="PROFILE",
+            fg_color=get_color("colors.background.panel"),
+            padx=0,
+            pady=(0, SECTION_GAP),
+            collapsible=True,
+            start_collapsed=True
         )
-        self.lbl_profile_section.pack(fill="x", padx=CARD_PAD, pady=(CARD_PAD, INNER_GAP))
-        self.tooltip_profile = CTkTooltip(self.lbl_profile_section, "Toggle Profile")
-        self.lbl_profile_section.bind("<Button-1>", self._toggle_profile_collapse)
-        self.lbl_profile_section.bind("<Enter>", lambda e: self.lbl_profile_section.configure(text_color=get_color("colors.text.primary")))
-        self.lbl_profile_section.bind("<Leave>", lambda e: self.lbl_profile_section.configure(text_color=get_color("colors.text.muted")))
-
-        self.profile_frame = ctk.CTkFrame(self.profile_container, fg_color="transparent")
-        # starts collapsed
 
         lbl_status = ctk.CTkLabel(self.profile_frame, text="Custom Status", font=get_font("caption"), text_color=get_color("colors.text.muted"), anchor="w")
         lbl_status.pack(fill="x", padx=CARD_PAD, pady=(0, 2))
@@ -692,19 +579,16 @@ class SidebarWidget(ctk.CTkFrame):
         self.spacer.pack(fill="both", expand=True)
 
         # ── Lobby Stats (Hidden initially, packed before spacer when shown) ──
-        self.stats_frame = ctk.CTkFrame(self.main_body, fg_color="transparent")
-        
-        self.lbl_stats_title = ctk.CTkLabel(
-            self.stats_frame, text="LOBBY STATS", font=get_font("caption", "bold"),
-            text_color=get_color("colors.accent.gold", "#C8AA6E"), anchor="w"
+        self.stats_content = make_card(
+            self.main_body, 
+            title="LIVE LOBBY STATS",
+            collapsible=True,
+            start_collapsed=False,
+            padx=0,
+            pady=0
         )
-        self.lbl_stats_title.pack(fill="x", padx=CARD_PAD, pady=(CARD_PAD, 2))
-        
-        ctk.CTkFrame(self.stats_frame, height=1, fg_color=get_color("colors.border.subtle")).pack(fill="x", padx=CARD_PAD, pady=(0, INNER_GAP))
-        
-        self.stats_content = ctk.CTkFrame(self.stats_frame, fg_color="transparent")
-        self.stats_content.pack(fill="x", padx=CARD_PAD)
-        # stats_frame is NOT packed yet — it appears only during ChampSelect
+        self.stats_card = self.stats_content._card
+        self.stats_card.pack_forget()
 
         # ── Fixed Footer (pinned to bottom of sidebar, never clips) ──
         # IMPORTANT: Footer must be packed BEFORE main_body to reserve bottom space
@@ -765,12 +649,24 @@ class SidebarWidget(ctk.CTkFrame):
 
         # Check if Riot Client is actually running
         riot_running = False
-        if self._account_manager:
+        if getattr(self, "_account_manager", None):
             riot_running = self._account_manager.riot_client.is_riot_client_running()
 
         should_show = riot_running and not lcu_connected
 
         self._accounts_tool_visible = should_show
+        
+        # Toggle Launch Client Button
+        if hasattr(self, "btn_launch_client"):
+            if not lcu_connected and not riot_running:
+                if not bool(self.btn_launch_client.winfo_manager()):
+                    # SPACING_SM from tokens or INNER_GAP
+                    from .theme.token_loader import TOKENS
+                    self.btn_launch_client.pack(fill="x", pady=(TOKENS.get("spacing", "sm", 4), 0))
+            else:
+                if bool(self.btn_launch_client.winfo_manager()):
+                    self.btn_launch_client.pack_forget()
+
         if hasattr(self, "switch_tab"):
             self.switch_tab(self._current_tab)
 
@@ -828,13 +724,6 @@ class SidebarWidget(ctk.CTkFrame):
 
 
 
-    def _toggle_auto_collapse(self, event=None):
-        self.auto_expanded = not self.auto_expanded
-        if self.auto_expanded:
-            self.automation_frame.pack(fill="x")
-        else:
-            self.automation_frame.pack_forget()
-        self._update_auto_header()
 
     def _update_game_tool_visibility(self, mode):
         if hasattr(self, "priority_grid"):
@@ -904,22 +793,15 @@ class SidebarWidget(ctk.CTkFrame):
         """Handles LCU connection state changes."""
         if not self.winfo_exists(): return
         if connected:
-            if hasattr(self, "btn_launch_client") and bool(self.btn_launch_client.winfo_manager()):
-                self.btn_launch_client.pack_forget()
-                if hasattr(self, "divider_btn"):
-                    self.divider_btn.pack_forget()
+            pass # Launch client visibility handled by update_accounts_tool_visibility
         else:
             self._hide_quick_actions()
             self._stop_local_queue_timer()
             
-            if hasattr(self, "btn_launch_client") and not bool(self.btn_launch_client.winfo_manager()):
-                self.btn_launch_client.pack(fill="x", pady=(SPACING_SM, 0))
-                if hasattr(self, "divider_btn") and hasattr(self, "auto_container"):
-                    self.divider_btn.pack(fill="x", pady=SPACING_MD, before=self.auto_container)
             self.time_label.configure(text="Disconnected", text_color=get_color("colors.state.danger", "#ff4444"))
             self.estimate_label.configure(text="● Offline", text_color=get_color("colors.state.danger", "#ff4444"))
 
-        # Show/hide accounts tool based on login state
+        # Show/hide accounts tool and launch button based on login state
         self.update_accounts_tool_visibility(lcu_connected=connected)
 
     def set_power_state(self, state: bool):
@@ -1120,14 +1002,7 @@ class SidebarWidget(ctk.CTkFrame):
         else:
             self.update_action_log("Automation engine not available.")
 
-    def _toggle_profile_collapse(self, event=None):
-        self.profile_expanded = not self.profile_expanded
-        if self.profile_expanded:
-            self.lbl_profile_section.configure(text="▼  PROFILE")
-            self.profile_frame.pack(fill="x")
-        else:
-            self.lbl_profile_section.configure(text="▶  PROFILE")
-            self.profile_frame.pack_forget()
+
 
     def _on_status_submit(self, event=None):
         text = self.entry_status.get().strip()
@@ -1428,7 +1303,47 @@ class SidebarWidget(ctk.CTkFrame):
         champ_id = me.get("championId", 0) if me else 0
         if hasattr(self, "priority_grid") and hasattr(self.priority_grid, "set_hovered_champion"):
             self.priority_grid.set_hovered_champion(champ_id)
-        if hasattr(self, "stats_frame"):
-            self.stats_frame.pack_forget()
+            
+        if not hasattr(self, "stats_card"):
+            return
+            
+        if not getattr(self, "scraper", None) or not getattr(self, "assets", None):
+            self.stats_card.pack_forget()
+            return
+
+        # Clear existing content
+        for child in self.stats_content.winfo_children():
+            child.destroy()
+
+        stats_found = False
+        
+        for p in team:
+            c_id = p.get("championId", 0)
+            if c_id == 0:
+                c_id = p.get("championPickIntent", 0)
+            
+            if c_id > 0:
+                c_name = self.assets.get_champ_name(c_id)
+                if c_name:
+                    wr = self.scraper.get_winrate(c_name)
+                    if wr > 0:
+                        stats_found = True
+                        row = ctk.CTkFrame(self.stats_content, fg_color="transparent")
+                        row.pack(fill="x", pady=2)
+                        
+                        is_me = me and p.get("cellId") == me.get("cellId")
+                        name_color = get_color("colors.accent.blue", "#4da6ff") if is_me else get_color("colors.text.primary")
+                        ctk.CTkLabel(row, text=c_name, font=get_font("caption", "bold"), text_color=name_color).pack(side="left")
+                        
+                        if wr >= 53.0: wr_color = get_color("colors.state.success", "#00C853")
+                        elif wr >= 50.0: wr_color = get_color("colors.text.primary", "#F0E6D2")
+                        else: wr_color = get_color("colors.state.danger", "#ff4444")
+                        
+                        ctk.CTkLabel(row, text=f"{wr:.1f}%", font=get_font("caption"), text_color=wr_color).pack(side="right")
+
+        if stats_found:
+            self.stats_card.pack(fill="x", pady=(0, SECTION_GAP), before=self.spacer)
+        else:
+            self.stats_card.pack_forget()
 
 

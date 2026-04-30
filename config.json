@@ -326,6 +326,6 @@
     "startup_status": "",
     "arena_ban": "TahmKench",
     "auto_join_vip_only": true,
-    "arena_fallback_pick": "Leona",
+    "arena_fallback_pick": "Bravery",
     "arena_instant_ban": true
 }

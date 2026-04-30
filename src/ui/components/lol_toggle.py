@@ -37,8 +37,6 @@ class LolToggle(tk.Canvas):
         self.bind("<FocusIn>", self._on_focus_in)
         self.bind("<FocusOut>", self._on_focus_out)
 
-        apply_click_animation(self, self.color_inactive, pulse_color=self.color_focus_ring)
-
         self._draw()
 
     def _on_focus_in(self, event=None):
@@ -88,6 +86,9 @@ class LolToggle(tk.Canvas):
         bg_col = self.color_active if self._state else self.color_inactive
         self.itemconfig("track", fill=bg_col, outline=bg_col)
         
+        # Haptic visual pop
+        self.itemconfig(self.knob_id, fill=self.color_focus_ring, outline=self.color_focus_ring)
+        
         def step_animation():
             if not self.winfo_exists(): return
             diff = target_x - self._current_x
@@ -95,6 +96,8 @@ class LolToggle(tk.Canvas):
             if abs(diff) < 0.5:
                 self._current_x = target_x
                 self.coords(self.knob_id, self._current_x, 2, self._current_x + 12, 14)
+                # Revert knob color
+                self.itemconfig(self.knob_id, fill=self.color_knob, outline=self.color_knob)
                 return
                 
             self._current_x += diff * 0.3

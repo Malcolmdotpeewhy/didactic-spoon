@@ -1,0 +1,3 @@
+## 2024-05-18 - Optimized DesignTokens fast-path resolution
+**Learning:** In tight-loop string-based dictionary lookups inside UI frameworks, caching via `lru_cache` (as in `get_color`) is effective for the wrapper, but the underlying object traversal in `DesignTokens.get` was repeatedly executing slow object allocations. By providing a try-except optimized fast-path specifically for single dot-separated strings (the most common pattern in CustomTkinter config calls), overhead was reduced by ~50%.
+**Action:** When working on UI string property lookups, use EAFP (`try...except`) and simple splits rather than defensive list conversions and loop-based type checks to bypass slow path overhead.

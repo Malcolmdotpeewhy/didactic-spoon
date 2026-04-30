@@ -258,7 +258,7 @@ def make_input(parent, placeholder="", width=None, **kw):
 
 
 def make_card(parent, title=None, fg_color=None, border_color=None, corner_radius=None,
-              padx=10, pady=10, inner_padx=10, inner_pady=8, collapsible=False):
+              padx=10, pady=10, inner_padx=10, inner_pady=8, collapsible=False, start_collapsed=False):
     """Create a standardized League-styled card frame.
     
     Returns the content frame (inside the card) where widgets should be packed.
@@ -272,7 +272,8 @@ def make_card(parent, title=None, fg_color=None, border_color=None, corner_radiu
         corner_radius: Corner radius. Defaults to token md radius.
         padx/pady: External padding when packing the card
         inner_padx/inner_pady: Internal content padding
-        collapsible: If True, title becomes a clickable toggle
+        collapsible: If True, title becomes a clickable toggle with smooth animation
+        start_collapsed: If True and collapsible is True, starts in collapsed state
     
     Returns:
         content_frame: CTkFrame where child widgets should be packed
@@ -296,25 +297,125 @@ def make_card(parent, title=None, fg_color=None, border_color=None, corner_radiu
     card.bind("<Enter>", lambda e: card.configure(fg_color=_hover_bg))
     card.bind("<Leave>", lambda e: card.configure(fg_color=card_bg))
     
+    header_frame = None
+    chevron = None
+    divider = None
+    
     if title:
+        header_frame = ctk.CTkFrame(card, fg_color="transparent")
+        header_frame.pack(fill="x", padx=inner_padx, pady=(inner_pady, 2))
+        
+        chevron_text = "▼  " if not (collapsible and start_collapsed) else "▶  "
+        if collapsible:
+            chevron = ctk.CTkLabel(
+                header_frame, text=chevron_text,
+                font=get_font("caption", "bold"),
+                text_color=get_color("colors.text.muted")
+            )
+            chevron.pack(side="left")
+            
         title_label = ctk.CTkLabel(
-            card, text=title,
+            header_frame, text=title,
             font=get_font("section", "bold"),
             text_color=get_color("colors.accent.gold", "#C8AA6E"),
             anchor="w"
         )
-        title_label.pack(fill="x", padx=inner_padx, pady=(inner_pady, 2))
+        title_label.pack(side="left", fill="x")
         
         # Gold-tinted divider
-        ctk.CTkFrame(
+        divider = ctk.CTkFrame(
             card, height=1,
             fg_color=get_color("colors.border.subtle", "#1E2328")
-        ).pack(fill="x", padx=inner_padx, pady=(0, inner_pady - 2))
+        )
+        if not (collapsible and start_collapsed):
+            divider.pack(fill="x", padx=inner_padx, pady=(0, inner_pady - 2))
     
-    content = ctk.CTkFrame(card, fg_color="transparent")
-    content.pack(fill="x", padx=inner_padx, pady=(0 if title else inner_pady, inner_pady))
+    # Wrapper frame for animation purposes
+    content_wrapper = ctk.CTkFrame(card, fg_color="transparent")
+    if not (title and collapsible and start_collapsed):
+        content_wrapper.pack(fill="x", padx=inner_padx, pady=(0 if title else inner_pady, inner_pady))
     
-    # Store reference to outer card on content frame for external access
+    content = ctk.CTkFrame(content_wrapper, fg_color="transparent")
+    content.pack(fill="both", expand=True)
+    
+    # Store reference to outer card and header on content frame for external access
     content._card = card
+    content._header = header_frame
+    
+    if title and collapsible:
+        class AnimatedToggle:
+            def __init__(self):
+                self.is_expanded = not start_collapsed
+                self.animating = False
+                self.current_h = 0
+                self.target_h = 0
+                
+                # Bind clicks
+                header_frame.configure(cursor="hand2")
+                header_frame.bind("<Button-1>", self.toggle)
+                for child in header_frame.winfo_children():
+                    child.configure(cursor="hand2")
+                    child.bind("<Button-1>", self.toggle)
+                    
+            def toggle(self, event=None):
+                if self.animating: return
+                self.animating = True
+                
+                if self.is_expanded:
+                    chevron.configure(text="▶  ")
+                    self.target_h = 0
+                    self.current_h = content.winfo_reqheight()
+                    content_wrapper.configure(height=self.current_h)
+                    content_wrapper.pack_propagate(False)
+                    self.animate_collapse()
+                else:
+                    chevron.configure(text="▼  ")
+                    divider.pack(fill="x", padx=inner_padx, pady=(0, inner_pady - 2), before=content_wrapper)
+                    content_wrapper.pack(fill="x", padx=inner_padx, pady=(0 if title else inner_pady, inner_pady))
+                    
+                    # Temporarily allow propagation to calculate required height
+                    content_wrapper.pack_propagate(True)
+                    content_wrapper.update_idletasks()
+                    self.target_h = content.winfo_reqheight()
+                    
+                    self.current_h = 0
+                    content_wrapper.configure(height=0)
+                    content_wrapper.pack_propagate(False)
+                    self.animate_expand()
+                    
+            def animate_collapse(self):
+                step = max(4, self.current_h * 0.25)
+                self.current_h -= step
+                if self.current_h <= 0:
+                    content_wrapper.pack_forget()
+                    divider.pack_forget()
+                    self.is_expanded = False
+                    self.animating = False
+                else:
+                    content_wrapper.configure(height=int(self.current_h))
+                    card.after(16, self.animate_collapse)
+
+            def animate_expand(self):
+                step = max(4, (self.target_h - self.current_h) * 0.25)
+                self.current_h += step
+                if self.current_h >= self.target_h - 2:
+                    content_wrapper.configure(height=self.target_h)
+                    content_wrapper.pack_propagate(True)
+                    self.is_expanded = True
+                    self.animating = False
+                else:
+                    content_wrapper.configure(height=int(self.current_h))
+                    card.after(16, self.animate_expand)
+                    
+        content._toggle_controller = AnimatedToggle()
     
     return content
+
+def make_divider(parent, padx=0, pady=0, side="top"):
+    """Create a standardized 1px horizontal divider."""
+    divider = ctk.CTkFrame(
+        parent, height=1,
+        fg_color=get_color("colors.border.subtle", "#1E2328")
+    )
+    divider.pack(fill="x", side=side, padx=padx, pady=pady)
+    return divider
