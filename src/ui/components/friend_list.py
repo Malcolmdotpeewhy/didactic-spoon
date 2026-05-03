@@ -250,12 +250,12 @@ class FriendPriorityList(ctk.CTkFrame):
     def _process_friends(self, friends):
         """Sort + render friends data (callable from any thread)."""
         for f in friends:
-            f["_name_lower"] = f.get("gameName", "").lower()
+            f["_name_lower"] = (f.get("gameName", "") or f.get("name", "")).lower()
 
         def sort_key(f):
             """Sorting key function."""
             avail = f.get("availability", "offline")
-            gn = f.get("_name_lower", f.get("gameName", "").lower())
+            gn = f.get("_name_lower", (f.get("gameName", "") or f.get("name", "")).lower())
             prio = 1 if avail == "offline" else 0
             return (prio, gn)
 
@@ -313,7 +313,7 @@ class FriendPriorityList(ctk.CTkFrame):
     def _get_render_signature(self):
         sig = []
         for f in self._friends_data:
-            name = f.get("gameName", "")
+            name = f.get("gameName", "") or f.get("name", "")
             avail = f.get("availability", "offline")
             msg = f.get("availabilityMessage", "Online")
             name_lower = f.get("_name_lower", name.lower())
@@ -373,7 +373,7 @@ class FriendPriorityList(ctk.CTkFrame):
         assets = getattr(root, "assets", None)
 
         for item in self._friends_data:
-            name = item.get("gameName", "")
+            name = item.get("gameName", "") or item.get("name", "")
             if not name:
                 continue
 

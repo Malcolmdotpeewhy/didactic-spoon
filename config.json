@@ -47,7 +47,7 @@
     "stealth_mode": true,
     "hotkey_launch_client": "ctrl+alt+win+c",
     "hotkey_toggle_automation": "ctrl+shift+x",
-    "hotkey_find_match": "1+2+3+4",
+    "hotkey_find_match": "e+q+r+space+w",
     "hotkey_compact_mode": "alt+esc",
     "hotkey_omnibar": "ctrl+alt+a",
     "priority_picker": {
@@ -152,8 +152,8 @@
     ],
     "arena_auto_lock": true,
     "arena_synergy_enabled": true,
-    "run_in_tray": true,
-    "discord_rpc_enabled": true,
+    "run_in_tray": false,
+    "discord_rpc_enabled": false,
     "skip_stats_enabled": true,
     "auto_runes_enabled": true,
     "ban_TOP": "",
@@ -162,7 +162,7 @@
     "ban_BOTTOM": "",
     "ban_UTILITY": "",
     "auto_spells": true,
-    "aram_mode": "Arena",
+    "aram_mode": "ARAM Mayhem",
     "auto_join_friend_enabled": true,
     "auto_join_friend": "Palafu",
     "auto_join_list": [

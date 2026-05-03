@@ -115,7 +115,7 @@ class SidebarWidget(ctk.CTkFrame):
             self.game_tool_container.pack_forget()
             if getattr(self, "accounts_tool", None): self.accounts_tool.pack_forget()
             
-            self.auto_container.pack_forget()
+            if getattr(self, "automation_frame", None): self.automation_frame.pack_forget()
             if getattr(self, "friend_list", None): self.friend_list.pack_forget()
             
             self.advanced_scroll.pack_forget()
@@ -136,7 +136,7 @@ class SidebarWidget(ctk.CTkFrame):
                 self.spacer.pack(fill="both", expand=True)
                 
             elif tab_name == "Actions":
-                self.auto_container.pack(fill="x", pady=(0, SECTION_GAP))
+                if getattr(self, "automation_frame", None): self.automation_frame.pack(fill="x", pady=(0, SECTION_GAP))
                 self.spacer.pack(fill="both", expand=True)
                 
             elif tab_name == "Config":

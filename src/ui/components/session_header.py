@@ -1,8 +1,10 @@
 import tkinter as tk
 import customtkinter as ctk  # type: ignore
 
-from ui.components.factory import get_color, get_font, CARD_RADIUS, CARD_PAD, make_button, make_divider  # type: ignore
+from ui.components.factory import get_color, get_font, get_radius, make_button, make_divider  # type: ignore
 from ui.ui_shared import CTkTooltip  # type: ignore
+
+CARD_PAD = 10
 
 class SessionHeader(ctk.CTkFrame):
     """Component for displaying the current session status, queue mode, and queue timers."""
@@ -12,7 +14,7 @@ class SessionHeader(ctk.CTkFrame):
             master,
             height=64,
             fg_color=get_color("colors.background.card", "#0F1923"),
-            corner_radius=CARD_RADIUS,
+            corner_radius=get_radius("md"),
             border_width=1,
             border_color="#1A2332",
             **kwargs

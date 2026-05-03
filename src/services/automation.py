@@ -414,6 +414,7 @@ class AutomationEngine:
             self._skin_equipped = False
             self._runes_equipped = False  # Item #167: Reset so runes re-equip next game
             self._chat_warden_warned = False  # Item #166: Reset so toxicity is re-checked next game
+            self._bravery_pick_id = 0
             sf = self.stats_func
             if sf is not None:
                 sf([], [])
@@ -699,11 +700,26 @@ class AutomationEngine:
         # Try arena pairs or arena fallback first
         if mapped_me_list:
             for champ_name in mapped_me_list:
-                cid = self.assets.name_to_id.get(champ_name.lower())
-                if cid and cid not in banned_ids and cid != target_id:
-                    mapped_my_id = cid
-                    mapped_me_champ = champ_name
-                    break
+                if champ_name.lower() in ("bravery", "random"):
+                    if getattr(self, "_bravery_pick_id", 0) in banned_ids or getattr(self, "_bravery_pick_id", 0) == target_id:
+                        self._bravery_pick_id = 0
+                    if not getattr(self, "_bravery_pick_id", 0):
+                        req = self.lcu.request("GET", "/lol-champ-select/v1/pickable-champion-ids", silent=True)
+                        if req and req.status_code == 200:
+                            pickable = req.json()
+                            valid = [cid for cid in pickable if cid not in banned_ids and cid != target_id]
+                            if valid:
+                                self._bravery_pick_id = random.choice(valid)
+                    if getattr(self, "_bravery_pick_id", 0):
+                        mapped_my_id = self._bravery_pick_id
+                        mapped_me_champ = self.assets.get_champ_name(mapped_my_id) or "Random"
+                        break
+                else:
+                    cid = self.assets.name_to_id.get(champ_name.lower())
+                    if cid and cid not in banned_ids and cid != target_id:
+                        mapped_my_id = cid
+                        mapped_me_champ = champ_name
+                        break
                     
         # If still 0, try global auto_pick
         if mapped_my_id == 0:
@@ -935,7 +951,7 @@ class AutomationEngine:
         # we index the active online friends into an O(1) dictionary mapping their lowercased names.
         friend_map = {}
         for f in friends:
-            game_name = f.get("gameName", "")
+            game_name = f.get("gameName", "") or f.get("name", "")
             game_tag = f.get("gameTag", "")
             combo_name = f"{game_name}#{game_tag}" if game_tag else game_name
             
